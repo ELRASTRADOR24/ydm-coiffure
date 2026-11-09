@@ -12,6 +12,7 @@ export default function LightboxModal({
   video,
   title,
   category,
+  reserveUrl = "/reserver",
   onClose,
 }) {
   const activeImage = image || item?.image;
@@ -105,7 +106,7 @@ export default function LightboxModal({
             </h4>
           </div>
           <Link
-            href="/reserver"
+            href={reserveUrl || "/reserver"}
             onClick={onClose}
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-champagne hover:bg-champagne-dark text-brun-dark px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shadow-xs shrink-0"
           >

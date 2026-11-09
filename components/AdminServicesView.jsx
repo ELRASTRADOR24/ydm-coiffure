@@ -23,6 +23,7 @@ const AVAILABLE_SALON_IMAGES = [
   { label: "Knotless classique", path: "/images/realisations/knotless-still.jpeg" },
   { label: "Small Knotless", path: "/images/realisations/small-knotless-still.jpeg" },
   { label: "Knotless Large", path: "/images/realisations/knotless-large-still.jpeg" },
+  { label: "French curls Medium", path: "/images/realisations/french-curl-medium-still.jpeg" },
   { label: "Knotless Bicolore", path: "/images/realisations/knotless-melange-couleur-still.jpeg" },
   { label: "Knotless Traçage net", path: "/images/realisations/IMG_3401_still.jpeg" },
   { label: "Fulani classique", path: "/images/realisations/fulani-still.jpeg" },
@@ -48,6 +49,29 @@ const AVAILABLE_SALON_IMAGES = [
   { label: "Soft Locs", path: "/images/realisations/soft-locs-still.jpeg" },
   { label: "Soft Locs Partie 2", path: "/images/realisations/soft-locks-part-2-still.jpeg" },
 ];
+
+const VIDEO_MAP = {
+  "/images/realisations/knotless-still.jpeg": "/videos/realisations/knotless.mp4",
+  "/images/realisations/small-knotless-still.jpeg": "/videos/realisations/small-knotless.mp4",
+  "/images/realisations/knotless-large-still.jpeg": "/videos/realisations/knotless-large.mp4",
+  "/images/realisations/knotless-melange-couleur-still.jpeg": "/videos/realisations/knotless-melange-couleur.mp4",
+  "/images/realisations/fulani-still.jpeg": "/videos/realisations/fulani.mp4",
+  "/images/realisations/fulani-sup-boucle-still.jpeg": "/videos/realisations/fulani-sup-boucle.mp4",
+  "/images/realisations/fulani-sup-boucle-2-still.jpeg": "/videos/realisations/fulani-sup-boucle-2.mp4",
+  "/images/realisations/fulani-sans-rajout-still.jpeg": "/videos/realisations/fulani-sans-rajout.mp4",
+  "/images/realisations/fulani-sur-mesure-still.jpeg": "/videos/realisations/fulani-sur-mesure.mp4",
+  "/images/realisations/boho-braids-still.jpeg": "/videos/realisations/boho-braids.mp4",
+  "/images/realisations/boho-braids-2-still.jpeg": "/videos/realisations/boho-braids-2.mp4",
+  "/images/realisations/vanille-still.jpeg": "/videos/realisations/vanille.mp4",
+  "/images/realisations/vanille-2-still.jpeg": "/videos/realisations/vanille-2.mp4",
+  "/images/realisations/vanille-sans-rajout-still.jpeg": "/videos/realisations/vanille-sans-rajout.mp4",
+  "/images/realisations/natte-collee-sans-rajout-still.jpeg": "/videos/realisations/natte-collee-sans-rajout.mp4",
+  "/images/realisations/cornrows-2-still.jpeg": "/videos/realisations/cornrows-2.mp4",
+  "/images/realisations/cornrow-rouge-still.jpeg": "/videos/realisations/cornrow-rouge.mp4",
+  "/images/realisations/soft-locs-still.jpeg": "/videos/realisations/soft-locs.mp4",
+  "/images/realisations/soft-locks-part-2-still.jpeg": "/videos/realisations/soft-locks-part-2.mp4",
+  "/images/realisations/french-curl-medium-still.jpeg": "/videos/realisations/french-curl-medium.mp4",
+};
 
 export default function AdminServicesView({ initialServices = [] }) {
   const [services, setServices] = useState(initialServices);
@@ -148,10 +172,13 @@ export default function AdminServicesView({ initialServices = [] }) {
       ? newCategoryName.trim()
       : form.category;
 
+    const matchedVideo = form.videoUrl || VIDEO_MAP[form.imageUrl] || editingService?.videoUrl;
+
     const payload = {
       ...form,
       category: finalCategory,
       images: [form.imageUrl || "/images/realisations/knotless-still.jpeg"],
+      ...(matchedVideo ? { videoUrl: matchedVideo } : {}),
     };
 
     try {

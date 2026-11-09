@@ -137,7 +137,7 @@ const SalonSettingsSchema = new mongoose.Schema(
     galleryItems: {
       type: [
         {
-          id: { type: Number },
+          id: { type: mongoose.Schema.Types.Mixed },
           type: { type: String, default: "photo" },
           title: { type: String },
           category: { type: String },

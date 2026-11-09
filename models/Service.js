@@ -34,6 +34,7 @@ const ServiceSchema = new mongoose.Schema(
     includesHair: { type: Boolean, default: false },
     isCustomRequest: { type: Boolean, default: false },
     images: [{ type: String }],
+    videoUrl: { type: String },
     options: [ServiceOptionSchema],
     isActive: { type: Boolean, default: true },
     isPopular: { type: Boolean, default: false },

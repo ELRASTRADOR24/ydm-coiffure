@@ -38,6 +38,7 @@ export default function GalleryGrid({ initialItems }) {
     { key: "VIDEO", label: "Vidéos", isType: true },
     { key: "PHOTO", label: "Photos", isType: true },
     { key: "Knotless", label: "Knotless" },
+    { key: "French Curls", label: "French Curls" },
     { key: "Fulani", label: "Fulani" },
     { key: "Boho Braids", label: "Boho Braids" },
     { key: "Vanilles", label: "Vanilles" },
