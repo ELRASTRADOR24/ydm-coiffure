@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowDown,
+  GripVertical,
   Image as ImageIcon,
   Film,
 } from "lucide-react";
@@ -77,6 +78,8 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
       ? settings.galleryItems
       : DEFAULT_GALLERY_FALLBACK
   );
+  const [draggedGalleryIndex, setDraggedGalleryIndex] = useState(null);
+  const [dragOverGalleryIndex, setDragOverGalleryIndex] = useState(null);
 
   // Pages Visibilité
   const [pageVis, setPageVis] = useState(
@@ -215,6 +218,46 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
     updated[target] = temp;
     setGalleryList(updated);
     markChanged();
+  };
+
+  // Drag and drop gallery reordering
+  const handleDragStartGallery = (e, index) => {
+    setDraggedGalleryIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleDragOverGallery = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverGalleryIndex !== index) {
+      setDragOverGalleryIndex(index);
+    }
+  };
+
+  const handleDropGallery = (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedGalleryIndex === null || draggedGalleryIndex === targetIndex) {
+      setDraggedGalleryIndex(null);
+      setDragOverGalleryIndex(null);
+      return;
+    }
+    const updated = [...galleryList];
+    const [movedItem] = updated.splice(draggedGalleryIndex, 1);
+    updated.splice(targetIndex, 0, movedItem);
+    const reordered = updated.map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+    setGalleryList(reordered);
+    setDraggedGalleryIndex(null);
+    setDragOverGalleryIndex(null);
+    markChanged();
+  };
+
+  const handleDragEndGallery = () => {
+    setDraggedGalleryIndex(null);
+    setDragOverGalleryIndex(null);
   };
 
   // ==========================================
@@ -500,7 +543,7 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
                 Disposition des Photos & Vidéos du Portfolio
               </h2>
               <p className="text-xs text-stone-500 font-light mt-0.5">
-                Changez l'ordre d'apparition des coiffures avec les flèches haut/bas, modifiez les titres ou ajoutez de nouvelles photos.
+                Glissez-déposez directement les cartes pour réorganiser l'affichage (comme sur Instagram), ou utilisez les flèches haut/bas.
               </p>
             </div>
             <button
@@ -517,8 +560,27 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
             {galleryList.map((item, index) => (
               <div
                 key={item.id || index}
-                className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 hover:border-champagne/60 transition-colors flex flex-col md:flex-row items-start md:items-center gap-4"
+                draggable
+                onDragStart={(e) => handleDragStartGallery(e, index)}
+                onDragOver={(e) => handleDragOverGallery(e, index)}
+                onDrop={(e) => handleDropGallery(e, index)}
+                onDragEnd={handleDragEndGallery}
+                className={`p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex flex-col md:flex-row items-start md:items-center gap-4 ${
+                  draggedGalleryIndex === index
+                    ? "opacity-40 scale-[0.98] border-dashed border-champagne shadow-inner"
+                    : dragOverGalleryIndex === index && draggedGalleryIndex !== index
+                    ? "border-champagne-dark ring-2 ring-champagne/40 bg-champagne/10 scale-[1.01]"
+                    : "bg-stone-50 border-stone-200 hover:border-champagne/60 hover:shadow-2xs"
+                }`}
               >
+                {/* Poignée de glisser-déposer */}
+                <div
+                  className="hidden md:flex items-center justify-center cursor-grab active:cursor-grabbing text-stone-400 hover:text-brun p-1"
+                  title="Glisser pour réorganiser"
+                >
+                  <GripVertical className="w-5 h-5" />
+                </div>
+
                 {/* Miniature visuelle */}
                 <div className="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden bg-stone-900 shrink-0 border border-stone-200">
                   {item.image ? (
@@ -526,7 +588,7 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
                       src={item.image}
                       alt={item.title || "Réalisation"}
                       fill
-                      className="object-cover object-center"
+                      className="object-cover object-center pointer-events-none"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-stone-400">

@@ -1,23 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import {
   Plus,
   Edit2,
   Trash2,
-  Clock,
-  Shield,
   Sparkles,
   Check,
   X,
-  AlertCircle,
   ToggleLeft,
   ToggleRight,
   ArrowUp,
   ArrowDown,
+  GripVertical,
+  ImageIcon,
 } from "lucide-react";
-import { formatPrice, formatDuration } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
+
+// Liste des visuels disponibles au salon pour sélection rapide en 1 clic
+const AVAILABLE_SALON_IMAGES = [
+  { label: "Knotless classique", path: "/images/realisations/knotless-still.jpeg" },
+  { label: "Small Knotless", path: "/images/realisations/small-knotless-still.jpeg" },
+  { label: "Knotless Large", path: "/images/realisations/knotless-large-still.jpeg" },
+  { label: "Knotless Bicolore", path: "/images/realisations/knotless-melange-couleur-still.jpeg" },
+  { label: "Knotless Traçage net", path: "/images/realisations/IMG_3401_still.jpeg" },
+  { label: "Fulani classique", path: "/images/realisations/fulani-still.jpeg" },
+  { label: "Fulani Sup boucle", path: "/images/realisations/fulani-sup-boucle-still.jpeg" },
+  { label: "Fulani Sup boucle 2", path: "/images/realisations/fulani-sup-boucle-2-still.jpeg" },
+  { label: "Fulani Sans rajout", path: "/images/realisations/fulani-sans-rajout-still.jpeg" },
+  { label: "Fulani Sur-mesure", path: "/images/realisations/fulani-sur-mesure-still.jpeg" },
+  { label: "Fulani Bordeaux", path: "/images/realisations/IMG_3475_still.jpeg" },
+  { label: "Fulani 7 (Détail)", path: "/images/realisations/fulani-7.png" },
+  { label: "Fulani 8 (Pose)", path: "/images/realisations/fulani-8.jpeg" },
+  { label: "Boho Braids", path: "/images/realisations/boho-braids-still.jpeg" },
+  { label: "Boho Braids 2", path: "/images/realisations/boho-braids-2-still.jpeg" },
+  { label: "Boho Braids Caramel", path: "/images/realisations/FE8CAC4A-8B5A-4FDF-A6AF-67D0E81C5151_still.jpeg" },
+  { label: "Vanille avec mèches", path: "/images/realisations/vanille-2-still.jpeg" },
+  { label: "Vanille naturelle", path: "/images/realisations/vanille-still.jpeg" },
+  { label: "Vanille sans rajout", path: "/images/realisations/vanille-sans-rajout-still.jpeg" },
+  { label: "Vanilles profil", path: "/images/realisations/IMG_3738_still.jpeg" },
+  { label: "Natte collée sans rajout", path: "/images/realisations/natte-collee-sans-rajout-still.jpeg" },
+  { label: "Natte collée sans rajout 2", path: "/images/realisations/natte-collee-sans-rajout-2-still.jpeg" },
+  { label: "Natte collée homme", path: "/images/realisations/IMG_4027_still.jpeg" },
+  { label: "Cornrows 2", path: "/images/realisations/cornrows-2-still.jpeg" },
+  { label: "Cornrow Rouge", path: "/images/realisations/cornrow-rouge-still.jpeg" },
+  { label: "Soft Locs", path: "/images/realisations/soft-locs-still.jpeg" },
+  { label: "Soft Locs Partie 2", path: "/images/realisations/soft-locks-part-2-still.jpeg" },
+];
 
 export default function AdminServicesView({ initialServices = [] }) {
   const [services, setServices] = useState(initialServices);
@@ -25,19 +55,47 @@ export default function AdminServicesView({ initialServices = [] }) {
   const [editingService, setEditingService] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
 
+  // Drag and Drop state
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
   // Form State
   const [form, setForm] = useState({
     name: "",
     category: "Knotless Braids",
-    price: 120,
-    duration: 180,
-    depositAmount: 30,
+    price: 35,
+    duration: 180, // Valeur par défaut conservée en arrière-plan sans affichage
+    depositAmount: 10,
     description: "",
-    imageUrl: "",
+    imageUrl: "/images/realisations/knotless-still.jpeg",
     isActive: true,
     isPopular: false,
   });
+
+  // Custom Category State
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showImagePicker, setShowImagePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Unique existing categories list
+  const existingCategories = useMemo(() => {
+    const defaultList = [
+      "Sans rajouts",
+      "Sans mèches incluses",
+      "Avec mèches incluses",
+      "Knotless Braids",
+      "Fulani Braids",
+      "Boho Braids",
+      "Vanilles",
+      "Nattes collées",
+      "Cornrows",
+      "Soft Locs",
+      "Sur-Mesure",
+    ];
+    const fromServices = services.map((s) => s.category).filter(Boolean);
+    return Array.from(new Set([...defaultList, ...fromServices]));
+  }, [services]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -46,15 +104,17 @@ export default function AdminServicesView({ initialServices = [] }) {
 
   const openCreateModal = () => {
     setEditingService(null);
+    setIsCreatingCategory(false);
+    setNewCategoryName("");
+    setShowImagePicker(false);
     setForm({
       name: "",
-      category: "Knotless Braids",
-      price: 120,
+      category: existingCategories[0] || "Sans mèches incluses",
+      price: 35,
       duration: 180,
-      depositAmount: 30,
+      depositAmount: 10,
       description: "",
-      imageUrl:
-        "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=1200&auto=format&fit=crop",
+      imageUrl: "/images/realisations/knotless-still.jpeg",
       isActive: true,
       isPopular: false,
     });
@@ -63,14 +123,17 @@ export default function AdminServicesView({ initialServices = [] }) {
 
   const openEditModal = (service) => {
     setEditingService(service);
+    setIsCreatingCategory(false);
+    setNewCategoryName("");
+    setShowImagePicker(false);
     setForm({
-      name: service.name,
-      category: service.category || "Knotless Braids",
-      price: service.price,
-      duration: service.duration,
-      depositAmount: service.depositAmount || 30,
-      description: service.description,
-      imageUrl: service.images?.[0] || "",
+      name: service.name || "",
+      category: service.category || "Sans mèches incluses",
+      price: service.price || 0,
+      duration: service.duration || 180,
+      depositAmount: service.depositAmount ?? 10,
+      description: service.description || "",
+      imageUrl: service.images?.[0] || "/images/realisations/knotless-still.jpeg",
       isActive: service.isActive ?? true,
       isPopular: service.isPopular ?? false,
     });
@@ -81,14 +144,18 @@ export default function AdminServicesView({ initialServices = [] }) {
     e.preventDefault();
     setSubmitting(true);
 
+    const finalCategory = isCreatingCategory && newCategoryName.trim()
+      ? newCategoryName.trim()
+      : form.category;
+
     const payload = {
       ...form,
-      images: [form.imageUrl],
+      category: finalCategory,
+      images: [form.imageUrl || "/images/realisations/knotless-still.jpeg"],
     };
 
     try {
       if (editingService) {
-        // Update
         const id = editingService.id || editingService._id;
         const res = await fetch(`/api/admin/services/${id}`, {
           method: "PATCH",
@@ -100,11 +167,12 @@ export default function AdminServicesView({ initialServices = [] }) {
           setServices((prev) =>
             prev.map((s) => ((s.id || s._id) === id ? data.service : s))
           );
-          showToast("Prestation mise à jour !");
+          showToast("Prestation mise à jour avec succès !");
           setModalOpen(false);
+        } else {
+          showToast(data.error || "Erreur lors de la modification.");
         }
       } else {
-        // Create
         const res = await fetch("/api/admin/services", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -113,12 +181,14 @@ export default function AdminServicesView({ initialServices = [] }) {
         const data = await res.json();
         if (data.success) {
           setServices((prev) => [...prev, data.service]);
-          showToast("Nouvelle prestation créée !");
+          showToast("Nouvelle prestation créée avec succès !");
           setModalOpen(false);
+        } else {
+          showToast(data.error || "Erreur lors de la création.");
         }
       }
     } catch (err) {
-      showToast("Impossible d'enregistrer la prestation pour le moment. Veuillez réessayer.");
+      showToast("Impossible d'enregistrer la prestation pour le moment.");
     } finally {
       setSubmitting(false);
     }
@@ -154,44 +224,47 @@ export default function AdminServicesView({ initialServices = [] }) {
         setServices((prev) =>
           prev.map((s) => ((s.id || s._id) === id ? data.service : s))
         );
-        showToast(newStatus ? "Prestation rendue visible aux clientes." : "Prestation masquée du catalogue.");
+        showToast(
+          newStatus
+            ? "Prestation rendue visible aux clientes."
+            : "Prestation masquée du catalogue."
+        );
       }
     } catch (e) {
       showToast("Impossible de modifier la visibilité de cette prestation.");
     }
   };
 
-  const handleMoveService = async (index, direction) => {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= services.length) return;
-
+  // Drag and drop reordering
+  const handleDropService = async (fromIndex, toIndex) => {
+    if (fromIndex === toIndex || fromIndex === null || toIndex === null) return;
     const newServices = [...services];
-    const temp = newServices[index];
-    newServices[index] = newServices[targetIndex];
-    newServices[targetIndex] = temp;
+    const [moved] = newServices.splice(fromIndex, 1);
+    newServices.splice(toIndex, 0, moved);
 
     const updated = newServices.map((s, idx) => ({ ...s, order: idx + 1 }));
     setServices(updated);
 
     try {
-      const s1 = updated[index];
-      const s2 = updated[targetIndex];
-      await Promise.all([
-        fetch(`/api/admin/services/${s1.id || s1._id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order: s1.order }),
-        }),
-        fetch(`/api/admin/services/${s2.id || s2._id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order: s2.order }),
-        }),
-      ]);
-      showToast("Ordre d'affichage des prestations mis à jour !");
+      await Promise.all(
+        updated.map((s) =>
+          fetch(`/api/admin/services/${s.id || s._id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order: s.order }),
+          })
+        )
+      );
+      showToast("Emplacement des prestations réorganisé avec succès !");
     } catch (_) {
       showToast("Erreur lors de la mise à jour de l'ordre.");
     }
+  };
+
+  const handleMoveService = async (index, direction) => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= services.length) return;
+    handleDropService(index, targetIndex);
   };
 
   return (
@@ -210,7 +283,7 @@ export default function AdminServicesView({ initialServices = [] }) {
             Gestion des Prestations
           </h1>
           <p className="text-xs text-stone-500 font-light mt-1">
-            Ajoutez, ajustez les prix, durées, acomptes et photos de votre carte de coiffures.
+            Glissez-déposez les cartes pour changer leur ordre comme sur Instagram, ou modifiez tarifs, photos et catégories.
           </p>
         </div>
 
@@ -223,30 +296,68 @@ export default function AdminServicesView({ initialServices = [] }) {
         </button>
       </div>
 
-      {/* Services Grid */}
+      {/* Services Grid avec Drag & Drop */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service, index) => {
           const id = service.id || service._id;
+          const isDragging = draggedIndex === index;
+          const isOver = dragOverIndex === index;
+
           return (
             <div
               key={id}
-              className={`bg-white rounded-2xl overflow-hidden border transition-all ${
-                service.isActive
-                  ? "border-stone-200 shadow-2xs"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", index.toString());
+                setDraggedIndex(index);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragOverIndex !== index) setDragOverIndex(index);
+              }}
+              onDragLeave={() => {
+                if (dragOverIndex === index) setDragOverIndex(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                if (!isNaN(fromIdx)) {
+                  handleDropService(fromIdx, index);
+                }
+                setDraggedIndex(null);
+                setDragOverIndex(null);
+              }}
+              onDragEnd={() => {
+                setDraggedIndex(null);
+                setDragOverIndex(null);
+              }}
+              className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 cursor-grab active:cursor-grabbing relative select-none ${
+                isDragging
+                  ? "opacity-40 scale-95 border-dashed border-stone-400"
+                  : isOver
+                  ? "ring-2 ring-champagne border-champagne scale-[1.02] shadow-xl"
+                  : service.isActive
+                  ? "border-stone-200 shadow-2xs hover:shadow-md"
                   : "border-stone-300 opacity-60 bg-stone-50"
               }`}
             >
+              {/* Drag Handle Top Bar */}
+              <div className="absolute top-3 left-3 z-20 flex items-center space-x-1 bg-brun/85 backdrop-blur-md text-creme text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-md border border-white/20">
+                <GripVertical className="w-3.5 h-3.5 text-champagne" />
+                <span>#{index + 1}</span>
+              </div>
+
               <div className="relative aspect-[3/4] w-full bg-stone-100">
                 <Image
                   src={
                     service.images?.[0] ||
-                    "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=1200&auto=format&fit=crop"
+                    "/images/realisations/knotless-still.jpeg"
                   }
-                  alt={service.name}
+                  alt={service.name || "Prestation YDM"}
                   fill
-                  className="object-cover object-center"
+                  className="object-cover object-center pointer-events-none"
                 />
-                <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                <div className="absolute top-3 right-3 bg-black/75 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-md">
                   {service.category}
                 </div>
               </div>
@@ -278,12 +389,12 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <span className="font-serif font-bold text-brun text-base">
                       {formatPrice(service.price)}
                     </span>
-                    <div className="text-[11px] text-stone-400">
-                      {formatDuration(service.duration)} • Acompte {formatPrice(service.depositAmount)}
+                    <div className="text-[11px] text-stone-500 font-medium">
+                      Acompte : {formatPrice(service.depositAmount ?? 10)}
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-1">
                     <button
                       type="button"
                       disabled={index === 0}
@@ -324,7 +435,7 @@ export default function AdminServicesView({ initialServices = [] }) {
         })}
       </div>
 
-      {/* CREATE / EDIT MODAL */}
+      {/* CREATE / EDIT MODAL SANS BUG D'URL ET SANS CHAMP D'HEURES */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-stone-300 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
@@ -355,30 +466,68 @@ export default function AdminServicesView({ initialServices = [] }) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-brun block mb-1">
+              {/* Catégorie dynamique avec création de nouvelle catégorie */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-brun">
                     Catégorie *
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingCategory(!isCreatingCategory);
+                      setNewCategoryName("");
+                    }}
+                    className="text-[11px] text-champagne-dark hover:underline font-semibold"
+                  >
+                    {isCreatingCategory
+                      ? "Choisir une catégorie existante"
+                      : "+ Créer une nouvelle catégorie"}
+                  </button>
+                </div>
+
+                {isCreatingCategory ? (
+                  <input
+                    type="text"
+                    required
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Tapez le nom de la nouvelle catégorie..."
+                    className="w-full bg-stone-50 border border-champagne rounded-xl p-2.5 text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    autoFocus
+                  />
+                ) : (
                   <select
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    onChange={(e) => {
+                      if (e.target.value === "__NEW__") {
+                        setIsCreatingCategory(true);
+                        setNewCategoryName("");
+                      } else {
+                        setForm({ ...form, category: e.target.value });
+                      }
+                    }}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
                   >
-                    <option value="Knotless Braids">Knotless Braids</option>
-                    <option value="Box Braids">Box Braids</option>
-                    <option value="Fulani & Nattes">Fulani & Nattes</option>
-                    <option value="Twists & Locs">Twists & Locs</option>
-                    <option value="Prestations Express">Prestations Express</option>
+                    {existingCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__NEW__">+ Créer une nouvelle catégorie...</option>
                   </select>
-                </div>
+                )}
+              </div>
+
+              {/* Tarifs (Prix et Acompte uniquement, sans champ d'heures) */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-brun block mb-1">
                     Prix de base (€) *
                   </label>
                   <input
                     type="number"
-                    min="10"
+                    min="0"
                     required
                     value={form.price}
                     onChange={(e) =>
@@ -386,28 +535,6 @@ export default function AdminServicesView({ initialServices = [] }) {
                     }
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-brun block mb-1">
-                    Durée estimée (minutes) *
-                  </label>
-                  <input
-                    type="number"
-                    min="15"
-                    step="15"
-                    required
-                    value={form.duration}
-                    onChange={(e) =>
-                      setForm({ ...form, duration: Number(e.target.value) })
-                    }
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
-                  />
-                  <span className="text-[10px] text-stone-400">
-                    Soit {formatDuration(form.duration)}
-                  </span>
                 </div>
                 <div>
                   <label className="font-semibold text-brun block mb-1">
@@ -426,17 +553,66 @@ export default function AdminServicesView({ initialServices = [] }) {
                 </div>
               </div>
 
+              {/* Visuel / Photo - Pas de type="url" pour éviter le bug de validation */}
               <div>
-                <label className="font-semibold text-brun block mb-1">
-                  URL de la photographie
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-brun">
+                    Photo de la prestation
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowImagePicker(!showImagePicker)}
+                    className="text-[11px] text-champagne-dark hover:underline font-semibold flex items-center space-x-1"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>
+                      {showImagePicker
+                        ? "Masquer la sélection rapide"
+                        : "Choisir parmi les photos du salon"}
+                    </span>
+                  </button>
+                </div>
+
                 <input
-                  type="url"
+                  type="text"
                   value={form.imageUrl}
                   onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                  placeholder="/images/realisations/... ou https://..."
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun font-mono text-[11px]"
                 />
+
+                {/* Sélecteur visuel en 1 clic */}
+                {showImagePicker && (
+                  <div className="mt-2.5 p-3 bg-stone-50 border border-stone-200 rounded-2xl max-h-48 overflow-y-auto space-y-2">
+                    <p className="text-[10px] text-stone-500 font-medium">
+                      Cliquez sur une photo pour l'assigner directement :
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {AVAILABLE_SALON_IMAGES.map((img) => (
+                        <div
+                          key={img.path}
+                          onClick={() => {
+                            setForm({ ...form, imageUrl: img.path });
+                            setShowImagePicker(false);
+                          }}
+                          className={`relative aspect-[3/4] rounded-lg overflow-hidden border cursor-pointer transition-all hover:scale-105 ${
+                            form.imageUrl === img.path
+                              ? "ring-2 ring-champagne border-champagne"
+                              : "border-stone-200"
+                          }`}
+                          title={img.label}
+                        >
+                          <Image
+                            src={img.path}
+                            alt={img.label}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -477,24 +653,25 @@ export default function AdminServicesView({ initialServices = [] }) {
                     }
                     className="rounded border-stone-300 text-brun"
                   />
-                  <span>Visible et réservable</span>
+                  <span>Visible sur le site</span>
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-end space-x-3">
+              <div className="pt-4 border-t border-stone-100 flex items-center justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium"
+                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium transition-colors"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl font-semibold disabled:opacity-50"
+                  className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
                 >
-                  {submitting ? "Enregistrement..." : "Enregistrer la prestation"}
+                  <Check className="w-4 h-4 text-champagne" />
+                  <span>{submitting ? "Enregistrement..." : "Enregistrer la prestation"}</span>
                 </button>
               </div>
             </form>
