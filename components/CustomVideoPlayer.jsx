@@ -210,13 +210,13 @@ export default function CustomVideoPlayer({
     }
   };
 
-  const handleMouseMove = () => {
+  const handleUserActivity = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     if (isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         if (!isScrubbing) setShowControls(false);
-      }, 2500);
+      }, 3500);
     }
   };
 
@@ -230,7 +230,9 @@ export default function CustomVideoPlayer({
   return (
     <div
       ref={containerRef}
-      onMouseMove={handleMouseMove}
+      onMouseMove={handleUserActivity}
+      onTouchStart={handleUserActivity}
+      onPointerDown={handleUserActivity}
       onClick={togglePlay}
       className={`group relative overflow-hidden bg-black select-none cursor-pointer w-full h-full flex items-center justify-center ${className}`}
     >
@@ -257,8 +259,35 @@ export default function CustomVideoPlayer({
         </div>
       </div>
 
-      {/* En-tête minimaliste : Titre discret à gauche (top-right dégagé pour éviter toute collision avec la fermeture) */}
-      <div className="absolute top-3 left-3 right-14 flex items-center justify-between z-20 pointer-events-none">
+      {/* Bouton Son Permanent Flottant (toujours visible à l'écran, sans collision avec le bouton Fermer) */}
+      <button
+        type="button"
+        onClick={toggleMute}
+        className="absolute top-3 right-14 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 backdrop-blur-md text-white hover:text-champagne flex items-center justify-center border border-white/25 shadow-xl transition-transform active:scale-95 pointer-events-auto"
+        aria-label={isMuted ? "Activer le son" : "Couper le son"}
+        title={isMuted ? "Activer le son" : "Couper le son"}
+      >
+        {isMuted ? (
+          <VolumeX className="w-4 h-4 text-white/90" />
+        ) : (
+          <Volume2 className="w-4 h-4 text-champagne" />
+        )}
+      </button>
+
+      {/* Bouton d'indication son lorsqu'elle démarre en muet */}
+      {isMuted && isPlaying && (
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="absolute top-14 left-1/2 -translate-x-1/2 z-30 cursor-pointer bg-black/85 hover:bg-black text-creme text-xs font-semibold px-4 py-2 rounded-full border border-champagne/60 shadow-2xl flex items-center space-x-2 transition-all active:scale-95 pointer-events-auto"
+        >
+          <VolumeX className="w-4 h-4 text-champagne shrink-0" />
+          <span>Toucher pour le son</span>
+        </button>
+      )}
+
+      {/* En-tête minimaliste : Titre discret à gauche */}
+      <div className="absolute top-3 left-3 right-28 flex items-center justify-between z-20 pointer-events-none">
         {title ? (
           <span className="bg-black/60 backdrop-blur-md text-white/90 text-[11px] font-medium px-3 py-1 rounded-full border border-white/10 line-clamp-1 max-w-[85%] pointer-events-auto">
             {title}
@@ -271,7 +300,7 @@ export default function CustomVideoPlayer({
       {/* Barre de contrôle basse épurée & Barre de progression calibrée (clic & glisser) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20 transition-opacity duration-200 ${
+        className={`absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/95 via-black/60 to-transparent z-30 transition-opacity duration-200 ${
           showControls || !isPlaying || isScrubbing ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
@@ -316,16 +345,18 @@ export default function CustomVideoPlayer({
               )}
             </button>
 
-            {/* Bouton Son ergonomique, sans collision avec le bouton Fermer */}
+            {/* Bouton Son ergonomique, haute visibilité */}
             <button
               type="button"
               onClick={toggleMute}
-              className="text-white hover:text-champagne transition-colors p-1 flex items-center justify-center rounded-lg hover:bg-white/10"
+              className={`p-1.5 flex items-center justify-center rounded-lg transition-colors ${
+                isMuted ? "text-white bg-white/10 hover:bg-white/20" : "text-champagne bg-champagne/20 hover:bg-champagne/30"
+              }`}
               aria-label={isMuted ? "Activer le son" : "Couper le son"}
               title={isMuted ? "Activer le son" : "Couper le son"}
             >
               {isMuted ? (
-                <VolumeX className="w-4 h-4 text-white/75" />
+                <VolumeX className="w-4 h-4 text-white" />
               ) : (
                 <Volume2 className="w-4 h-4 text-champagne" />
               )}
