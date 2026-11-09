@@ -1,0 +1,1038 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import {
+  FileText,
+  Save,
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff,
+  Sparkles,
+  HelpCircle,
+  Layout,
+  Layers,
+  Globe,
+  CheckCircle2,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Image as ImageIcon,
+  Film,
+} from "lucide-react";
+
+const DEFAULT_GALLERY_FALLBACK = [
+  {
+    id: 1,
+    type: "video",
+    title: "Réel • Savoir-faire YDM Coiffure",
+    category: "Démonstration & Réalisation",
+    videoUrl: "/videos/reel-ydm.mp4",
+    image: "/images/realisations/reel-ydm-thumb.jpg",
+    aspect: "tall",
+    order: 1,
+  },
+  {
+    id: 2,
+    type: "photo",
+    title: "Knotless Braids • Traçage carré net & finitions",
+    category: "Knotless Braids",
+    image: "/images/realisations/IMG_3401_still.jpeg",
+    aspect: "tall",
+    order: 2,
+  },
+  {
+    id: 3,
+    type: "photo",
+    title: "Knotless Braids • Vue de dos & précision des séparations",
+    category: "Knotless Braids",
+    image: "/images/realisations/IMG_3403_still.jpeg",
+    aspect: "tall",
+    order: 3,
+  },
+  {
+    id: 4,
+    type: "photo",
+    title: "Fulani Braids • Mèches bordeaux & pointes ondulées",
+    category: "Fulani Braids",
+    image: "/images/realisations/IMG_3475_still.jpeg",
+    aspect: "tall",
+    order: 4,
+  },
+  {
+    id: 5,
+    type: "photo",
+    title: "Nattes collées & Vanilles • Motifs géométriques croisés",
+    category: "Création Géométrique",
+    image: "/images/realisations/IMG_3729.jpeg",
+    aspect: "tall",
+    order: 5,
+  },
+  {
+    id: 6,
+    type: "photo",
+    title: "Boho Braids • Ondulations caramel & longueur spectaculaire",
+    category: "Boho Braids",
+    image: "/images/realisations/FE8CAC4A-8B5A-4FDF-A6AF-67D0E81C5151_still.jpeg",
+    aspect: "tall",
+    order: 6,
+  },
+  {
+    id: 7,
+    type: "photo",
+    title: "Nattes géométriques • Vue rapprochée du tracé",
+    category: "Création Géométrique",
+    image: "/images/realisations/IMG_3730.jpeg",
+    aspect: "tall",
+    order: 7,
+  },
+  {
+    id: 8,
+    type: "photo",
+    title: "Nattes collées homme • Lignes ondulées sans rajouts",
+    category: "Sans rajouts",
+    image: "/images/realisations/IMG_4027_still.jpeg",
+    aspect: "tall",
+    order: 8,
+  },
+  {
+    id: 9,
+    type: "photo",
+    title: "Nattes collées homme • Vue de dessus & symétrie",
+    category: "Sans rajouts",
+    image: "/images/realisations/IMG_4031_still.jpeg",
+    aspect: "tall",
+    order: 9,
+  },
+  {
+    id: 10,
+    type: "photo",
+    title: "Knotless Braids • Gros plan sur les départs plats sans nœud",
+    category: "Knotless Braids",
+    image: "/images/realisations/IMG_3406_still.jpeg",
+    aspect: "tall",
+    order: 10,
+  },
+  {
+    id: 11,
+    type: "photo",
+    title: "Vanilles & Nattes • Profil et mise en valeur",
+    category: "Vanilles",
+    image: "/images/realisations/IMG_3738_still.jpeg",
+    aspect: "tall",
+    order: 11,
+  },
+  {
+    id: 12,
+    type: "photo",
+    title: "Soft Locs • Séparations carrées & texture naturelle fluide",
+    category: "Soft Locs",
+    image: "/images/realisations/soft-locs-realisation.jpg",
+    aspect: "tall",
+    order: 12,
+  },
+  {
+    id: 13,
+    type: "photo",
+    title: "Vanilles (Twists) • Tracé net, brillance & finitions rebondies",
+    category: "Vanilles",
+    image: "/images/realisations/vanilles-realisation.jpg",
+    aspect: "tall",
+    order: 13,
+  },
+  {
+    id: 14,
+    type: "photo",
+    title: "Knotless Braids Longues • Tombé fluide & baby hairs délicats",
+    category: "Knotless Braids",
+    image: "/images/realisations/knotless-longues-realisation.jpg",
+    aspect: "tall",
+    order: 14,
+  },
+  {
+    id: 15,
+    type: "photo",
+    title: "Cornrows • Nattes collées droites & traçages parallèles nets",
+    category: "Cornrows",
+    image: "/images/realisations/cornrows-realisation.jpg",
+    aspect: "tall",
+    order: 15,
+  },
+  {
+    id: 16,
+    type: "photo",
+    title: "Création Sur-Mesure • Motifs freestyle artistiques & bijoux dorés",
+    category: "Sur-Mesure",
+    image: "/images/realisations/creation-sur-mesure-realisation.jpg",
+    aspect: "tall",
+    order: 16,
+  },
+  {
+    id: 17,
+    type: "photo",
+    title: "Fulani Braids & Boucles Wavy • Tracés précis & cascade de boucles",
+    category: "Fulani Braids",
+    image: "/images/realisations/fulani-boucles-realisation.jpg",
+    aspect: "tall",
+    order: 17,
+  },
+  {
+    id: 18,
+    type: "photo",
+    title: "French Curls Medium • Tresses Knotless & finitions bouclées soyeuses",
+    category: "Knotless Braids",
+    image: "/images/realisations/french-curls-medium-realisation.jpg",
+    aspect: "tall",
+    order: 18,
+  },
+];
+
+export default function AdminSiteEditorView({ initialSettings = {} }) {
+  const [settings, setSettings] = useState(initialSettings);
+  const [activeTab, setActiveTab] = useState("faq"); // "faq" | "gallery" | "footer" | "pages" | "home" | "rules"
+  const [saving, setSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // FAQ
+  const [faqList, setFaqList] = useState(
+    Array.isArray(settings.faqItems) && settings.faqItems.length > 0
+      ? settings.faqItems
+      : [
+          {
+            question: "Comment se déroule la réservation en ligne ?",
+            answer:
+              "Vous choisissez votre coiffure et vos options en quelques clics. La coiffeuse valide manuellement votre demande selon son planning. Dès validation, vous recevez un lien pour verser l'acompte de 10 € sous 2 heures pour bloquer définitivement le créneau.",
+            order: 1,
+          },
+          {
+            question: "Mèches fournies ou mèches apportées : quelle différence ?",
+            answer:
+              "Pour les coiffures avec mèches incluses, la coiffeuse s'occupe de l'achat des mèches professionnelles et du déplacement (réservation demandée au moins 1 semaine à l'avance). Pour les coiffures sans mèches incluses, vous venez avec vos propres mèches.",
+            order: 2,
+          },
+          {
+            question: "Pourquoi un délai strict de 2 heures pour l'acompte de 10 € ?",
+            answer:
+              "L'acompte de 10 € (non remboursable) confirme votre engagement. Passé ce délai strict de 2 heures, le créneau est automatiquement libéré et remis à disposition d'autres clientes.",
+            order: 3,
+          },
+          {
+            question: "Comment fonctionne la réduction étudiante de -5 € ?",
+            answer:
+              "Une réduction de 5 € est offerte sur toutes les coiffures avec mèches incluses, sur simple présentation d'une carte étudiante en cours de validité le jour du rendez-vous.",
+            order: 4,
+          },
+          {
+            question: "Quelles sont les consignes de préparation et d'accueil ?",
+            answer:
+              "Merci d'arriver les cheveux propres, lavés et soigneusement démêlés des racines aux pointes. Un seul accompagnateur est autorisé lors du rendez-vous sur préavis.",
+            order: 5,
+          },
+        ]
+  );
+
+  // Galerie & Portfolio
+  const [galleryList, setGalleryList] = useState(
+    Array.isArray(settings.galleryItems) && settings.galleryItems.length > 0
+      ? settings.galleryItems
+      : DEFAULT_GALLERY_FALLBACK
+  );
+
+  // Pages Visibilité
+  const [pageVis, setPageVis] = useState(
+    settings.pageVisibility || {
+      galerie: true,
+      aPropos: true,
+      contact: true,
+      prestations: true,
+    }
+  );
+
+  // Conditions Footer
+  const [footerConds, setFooterConds] = useState(
+    Array.isArray(settings.footerConditions) && settings.footerConditions.length > 0
+      ? settings.footerConditions
+      : [
+          "Acompte : 10 € obligatoire sous 2h pour confirmer",
+          "Paiements : Wero, PayPal, virement ou espèces",
+          "Retard max : 20 min (1h = rdv annulé)",
+          "Mèches incluses : prévenir 1 semaine à l'avance",
+          "Réduction étudiante : -5 € avec mèches incluses",
+        ]
+  );
+
+  // Accueil
+  const [homeInfo, setHomeInfo] = useState(
+    settings.homeContent || {
+      heroTitle: "L'art des tresses afro & finitions haute précision",
+      heroSubtitle:
+        "Knotless Braids, Fulani, Boho, nattes et créations sur-mesure à La Roche-sur-Yon. Atelier chaleureux et gestes experts pour sublimer vos cheveux.",
+      studentPromoText:
+        "Bénéficiez de -5 € de réduction sur toutes les coiffures avec mèches incluses (sur présentation d'un justificatif étudiant en cours de validité).",
+    }
+  );
+
+  // Notice Footer
+  const [footerNotice, setFooterNotice] = useState(
+    settings.footerNoticeText ||
+      "Atelier privé de coiffure afro à La Roche-sur-Yon. Rendez-vous sur validation manuelle pour garantir un service sur-mesure d'exception."
+  );
+
+  // Règlements
+  const [policies, setPolicies] = useState({
+    cancellationPolicyText:
+      settings.cancellationPolicyText ||
+      "Acompte obligatoire de 10 euros non remboursable à régler sous 2 heures après validation de la demande. Modification possible jusqu'à 48 heures avant le rendez-vous. Retards tolérés jusqu'à 20 minutes maximum (au-delà : supplément de 5 à 10 euros, 1h de retard = rendez-vous annulé).",
+    depositPolicyText:
+      settings.depositPolicyText ||
+      "Un acompte de 10 euros est exigé dans les 2 heures suivant la validation de votre demande pour bloquer définitivement le créneau. Passé ce délai, le créneau est automatiquement libéré.",
+    preparationGuidelinesText:
+      settings.preparationGuidelinesText ||
+      "Merci de venir les cheveux propres, lavés et soigneusement démêlés. Un seul accompagnateur est autorisé sur préavis.",
+  });
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 4000);
+  };
+
+  const markChanged = () => setHasUnsavedChanges(true);
+
+  // ==========================================
+  // GESTION FAQ
+  // ==========================================
+  const handleFaqChange = (index, field, value) => {
+    const updated = [...faqList];
+    updated[index][field] = value;
+    setFaqList(updated);
+    markChanged();
+  };
+
+  const handleAddFaq = () => {
+    setFaqList([
+      ...faqList,
+      {
+        question: "Nouvelle question",
+        answer: "Écrivez votre réponse ici...",
+        order: faqList.length + 1,
+      },
+    ]);
+    markChanged();
+  };
+
+  const handleRemoveFaq = (index) => {
+    setFaqList(faqList.filter((_, i) => i !== index));
+    markChanged();
+  };
+
+  const moveFaq = (index, direction) => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= faqList.length) return;
+    const updated = [...faqList];
+    const temp = updated[index];
+    updated[index] = updated[target];
+    updated[target] = temp;
+    setFaqList(updated);
+    markChanged();
+  };
+
+  // ==========================================
+  // GESTION GALERIE & DISPOSITION DES PHOTOS
+  // ==========================================
+  const handleGalleryChange = (index, field, value) => {
+    const updated = [...galleryList];
+    updated[index][field] = value;
+    setGalleryList(updated);
+    markChanged();
+  };
+
+  const handleAddGalleryItem = () => {
+    const newItem = {
+      id: Date.now(),
+      type: "photo",
+      title: "Nouvelle réalisation",
+      category: "Knotless Braids",
+      image: "/images/realisations/IMG_3401_still.jpeg",
+      aspect: "tall",
+      order: galleryList.length + 1,
+    };
+    setGalleryList([newItem, ...galleryList]);
+    markChanged();
+  };
+
+  const handleRemoveGalleryItem = (index) => {
+    if (!confirm("Voulez-vous retirer cette réalisation de la galerie ?")) return;
+    setGalleryList(galleryList.filter((_, i) => i !== index));
+    markChanged();
+  };
+
+  const moveGalleryItem = (index, direction) => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= galleryList.length) return;
+    const updated = [...galleryList];
+    const temp = updated[index];
+    updated[index] = updated[target];
+    updated[target] = temp;
+    setGalleryList(updated);
+    markChanged();
+  };
+
+  // ==========================================
+  // GESTION FOOTER CONDITIONS
+  // ==========================================
+  const handleFooterCondChange = (index, value) => {
+    const updated = [...footerConds];
+    updated[index] = value;
+    setFooterConds(updated);
+    markChanged();
+  };
+
+  const handleAddFooterCond = () => {
+    setFooterConds([...footerConds, "Nouvelle condition"]);
+    markChanged();
+  };
+
+  const handleRemoveFooterCond = (index) => {
+    setFooterConds(footerConds.filter((_, i) => i !== index));
+    markChanged();
+  };
+
+  // ==========================================
+  // SAUVEGARDE GLOBALE
+  // ==========================================
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...settings,
+        faqItems: faqList,
+        galleryItems: galleryList,
+        pageVisibility: pageVis,
+        footerConditions: footerConds,
+        footerNoticeText: footerNotice,
+        homeContent: homeInfo,
+        cancellationPolicyText: policies.cancellationPolicyText,
+        depositPolicyText: policies.depositPolicyText,
+        preparationGuidelinesText: policies.preparationGuidelinesText,
+      };
+
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSettings(data.settings);
+        setHasUnsavedChanges(false);
+        showToast("Toutes vos modifications ont été publiées en direct sur le site !");
+      } else {
+        showToast(data.error || "Erreur lors de l'enregistrement des modifications.");
+      }
+    } catch (e) {
+      showToast("Erreur de connexion lors de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-5xl pb-16">
+      {/* Toast de confirmation */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3.5 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-semibold animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Barre d'action supérieure */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+              Contrôle Total du Site
+            </span>
+          </div>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun mt-0.5">
+            Modifier le Contenu du Site
+          </h1>
+          <p className="text-xs text-stone-500 font-light mt-1">
+            Modifiez chaque texte, réorganisez les photos de la galerie, ajustez la FAQ et les règlements en toute autonomie.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSaveAll}
+          className={`inline-flex items-center justify-center space-x-2 px-6 py-3.5 rounded-2xl font-semibold text-xs uppercase tracking-wider transition-all shadow-md shrink-0 ${
+            hasUnsavedChanges
+              ? "bg-champagne-dark hover:bg-brun text-white ring-4 ring-champagne/30 scale-[1.02]"
+              : "bg-brun hover:bg-brun-dark text-creme"
+          } disabled:opacity-50`}
+        >
+          <Save className="w-4 h-4" />
+          <span>{saving ? "Publication..." : "Publier sur le site"}</span>
+        </button>
+      </div>
+
+      {/* Onglets thématiques */}
+      <div className="flex flex-wrap gap-2 p-1.5 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-medium">
+        <button
+          type="button"
+          onClick={() => setActiveTab("faq")}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all ${
+            activeTab === "faq"
+              ? "bg-white text-brun font-bold shadow-2xs"
+              : "text-stone-600 hover:text-brun"
+          }`}
+        >
+          <HelpCircle className="w-4 h-4 text-champagne-dark" />
+          <span>Questions & FAQ</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("gallery")}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all ${
+            activeTab === "gallery"
+              ? "bg-white text-brun font-bold shadow-2xs"
+              : "text-stone-600 hover:text-brun"
+          }`}
+        >
+          <ImageIcon className="w-4 h-4 text-champagne-dark" />
+          <span>Galerie & Photos ({galleryList.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("footer")}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all ${
+            activeTab === "footer"
+              ? "bg-white text-brun font-bold shadow-2xs"
+              : "text-stone-600 hover:text-brun"
+          }`}
+        >
+          <Layout className="w-4 h-4 text-champagne-dark" />
+          <span>Pied de page & Conditions</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("pages")}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all ${
+            activeTab === "pages"
+              ? "bg-white text-brun font-bold shadow-2xs"
+              : "text-stone-600 hover:text-brun"
+          }`}
+        >
+          <Layers className="w-4 h-4 text-champagne-dark" />
+          <span>Masquer / Afficher Pages</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("home")}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all ${
+            activeTab === "home"
+              ? "bg-white text-brun font-bold shadow-2xs"
+              : "text-stone-600 hover:text-brun"
+          }`}
+        >
+          <Globe className="w-4 h-4 text-champagne-dark" />
+          <span>Titres & Offre Étudiante</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("rules")}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all ${
+            activeTab === "rules"
+              ? "bg-white text-brun font-bold shadow-2xs"
+              : "text-stone-600 hover:text-brun"
+          }`}
+        >
+          <FileText className="w-4 h-4 text-champagne-dark" />
+          <span>Règlements & Consignes</span>
+        </button>
+      </div>
+
+      {/* ONGLET 1: FAQ */}
+      {activeTab === "faq" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+            <div>
+              <h2 className="font-serif text-xl font-bold text-brun">
+                Foire aux Questions & Règlements Intérieurs
+              </h2>
+              <p className="text-xs text-stone-500 font-light mt-0.5">
+                Modifiez les questions, réponses et réorganisez leur ordre avec les flèches haut/bas.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddFaq}
+              className="inline-flex items-center space-x-1.5 bg-creme hover:bg-beige text-brun px-3.5 py-2 rounded-xl text-xs font-semibold border border-beige transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Ajouter une question</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {faqList.map((faq, index) => (
+              <div
+                key={index}
+                className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 hover:border-champagne/60 transition-colors space-y-3 relative group"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                      Question #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => moveFaq(index, "up")}
+                      className="p-1 rounded-md bg-white border border-stone-200 text-stone-600 hover:text-brun disabled:opacity-30"
+                      title="Monter"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === faqList.length - 1}
+                      onClick={() => moveFaq(index, "down")}
+                      className="p-1 rounded-md bg-white border border-stone-200 text-stone-600 hover:text-brun disabled:opacity-30"
+                      title="Descendre"
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFaq(index)}
+                    className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors"
+                    title="Supprimer cette question"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-brun block mb-1">
+                    Titre de la question :
+                  </label>
+                  <input
+                    type="text"
+                    value={faq.question}
+                    onChange={(e) => handleFaqChange(index, "question", e.target.value)}
+                    className="w-full bg-white border border-stone-200 rounded-xl p-3 text-xs sm:text-sm font-semibold text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-brun block mb-1">
+                    Réponse affichée aux clientes :
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={faq.answer}
+                    onChange={(e) => handleFaqChange(index, "answer", e.target.value)}
+                    className="w-full bg-white border border-stone-200 rounded-xl p-3 text-xs sm:text-sm text-stone-700 font-light leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne resize-y"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ONGLET 2: GALERIE & DISPOSITION DES PHOTOS */}
+      {activeTab === "gallery" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+            <div>
+              <h2 className="font-serif text-xl font-bold text-brun">
+                Disposition des Photos & Vidéos du Portfolio
+              </h2>
+              <p className="text-xs text-stone-500 font-light mt-0.5">
+                Changez l'ordre d'apparition des coiffures avec les flèches haut/bas, modifiez les titres ou ajoutez de nouvelles photos.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddGalleryItem}
+              className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Ajouter une réalisation</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {galleryList.map((item, index) => (
+              <div
+                key={item.id || index}
+                className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 hover:border-champagne/60 transition-colors flex flex-col md:flex-row items-start md:items-center gap-4"
+              >
+                {/* Miniature visuelle */}
+                <div className="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden bg-stone-900 shrink-0 border border-stone-200">
+                  {item.image ? (
+                    <Image
+                      src={item.image}
+                      alt={item.title || "Réalisation"}
+                      fill
+                      className="object-cover object-center"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-stone-400">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
+                  {item.type === "video" && (
+                    <div className="absolute bottom-1 right-1 bg-black/70 rounded p-1 text-white">
+                      <Film className="w-3 h-3 text-champagne" />
+                    </div>
+                  )}
+                  <span className="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                    #{index + 1}
+                  </span>
+                </div>
+
+                {/* Champs modifiables */}
+                <div className="flex-1 w-full space-y-2 text-xs">
+                  <div>
+                    <label className="font-semibold text-brun block mb-0.5">
+                      Titre de la réalisation :
+                    </label>
+                    <input
+                      type="text"
+                      value={item.title || ""}
+                      onChange={(e) => handleGalleryChange(index, "title", e.target.value)}
+                      className="w-full bg-white border border-stone-200 rounded-xl p-2.5 font-medium text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-brun block mb-0.5">
+                        Catégorie :
+                      </label>
+                      <input
+                        type="text"
+                        value={item.category || ""}
+                        onChange={(e) => handleGalleryChange(index, "category", e.target.value)}
+                        className="w-full bg-white border border-stone-200 rounded-xl p-2 text-stone-700 focus:outline-none focus:ring-2 focus:ring-champagne"
+                        placeholder="Ex: Knotless Braids, Fulani..."
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-brun block mb-0.5">
+                        Chemin / URL Image :
+                      </label>
+                      <input
+                        type="text"
+                        value={item.image || ""}
+                        onChange={(e) => handleGalleryChange(index, "image", e.target.value)}
+                        className="w-full bg-white border border-stone-200 rounded-xl p-2 text-stone-700 focus:outline-none focus:ring-2 focus:ring-champagne font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions de réorganisation (Monter / Descendre / Supprimer) */}
+                <div className="flex md:flex-col items-center gap-1.5 shrink-0 self-end md:self-center">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => moveGalleryItem(index, "up")}
+                    className="p-2 rounded-xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-200 disabled:opacity-30 transition-colors"
+                    title="Déplacer vers le haut dans la galerie"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === galleryList.length - 1}
+                    onClick={() => moveGalleryItem(index, "down")}
+                    className="p-2 rounded-xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-200 disabled:opacity-30 transition-colors"
+                    title="Déplacer vers le bas dans la galerie"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveGalleryItem(index)}
+                    className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition-colors"
+                    title="Supprimer cette photo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ONGLET 3: FOOTER & CONDITIONS */}
+      {activeTab === "footer" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
+          <div className="border-b border-stone-100 pb-4">
+            <h2 className="font-serif text-xl font-bold text-brun">
+              Pied de Page & Conditions Clés
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Ces éléments apparaissent tout en bas de chaque page du site.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-brun block">
+              Texte de présentation sous le logo (Pied de page) :
+            </label>
+            <textarea
+              rows={2}
+              value={footerNotice}
+              onChange={(e) => {
+                setFooterNotice(e.target.value);
+                markChanged();
+              }}
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+            />
+          </div>
+
+          <div className="space-y-3 pt-4 border-t border-stone-100">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-brun">
+                Liste des Conditions Clés (Puces) :
+              </label>
+              <button
+                type="button"
+                onClick={handleAddFooterCond}
+                className="text-xs text-champagne-dark hover:text-brun font-semibold inline-flex items-center space-x-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter une ligne</span>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {footerConds.map((cond, idx) => (
+                <div key={idx} className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={cond}
+                    onChange={(e) => handleFooterCondChange(idx, e.target.value)}
+                    className="flex-1 bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-champagne"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFooterCond(idx)}
+                    className="text-stone-400 hover:text-red-600 p-2 rounded-lg transition-colors"
+                    title="Supprimer cette ligne"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ONGLET 4: MASQUER / AFFICHER PAGES */}
+      {activeTab === "pages" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
+          <div className="border-b border-stone-100 pb-4">
+            <h2 className="font-serif text-xl font-bold text-brun">
+              Visibilité des Pages Publiques
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Activez ou masquez les pages en 1 clic. Une page masquée disparaît automatiquement du menu de navigation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { key: "galerie", label: "Galerie de Réalisations", desc: "Page et aperçu du portfolio de coiffures" },
+              { key: "prestations", label: "Prestations & Tarifs", desc: "Catalogue officiel des prestations et options" },
+              { key: "aPropos", label: "À propos de la coiffeuse", desc: "Présentation de Maydie et son parcours" },
+              { key: "contact", label: "Conditions & Contact", desc: "Page de contact et consignes de salon" },
+            ].map(({ key, label, desc }) => {
+              const isVisible = pageVis[key] !== false;
+              return (
+                <div
+                  key={key}
+                  className="p-5 rounded-2xl border border-stone-200 bg-stone-50 flex items-center justify-between gap-4"
+                >
+                  <div className="space-y-0.5">
+                    <span className="font-semibold text-sm text-brun block">
+                      {label}
+                    </span>
+                    <span className="text-xs text-stone-500 font-light block">
+                      {desc}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPageVis({ ...pageVis, [key]: !isVisible });
+                      markChanged();
+                    }}
+                    className={`inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                      isVisible
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                        : "bg-stone-200 text-stone-600 border border-stone-300"
+                    }`}
+                  >
+                    {isVisible ? (
+                      <>
+                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Visible</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="w-3.5 h-3.5 text-stone-500" />
+                        <span>Masquée</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ONGLET 5: TITRES & ACCUEIL */}
+      {activeTab === "home" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-5">
+          <div className="border-b border-stone-100 pb-4">
+            <h2 className="font-serif text-xl font-bold text-brun">
+              Textes Clés de la Page d'Accueil
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Ces accroches apparaissent sur la bannière principale dès l'ouverture du site.
+            </p>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            <div>
+              <label className="font-semibold text-brun block mb-1">
+                Grand titre d'accueil (Hero) :
+              </label>
+              <input
+                type="text"
+                value={homeInfo.heroTitle || ""}
+                onChange={(e) => {
+                  setHomeInfo({ ...homeInfo, heroTitle: e.target.value });
+                  markChanged();
+                }}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm font-semibold text-brun leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-brun block mb-1">
+                Sous-titre d'accroche :
+              </label>
+              <textarea
+                rows={2}
+                value={homeInfo.heroSubtitle || ""}
+                onChange={(e) => {
+                  setHomeInfo({ ...homeInfo, heroSubtitle: e.target.value });
+                  markChanged();
+                }}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-brun block mb-1">
+                Texte du bandeau de réduction étudiante (-5 €) :
+              </label>
+              <textarea
+                rows={2}
+                value={homeInfo.studentPromoText || ""}
+                onChange={(e) => {
+                  setHomeInfo({ ...homeInfo, studentPromoText: e.target.value });
+                  markChanged();
+                }}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ONGLET 6: RÈGLEMENTS */}
+      {activeTab === "rules" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-5">
+          <div className="border-b border-stone-100 pb-4">
+            <h2 className="font-serif text-xl font-bold text-brun">
+              Politiques et Consignes de Réservation
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Ces textes apparaissent dans les conditions générales et dans le récapitulatif de réservation.
+            </p>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            <div>
+              <label className="font-semibold text-brun block mb-1">
+                Politique d'acompte (Délai 2h & 10 €) :
+              </label>
+              <textarea
+                rows={3}
+                value={policies.depositPolicyText}
+                onChange={(e) => {
+                  setPolicies({ ...policies, depositPolicyText: e.target.value });
+                  markChanged();
+                }}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-brun block mb-1">
+                Politique d'annulation & de retards (20 min max) :
+              </label>
+              <textarea
+                rows={3}
+                value={policies.cancellationPolicyText}
+                onChange={(e) => {
+                  setPolicies({ ...policies, cancellationPolicyText: e.target.value });
+                  markChanged();
+                }}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-brun block mb-1">
+                Consignes de préparation (Cheveux propres et démêlés) :
+              </label>
+              <textarea
+                rows={2}
+                value={policies.preparationGuidelinesText}
+                onChange={(e) => {
+                  setPolicies({ ...policies, preparationGuidelinesText: e.target.value });
+                  markChanged();
+                }}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-stone-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

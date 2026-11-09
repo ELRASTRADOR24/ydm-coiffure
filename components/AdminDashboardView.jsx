@@ -1,0 +1,456 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  CreditCard,
+  TrendingUp,
+  User,
+  Phone,
+  Mail,
+  ArrowRight,
+  Check,
+  X,
+  Sparkles,
+} from "lucide-react";
+import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+
+export default function AdminDashboardView({ initialStats, initialBookings }) {
+  const [bookings, setBookings] = useState(initialBookings || []);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [rejectModalBooking, setRejectModalBooking] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
+
+  const pendingApprovals = bookings.filter(
+    (b) => b.status === "PENDING_APPROVAL"
+  );
+  const pendingPayments = bookings.filter(
+    (b) => b.status === "PENDING_PAYMENT"
+  );
+  const confirmedBookings = bookings.filter(
+    (b) => b.status === "CONFIRMED"
+  );
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayCount = confirmedBookings.filter((b) => b.date === todayStr).length;
+
+  const totalDeposits = confirmedBookings.reduce(
+    (acc, b) => acc + (b.depositAmount || 0),
+    0
+  );
+  const totalRevenue = confirmedBookings.reduce(
+    (acc, b) => acc + (b.totalPrice || 0),
+    0
+  );
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 4000);
+  };
+
+  // 1-Click Approve Booking
+  const handleApprove = async (bookingId) => {
+    setActionLoading(bookingId);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/approve`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            (b.id || b._id) === bookingId ? data.booking : b
+          )
+        );
+        showToast("Demande acceptée ! Lien d'acompte transmis à la cliente.");
+      } else {
+        showToast(data.error || "Impossible d'approuver cette demande.");
+      }
+    } catch (e) {
+      showToast("Problème de connexion lors de la confirmation.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Reject Booking with Reason
+  const handleConfirmReject = async () => {
+    if (!rejectModalBooking) return;
+    const bookingId = rejectModalBooking.id || rejectModalBooking._id;
+    setActionLoading(bookingId);
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: rejectionReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            (b.id || b._id) === bookingId ? data.booking : b
+          )
+        );
+        showToast("Demande refusée. Le créneau a été libéré.");
+        setRejectModalBooking(null);
+        setRejectionReason("");
+      } else {
+        showToast(data.error || "Impossible d'enregistrer le refus.");
+      }
+    } catch (e) {
+      showToast("Problème de connexion lors du refus de la demande.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Prochains rendez-vous confirmés
+  const upcomingConfirmed = confirmedBookings
+    .filter((b) => b.date >= todayStr)
+    .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
+    .slice(0, 5);
+
+  return (
+    <div className="space-y-10">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
+          <Sparkles className="w-4 h-4 text-champagne" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-3xl font-bold text-brun">
+            Tableau de Bord
+          </h1>
+          <p className="text-xs text-stone-500 font-light mt-1">
+            Aperçu en temps réel de votre activité, de vos encaissements et de votre planning.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/admin/site-editor"
+            className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-light text-brun-dark px-4 py-2 rounded-xl text-xs font-bold shadow-2xs transition-all hover:scale-[1.02]"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-brun" />
+            <span>Modifier le site (FAQ, Textes)</span>
+          </Link>
+          <Link
+            href="/admin/calendar"
+            className="inline-flex items-center space-x-1.5 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+          >
+            <Calendar className="w-3.5 h-3.5 text-champagne" />
+            <span>Ouvrir le calendrier</span>
+          </Link>
+          <Link
+            href="/admin/bookings"
+            className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+          >
+            <span>Toutes les réservations</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Banner Site Editor */}
+      <div className="bg-gradient-to-r from-brun via-brun-dark to-stone-900 text-creme rounded-3xl p-5 sm:p-6 border border-champagne/30 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2">
+            <span className="w-2 h-2 rounded-full bg-champagne animate-pulse" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-champagne">
+              Gestion Autonome du Site
+            </span>
+          </div>
+          <h2 className="font-serif text-lg sm:text-xl font-bold text-creme">
+            Modifiez vos textes, questions FAQ et masquez des pages en direct
+          </h2>
+          <p className="text-xs text-stone-300 font-light max-w-2xl">
+            Personnalisez vos conditions de réservation, la FAQ, vos informations de bas de page et masquez ou affichez vos pages en toute autonomie.
+          </p>
+        </div>
+        <Link
+          href="/admin/site-editor"
+          className="inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition-all shrink-0 hover:scale-[1.02]"
+        >
+          <span>Ouvrir l'éditeur du site</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Card 1: Today */}
+        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-1">
+          <div className="text-[11px] text-stone-500 font-medium">Aujourd'hui</div>
+          <div className="text-2xl font-serif font-bold text-brun">{todayCount}</div>
+          <div className="text-[10px] text-stone-400">Rdv confirmés</div>
+        </div>
+
+        {/* Card 2: Pending Approval */}
+        <div
+          className={`p-4 rounded-2xl border shadow-2xs space-y-1 ${
+            pendingApprovals.length > 0
+              ? "bg-amber-50/80 border-amber-300 ring-2 ring-amber-200"
+              : "bg-white border-stone-200"
+          }`}
+        >
+          <div className="text-[11px] font-semibold text-amber-900">À Valider</div>
+          <div className="text-2xl font-serif font-bold text-amber-900">
+            {pendingApprovals.length}
+          </div>
+          <div className="text-[10px] text-amber-700">Demandes en attente</div>
+        </div>
+
+        {/* Card 3: Pending Payment */}
+        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-1">
+          <div className="text-[11px] text-blue-700 font-medium">Acompte en attente</div>
+          <div className="text-2xl font-serif font-bold text-blue-900">
+            {pendingPayments.length}
+          </div>
+          <div className="text-[10px] text-blue-600">Lien Stripe envoyé</div>
+        </div>
+
+        {/* Card 4: Confirmed Total */}
+        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-1">
+          <div className="text-[11px] text-emerald-700 font-medium">Confirmés</div>
+          <div className="text-2xl font-serif font-bold text-emerald-900">
+            {confirmedBookings.length}
+          </div>
+          <div className="text-[10px] text-emerald-600">Acomptes perçus</div>
+        </div>
+
+        {/* Card 5: Deposits Collected */}
+        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-1">
+          <div className="text-[11px] text-stone-500 font-medium">Acomptes reçus</div>
+          <div className="text-xl font-serif font-bold text-champagne-dark">
+            {formatPrice(totalDeposits)}
+          </div>
+          <div className="text-[10px] text-stone-400">Garantis par Stripe</div>
+        </div>
+
+        {/* Card 6: Revenue */}
+        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-1">
+          <div className="text-[11px] text-stone-500 font-medium">C.A. Prévisionnel</div>
+          <div className="text-xl font-serif font-bold text-brun">
+            {formatPrice(totalRevenue)}
+          </div>
+          <div className="text-[10px] text-stone-400">Total des réservations</div>
+        </div>
+      </div>
+
+      {/* URGENT: PENDING APPROVAL REQUESTS */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <h2 className="font-serif text-xl font-bold text-brun">
+              Demandes de rendez-vous à valider
+            </h2>
+            {pendingApprovals.length > 0 && (
+              <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                {pendingApprovals.length} en attente
+              </span>
+            )}
+          </div>
+        </div>
+
+        {pendingApprovals.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingApprovals.map((b) => {
+              const bId = b.id || b._id;
+              const isLoading = actionLoading === bId;
+
+              return (
+                <div
+                  key={bId}
+                  className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm space-y-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
+                        Réf : {b.bookingReference}
+                      </span>
+                      <h3 className="font-serif text-lg font-bold text-brun">
+                        {b.customer.firstName} {b.customer.lastName}
+                      </h3>
+                      <div className="text-xs text-stone-500 flex items-center space-x-3 mt-1">
+                        <span className="flex items-center space-x-1">
+                          <Phone className="w-3 h-3 text-stone-400" />
+                          <span>{b.customer.phone}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <Mail className="w-3 h-3 text-stone-400" />
+                          <span>{b.customer.email}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-sm font-bold font-serif text-brun">
+                        {formatPrice(b.totalPrice)}
+                      </div>
+                      <div className="text-[11px] text-stone-500">
+                        Acompte : {formatPrice(b.depositAmount)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1">
+                    <div className="font-semibold text-brun">
+                      {b.service.name} ({formatDuration(b.totalDuration)})
+                    </div>
+                    <div className="text-stone-600">
+                      Date souhaitée : <strong>{formatDateFrench(b.date)}</strong> de{" "}
+                      <strong>{b.startTime}</strong> à <strong>{b.endTime}</strong>
+                    </div>
+                    {b.customer.notes && (
+                      <div className="text-stone-500 italic pt-1 border-t border-stone-200/60">
+                        "{b.customer.notes}"
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions Buttons */}
+                  <div className="flex items-center space-x-3 pt-1">
+                    <button
+                      disabled={isLoading}
+                      onClick={() => handleApprove(bId)}
+                      className="flex-1 inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{isLoading ? "Traitement..." : "Accepter & Envoyer Stripe"}</span>
+                    </button>
+
+                    <button
+                      disabled={isLoading}
+                      onClick={() => setRejectModalBooking(b)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 transition-colors"
+                    >
+                      Refuser
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl p-8 border border-stone-200 text-center text-xs text-stone-500 font-light">
+            Aucune demande en attente. Votre planning est parfaitement à jour.
+          </div>
+        )}
+      </div>
+
+      {/* UPCOMING CONFIRMED APPOINTMENTS */}
+      <div className="space-y-4">
+        <h2 className="font-serif text-xl font-bold text-brun">
+          Prochains rendez-vous confirmés
+        </h2>
+
+        {upcomingConfirmed.length > 0 ? (
+          <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+            <div className="divide-y divide-stone-100">
+              {upcomingConfirmed.map((b) => (
+                <div
+                  key={b.id || b._id}
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50 transition-colors"
+                >
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 rounded-xl bg-champagne-light/50 flex flex-col items-center justify-center text-brun shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-champagne-dark">
+                        {b.date ? b.date.slice(5) : ""}
+                      </span>
+                      <span className="font-serif font-bold text-sm">
+                        {b.startTime}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-serif font-bold text-brun text-base">
+                          {b.customer.firstName} {b.customer.lastName}
+                        </h4>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
+                          Confirmé
+                        </span>
+                      </div>
+                      <div className="text-xs text-stone-600 mt-0.5">
+                        {b.service.name} • {formatDuration(b.totalDuration)}
+                      </div>
+                      <div className="text-[11px] text-stone-400">
+                        Tél : {b.customer.phone}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right sm:self-center">
+                    <div className="text-sm font-bold font-serif text-brun">
+                      Solde restant : {formatPrice(b.remainingBalance)}
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-medium">
+                      Acompte de {formatPrice(b.depositAmount)} réglé
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl p-8 border border-stone-200 text-center text-xs text-stone-500 font-light">
+            Aucun rendez-vous confirmé à venir pour le moment.
+          </div>
+        )}
+      </div>
+
+      {/* REJECT MODAL */}
+      {rejectModalBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-stone-300 shadow-2xl space-y-4">
+            <h3 className="font-serif text-xl font-bold text-brun">
+              Refuser la demande de {rejectModalBooking.customer.firstName}
+            </h3>
+            <p className="text-xs text-stone-500 font-light">
+              Le créneau du {rejectModalBooking.date} à {rejectModalBooking.startTime} sera libéré et la cliente sera notifiée poliment par e-mail.
+            </p>
+
+            <div>
+              <label className="text-xs font-semibold text-brun block mb-1">
+                Motif du refus (optionnel) :
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Ex : Indisponibilité exceptionnelle ce jour-là, ou créneau déjà réservé en direct."
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-brun focus:outline-none focus:border-champagne"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                onClick={() => setRejectModalBooking(null)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmReject}
+                className="bg-red-700 hover:bg-red-800 text-white px-5 py-2 rounded-xl text-xs font-semibold"
+              >
+                Confirmer le refus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

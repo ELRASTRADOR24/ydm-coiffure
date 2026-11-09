@@ -1,0 +1,462 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Clock,
+  Calendar,
+  Save,
+  Plus,
+  Trash2,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+
+export default function AdminAvailabilityView({
+  initialAvailabilities = [],
+  initialUnavailabilities = [],
+}) {
+  const [availabilities, setAvailabilities] = useState(initialAvailabilities);
+  const [unavailabilities, setUnavailabilities] = useState(
+    initialUnavailabilities
+  );
+  const [toastMessage, setToastMessage] = useState("");
+  const [savingDay, setSavingDay] = useState(null);
+
+  // Mode de blocage : "single" (jour unique), "range" (plusieurs jours), "hours" (plage horaire)
+  const [unavMode, setUnavMode] = useState("single");
+  const [newUnav, setNewUnav] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
+    isAllDay: true,
+    startTime: "12:00",
+    endTime: "18:00",
+    reason: "Congé / Repos exceptionnel",
+  });
+  const [addingUnav, setAddingUnav] = useState(false);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 3500);
+  };
+
+  const handleDayChange = (dayOfWeek, field, value) => {
+    setAvailabilities((prev) =>
+      prev.map((day) =>
+        day.dayOfWeek === dayOfWeek ? { ...day, [field]: value } : day
+      )
+    );
+  };
+
+  const handleSaveDay = async (day) => {
+    setSavingDay(day.dayOfWeek);
+    try {
+      const res = await fetch("/api/admin/availability", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(day),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Horaires du ${day.dayName} sauvegardés !`);
+      } else {
+        showToast(data.error || "Impossible de sauvegarder les horaires.");
+      }
+    } catch (e) {
+      showToast("Erreur lors de la sauvegarde des horaires.");
+    } finally {
+      setSavingDay(null);
+    }
+  };
+
+  const handleAddUnavailability = async (e) => {
+    e.preventDefault();
+    setAddingUnav(true);
+    try {
+      let payload = {
+        reason: newUnav.reason || "Indisponibilité exceptionnelle",
+      };
+
+      if (unavMode === "range") {
+        payload.startDate = newUnav.startDate;
+        payload.endDate = newUnav.endDate;
+        payload.isAllDay = true;
+      } else if (unavMode === "hours") {
+        payload.date = newUnav.date;
+        payload.isAllDay = false;
+        payload.startTime = newUnav.startTime;
+        payload.endTime = newUnav.endTime;
+      } else {
+        // "single"
+        payload.date = newUnav.date;
+        payload.isAllDay = true;
+      }
+
+      const res = await fetch("/api/admin/unavailability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const created = data.unavailabilities || (data.unavailability ? [data.unavailability] : []);
+        setUnavailabilities((prev) => [...prev, ...created]);
+        showToast(
+          unavMode === "range"
+            ? `${created.length} jours bloqués avec succès !`
+            : "Indisponibilité ajoutée et calendrier mis à jour !"
+        );
+        setNewUnav((prev) => ({
+          ...prev,
+          reason: "Congé / Repos exceptionnel",
+        }));
+      } else {
+        showToast(data.error || "Impossible d'ajouter cette indisponibilité.");
+      }
+    } catch (e) {
+      showToast("Une erreur est survenue lors de l'enregistrement de l'indisponibilité.");
+    } finally {
+      setAddingUnav(false);
+    }
+  };
+
+  const handleDeleteUnavailability = async (id) => {
+    if (!confirm("Voulez-vous supprimer cette fermeture exceptionnelle ?")) return;
+    try {
+      const res = await fetch(`/api/admin/unavailability/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUnavailabilities((prev) =>
+          prev.filter((u) => (u.id || u._id) !== id)
+        );
+        showToast("Indisponibilité retirée avec succès.");
+      } else {
+        showToast("Impossible de supprimer cette fermeture pour le moment.");
+      }
+    } catch (e) {
+      showToast("Impossible de retirer cette fermeture.");
+    }
+  };
+
+  // Sort: Monday (1) to Sunday (0)
+  const sortedDays = [...availabilities].sort((a, b) => {
+    const orderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+    const orderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
+    return orderA - orderB;
+  });
+
+  return (
+    <div className="space-y-8">
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
+          <Sparkles className="w-4 h-4 text-champagne" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div>
+        <h1 className="font-serif text-3xl font-bold text-brun">
+          Disponibilités & Planning de Travail
+        </h1>
+        <p className="text-xs text-stone-500 font-light mt-1">
+          Configurez vos heures de présence hebdomadaires, vos temps de pause et vos congés exceptionnels.
+        </p>
+      </div>
+
+      {/* WEEKLY SCHEDULE */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
+        <h2 className="font-serif text-xl font-bold text-brun">
+          Horaires Hebdomadaires Récurrents
+        </h2>
+
+        <div className="divide-y divide-stone-100">
+          {sortedDays.map((day) => {
+            const isSaving = savingDay === day.dayOfWeek;
+            return (
+              <div
+                key={day.dayOfWeek}
+                className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs"
+              >
+                {/* Day name & Open toggle */}
+                <div className="w-44 flex items-center space-x-3">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={day.isOpen}
+                      onChange={(e) =>
+                        handleDayChange(day.dayOfWeek, "isOpen", e.target.checked)
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                  <span
+                    className={`font-serif font-bold text-sm ${
+                      day.isOpen ? "text-brun" : "text-stone-400 line-through"
+                    }`}
+                  >
+                    {day.dayName}
+                  </span>
+                </div>
+
+                {/* Hours inputs (if open) */}
+                {day.isOpen ? (
+                  <div className="flex flex-wrap items-center gap-4 flex-1">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-stone-500">Heures :</span>
+                      <input
+                        type="time"
+                        value={day.startTime || "09:30"}
+                        onChange={(e) =>
+                          handleDayChange(day.dayOfWeek, "startTime", e.target.value)
+                        }
+                        className="bg-stone-50 border border-stone-200 rounded-lg p-1.5 font-medium"
+                      />
+                      <span>à</span>
+                      <input
+                        type="time"
+                        value={day.endTime || "19:00"}
+                        onChange={(e) =>
+                          handleDayChange(day.dayOfWeek, "endTime", e.target.value)
+                        }
+                        className="bg-stone-50 border border-stone-200 rounded-lg p-1.5 font-medium"
+                      />
+                    </div>
+
+                    {/* Battement */}
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-stone-500">Battement :</span>
+                      <select
+                        value={day.bufferTimeMinutes ?? 15}
+                        onChange={(e) =>
+                          handleDayChange(
+                            day.dayOfWeek,
+                            "bufferTimeMinutes",
+                            Number(e.target.value)
+                          )
+                        }
+                        className="bg-stone-50 border border-stone-200 rounded-lg p-1.5 text-stone-700"
+                      >
+                        <option value={0}>0 min</option>
+                        <option value={15}>15 min</option>
+                        <option value={30}>30 min</option>
+                        <option value={45}>45 min</option>
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 text-stone-400 italic">
+                    Journée de repos (aucun créneau réservable)
+                  </div>
+                )}
+
+                {/* Save button per day */}
+                <div>
+                  <button
+                    disabled={isSaving}
+                    onClick={() => handleSaveDay(day)}
+                    className="inline-flex items-center space-x-1 bg-stone-100 hover:bg-brun hover:text-creme text-stone-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isSaving ? "Sauvegarde..." : "Enregistrer"}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* BLACKOUT DATES & HOLIDAYS */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
+        <h2 className="font-serif text-xl font-bold text-brun">
+          Indisponibilités Ponctuelles & Congés
+        </h2>
+        <p className="text-xs text-stone-500 font-light">
+          Bloquez une date précise (ou une plage horaire) pour vos congés ou imprévus. Le calendrier public fermera instantanément ces créneaux.
+        </p>
+
+        {/* Mode Selector Tabs */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setUnavMode("single")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              unavMode === "single"
+                ? "bg-brun text-creme shadow-xs"
+                : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+            }`}
+          >
+            Bloquer 1 jour
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnavMode("range")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              unavMode === "range"
+                ? "bg-brun text-creme shadow-xs"
+                : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+            }`}
+          >
+            Bloquer plusieurs jours (Période / Congés)
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnavMode("hours")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              unavMode === "hours"
+                ? "bg-brun text-creme shadow-xs"
+                : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+            }`}
+          >
+            Bloquer des heures précises
+          </button>
+        </div>
+
+        {/* Add Unavailability Form */}
+        <form
+          onSubmit={handleAddUnavailability}
+          className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3 text-xs"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            {unavMode === "range" ? (
+              <>
+                <div>
+                  <label className="font-semibold text-brun block mb-1">Date de début *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newUnav.startDate}
+                    onChange={(e) => setNewUnav({ ...newUnav, startDate: e.target.value })}
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-brun block mb-1">Date de fin *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newUnav.endDate}
+                    onChange={(e) => setNewUnav({ ...newUnav, endDate: e.target.value })}
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="font-semibold text-brun block mb-1">Date concernée *</label>
+                <input
+                  type="date"
+                  required
+                  value={newUnav.date}
+                  onChange={(e) => setNewUnav({ ...newUnav, date: e.target.value })}
+                  className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                />
+              </div>
+            )}
+
+            {unavMode === "hours" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-brun block mb-1">De *</label>
+                  <input
+                    type="time"
+                    required
+                    value={newUnav.startTime}
+                    onChange={(e) => setNewUnav({ ...newUnav, startTime: e.target.value })}
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-brun block mb-1">À *</label>
+                  <input
+                    type="time"
+                    required
+                    value={newUnav.endTime}
+                    onChange={(e) => setNewUnav({ ...newUnav, endTime: e.target.value })}
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="font-semibold text-brun block mb-1">Motif de fermeture</label>
+              <input
+                type="text"
+                value={newUnav.reason}
+                onChange={(e) => setNewUnav({ ...newUnav, reason: e.target.value })}
+                placeholder="Ex : Formation, Vacances, Déplacement..."
+                className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={addingUnav}
+              className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-6 py-2.5 rounded-xl font-semibold shadow-xs transition-colors disabled:opacity-50"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>
+                {addingUnav
+                  ? "Enregistrement..."
+                  : unavMode === "range"
+                  ? "Bloquer toute cette période"
+                  : unavMode === "hours"
+                  ? "Bloquer cette plage horaire"
+                  : "Bloquer cette journée"}
+              </span>
+            </button>
+          </div>
+        </form>
+
+        {/* List of blocked dates */}
+        <div className="space-y-2">
+          {unavailabilities.length > 0 ? (
+            unavailabilities.map((unav) => {
+              const id = unav.id || unav._id;
+              return (
+                <div
+                  key={id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="w-4 h-4 text-champagne-dark" />
+                    <div>
+                      <span className="font-bold text-brun">{unav.date}</span>
+                      <span className="text-stone-500 ml-2">
+                        {unav.isAllDay
+                          ? "(Journée entière bloquée)"
+                          : `(De ${unav.startTime} à ${unav.endTime})`}
+                      </span>
+                      <span className="text-stone-400 italic ml-2">
+                        — {unav.reason}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteUnavailability(id)}
+                    className="text-stone-400 hover:text-red-600 p-1 transition-colors"
+                    title="Supprimer le blocage"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-xs text-stone-500 font-light text-center py-4">
+              Aucune fermeture exceptionnelle programmée.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
