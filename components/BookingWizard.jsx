@@ -17,20 +17,89 @@ import {
   AlertCircle,
   CheckCircle2,
   Lock,
+  Palette,
+  Sparkles,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+
+// Couleurs de mèches principales et options de personnalisation
+const PRIMARY_HAIR_COLORS = [
+  {
+    id: "Marron",
+    label: "Marron",
+    subtitle: "Châtain chaud / Chocolat (#4)",
+    gradient: "from-[#52331c] via-[#3a2211] to-[#241308]",
+    border: "border-[#6d4527]",
+    description: "Teinte marron chaud et lumineux, naturelle et chic.",
+  },
+  {
+    id: "Noir",
+    label: "Noir",
+    subtitle: "Noir profond / Naturel (#1 / #1B)",
+    gradient: "from-[#262626] via-[#141414] to-[#050505]",
+    border: "border-stone-700",
+    description: "Couleur noire naturelle, intense et brillante.",
+  },
+  {
+    id: "Marron caramel",
+    label: "Marron caramel",
+    subtitle: "Caramel doré / Miel (#27 / #30)",
+    gradient: "from-[#c27c38] via-[#945620] to-[#5e320d]",
+    border: "border-[#b86e2a]",
+    description: "Reflets caramel dorés et lumineux, très tendance.",
+  },
+];
+
+const MIX_PRESET_COLORS = [
+  { name: "Noir", color: "#1a1a1a" },
+  { name: "Marron", color: "#4a2e1b" },
+  { name: "Marron caramel", color: "#b87333" },
+  { name: "Bordeaux (#99J)", color: "#541424" },
+  { name: "Blond miel (#27)", color: "#c59b27" },
+  { name: "Châtain clair", color: "#7a5435" },
+];
 
 export default function BookingWizard({ initialServices = [] }) {
   const searchParams = useSearchParams();
   const preselectedSlug = searchParams.get("service");
 
-  // Multi-step state: 1 to 6
+  // Multi-step state: 1 to 7
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form selections
   const [selectedService, setSelectedService] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [isStudent, setIsStudent] = useState(false); // -5 € discount on hair included
+
+  // Hair Color State (formule avec mèches incluses)
+  const [hairColorMode, setHairColorMode] = useState("standard"); // "standard" | "mix" | "custom"
+  const [selectedStandardColor, setSelectedStandardColor] = useState("Marron caramel");
+  const [selectedMixColors, setSelectedMixColors] = useState(["Noir", "Marron caramel"]);
+  const [customColorText, setCustomColorText] = useState("");
+
+  const getFinalHairColorChoice = () => {
+    if (hairColorMode === "standard") {
+      return selectedStandardColor;
+    }
+    if (hairColorMode === "mix") {
+      return `Mélange : ${selectedMixColors.join(" + ")}`;
+    }
+    if (hairColorMode === "custom") {
+      return `Couleur spécifique : ${customColorText.trim() || "À convenir avec Maydie"}`;
+    }
+    return selectedStandardColor;
+  };
+
+  const toggleMixColor = (colorName) => {
+    if (selectedMixColors.includes(colorName)) {
+      if (selectedMixColors.length > 1) {
+        setSelectedMixColors(selectedMixColors.filter((c) => c !== colorName));
+      }
+    } else {
+      setSelectedMixColors([...selectedMixColors, colorName]);
+    }
+  };
+
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [customer, setCustomer] = useState({
@@ -212,6 +281,15 @@ export default function BookingWizard({ initialServices = [] }) {
       })
     );
 
+    if (selectedService.includesHair) {
+      formattedOptions.push({
+        name: "Couleur des mèches",
+        choice: getFinalHairColorChoice(),
+        priceDiff: 0,
+        durationDiff: 0,
+      });
+    }
+
     if (isStudent && selectedService.includesHair) {
       formattedOptions.push({
         name: "Réduction Étudiante",
@@ -239,7 +317,7 @@ export default function BookingWizard({ initialServices = [] }) {
 
       if (data.success) {
         setSubmissionResult(data.booking);
-        setCurrentStep(6);
+        setCurrentStep(7);
         window.scrollTo({ top: 100, behavior: "smooth" });
       } else {
         setSubmitError(data.error || "Nous n'avons pas pu valider votre demande. Merci de vérifier vos informations.");
@@ -278,30 +356,50 @@ export default function BookingWizard({ initialServices = [] }) {
     return dates;
   }, [blockedDates]);
 
+  const stepsConfig = useMemo(() => {
+    const list = [
+      { step: 1, label: "1. Sélection de votre coiffure" },
+      { step: 2, label: "2. Longueur & Options" },
+    ];
+    if (selectedService?.includesHair) {
+      list.push({ step: 3, label: "3. Teinte des mèches incluses" });
+    }
+    const offset = selectedService?.includesHair ? 4 : 3;
+    list.push({ step: 4, label: `${offset}. Date & Créneau souhaité` });
+    list.push({ step: 5, label: `${offset + 1}. Vos coordonnées` });
+    list.push({ step: 6, label: `${offset + 2}. Récapitulatif de votre demande` });
+    return list;
+  }, [selectedService?.includesHair]);
+
+  const currentStepConfigIndex = Math.max(0, stepsConfig.findIndex((s) => s.step === currentStep));
+  const currentStepLabel = stepsConfig[currentStepConfigIndex]?.label || "";
+  const totalDisplaySteps = stepsConfig.length;
+
   return (
     <div className="max-w-3xl mx-auto">
       {/* Steps Header Minimaliste & Épuré */}
-      {currentStep < 6 && (
+      {currentStep < 7 && (
         <div className="mb-8 max-w-md mx-auto px-4">
           <div className="flex items-center justify-between text-xs font-medium text-stone-500 mb-2.5">
             <span className="font-serif text-sm font-bold text-brun">
-              {currentStep === 1 && "1. Sélection de votre coiffure"}
-              {currentStep === 2 && "2. Longueur & Options mèches"}
-              {currentStep === 3 && "3. Date & Créneau souhaité"}
-              {currentStep === 4 && "4. Vos coordonnées"}
-              {currentStep === 5 && "5. Récapitulatif de votre demande"}
+              {currentStepLabel}
             </span>
             <span className="text-[11px] uppercase tracking-wider text-champagne-dark font-semibold">
-              Étape {currentStep} sur 5
+              Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
             </span>
           </div>
           {/* Segmented bar */}
-          <div className="grid grid-cols-5 gap-1.5 h-1.5 w-full">
-            {[1, 2, 3, 4, 5].map((s) => (
+          <div
+            className="grid gap-1.5 h-1.5 w-full"
+            style={{
+              gridTemplateColumns: `repeat(${totalDisplaySteps}, minmax(0, 1fr))`,
+            }}
+          >
+            {stepsConfig.map((s, idx) => (
               <div
-                key={s}
+                key={s.step}
                 className={`h-full rounded-full transition-all duration-300 ${
-                  s <= currentStep ? "bg-brun" : "bg-beige"
+                  idx <= currentStepConfigIndex ? "bg-brun" : "bg-beige"
                 }`}
               />
             ))}
@@ -521,12 +619,20 @@ export default function BookingWizard({ initialServices = [] }) {
               </button>
               <button
                 onClick={() => {
-                  setCurrentStep(3);
+                  if (selectedService.includesHair) {
+                    setCurrentStep(3);
+                  } else {
+                    setCurrentStep(4);
+                  }
                   window.scrollTo({ top: 120, behavior: "smooth" });
                 }}
                 className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-nude hover:bg-nude-dark text-white px-8 py-4 rounded-full text-sm sm:text-base font-bold uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
               >
-                <span>Choisir le créneau</span>
+                <span>
+                  {selectedService.includesHair
+                    ? "Choisir la couleur des mèches"
+                    : "Choisir le créneau"}
+                </span>
                 <ArrowRight className="w-4 h-4 text-white" />
               </button>
             </div>
@@ -534,23 +640,280 @@ export default function BookingWizard({ initialServices = [] }) {
         </div>
       )}
 
-      {/* STEP 3: DATE & TIME */}
-      {currentStep === 3 && (
+      {/* STEP 3: COULEUR DES MÈCHES FOURNIES (UNIQUEMENT FORMULE MÈCHES INCLUSES) */}
+      {currentStep === 3 && selectedService && selectedService.includesHair && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-beige pb-4">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
-                Étape 3 sur 5
+                Étape 3 sur {totalDisplaySteps} • Mèches incluses
+              </span>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
+                Teinte des Mèches Fournies
+              </h2>
+              <p className="text-xs text-stone-500 font-light mt-0.5">
+                Maydie s'occupe de l'achat de vos mèches. Choisissez votre teinte de base, un mélange bicolore ou indiquez votre nuance sur-mesure.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setCurrentStep(2);
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
+              className="text-xs text-stone-500 hover:text-brun underline"
+            >
+              ← Modifier longueur
+            </button>
+          </div>
+
+          {/* Rappel de la prestation */}
+          <div className="p-3.5 rounded-xl bg-champagne-light/40 border border-champagne/40 flex items-center justify-between text-xs">
+            <div>
+              <span className="font-bold text-brun block">{selectedService.name}</span>
+              <span className="text-stone-600 text-[11px]">
+                {selectedOptions["Longueur souhaitée"]?.label || "Longueur standard"} • Formule Complète avec mèches
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-champagne-dark bg-white px-2.5 py-1 rounded-full border border-champagne/40">
+                Mèches incluses
+              </span>
+            </div>
+          </div>
+
+          {/* Section 1 : Les 3 Couleurs Principales de Base */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Palette className="w-4 h-4 text-champagne-dark" />
+              <label className="text-xs font-bold uppercase tracking-wider text-brun">
+                1. Les 3 teintes principales de base
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {PRIMARY_HAIR_COLORS.map((col) => {
+                const isSelected =
+                  hairColorMode === "standard" && selectedStandardColor === col.id;
+
+                return (
+                  <div
+                    key={col.id}
+                    onClick={() => {
+                      setHairColorMode("standard");
+                      setSelectedStandardColor(col.id);
+                    }}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 relative text-left flex flex-col justify-between ${
+                      isSelected
+                        ? "bg-creme border-champagne ring-2 ring-champagne/50 shadow-md scale-[1.01]"
+                        : "bg-white border-beige hover:border-stone-300 hover:shadow-2xs"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      {/* Pastille visuelle réaliste */}
+                      <div
+                        className={`w-9 h-9 rounded-full bg-gradient-to-br ${col.gradient} border-2 ${col.border} shadow-sm`}
+                      />
+                      {isSelected ? (
+                        <CheckCircle2 className="w-5 h-5 text-champagne-dark" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-stone-300" />
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="font-bold text-brun text-sm mb-0.5">
+                        {col.label}
+                      </div>
+                      <div className="text-[11px] font-medium text-stone-500 mb-1">
+                        {col.subtitle}
+                      </div>
+                      <p className="text-[11px] text-stone-500 font-light leading-snug">
+                        {col.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 2 : Option Mélange de Couleurs */}
+          <div className="pt-2 border-t border-stone-100 space-y-3">
+            <div
+              onClick={() => setHairColorMode("mix")}
+              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                hairColorMode === "mix"
+                  ? "bg-creme border-champagne ring-2 ring-champagne/50 shadow-md"
+                  : "bg-white border-beige hover:border-stone-300"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-r from-stone-900 via-[#52331c] to-[#c27c38] border-2 border-champagne/60 shadow-sm shrink-0" />
+                  <div>
+                    <span className="font-bold text-brun text-sm block">
+                      Mélange de couleurs (Mix au choix)
+                    </span>
+                    <span className="text-[11px] text-stone-500 font-light">
+                      Sélectionnez les teintes à marier pour un rendu méché ou bicolore.
+                    </span>
+                  </div>
+                </div>
+                {hairColorMode === "mix" ? (
+                  <CheckCircle2 className="w-5 h-5 text-champagne-dark shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border border-stone-300 shrink-0" />
+                )}
+              </div>
+
+              {/* Sélecteur étendu de couleurs à mélanger */}
+              {hairColorMode === "mix" && (
+                <div className="mt-4 pt-3 border-t border-champagne/30 space-y-2.5 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+                  <p className="text-[11px] text-stone-600 font-medium">
+                    Cochez les couleurs à mélanger pour votre coiffure :
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {MIX_PRESET_COLORS.map((c) => {
+                      const isChecked = selectedMixColors.includes(c.name);
+                      return (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => toggleMixColor(c.name)}
+                          className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            isChecked
+                              ? "bg-brun text-creme shadow-xs scale-105"
+                              : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                          }`}
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full border border-white/40 shrink-0"
+                            style={{ backgroundColor: c.color }}
+                          />
+                          <span>{c.name}</span>
+                          {isChecked && <Check className="w-3 h-3 text-champagne" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[11px] text-champagne-dark font-medium pt-1">
+                    Mélange sélectionné : <strong>{selectedMixColors.join(" + ")}</strong>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 3 : Option Couleur Spécifique Écrite par le Client */}
+          <div className="pt-2 border-t border-stone-100 space-y-3">
+            <div
+              onClick={() => setHairColorMode("custom")}
+              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                hairColorMode === "custom"
+                  ? "bg-creme border-champagne ring-2 ring-champagne/50 shadow-md"
+                  : "bg-white border-beige hover:border-stone-300"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-200 via-rose-300 to-purple-400 border-2 border-champagne/60 shadow-sm flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-brun" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-brun text-sm block">
+                      Autre couleur spécifique (Écrite par vos soins)
+                    </span>
+                    <span className="text-[11px] text-stone-500 font-light">
+                      Mentionnez une nuance personnalisée (bordeaux, blond 613, cuivré, etc.).
+                    </span>
+                  </div>
+                </div>
+                {hairColorMode === "custom" ? (
+                  <CheckCircle2 className="w-5 h-5 text-champagne-dark shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border border-stone-300 shrink-0" />
+                )}
+              </div>
+
+              {/* Champ texte libre */}
+              {hairColorMode === "custom" && (
+                <div className="mt-4 pt-3 border-t border-champagne/30 space-y-2 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+                  <label className="text-[11px] font-semibold text-brun block">
+                    Indiquez la couleur ou nuance précise souhaitée :
+                  </label>
+                  <input
+                    type="text"
+                    value={customColorText}
+                    onChange={(e) => setCustomColorText(e.target.value)}
+                    placeholder="Ex: Bordeaux foncé #99J, Cuivré flamboyant, Blond polaire 613, Bleu nuit..."
+                    className="w-full bg-white border border-stone-300 rounded-xl p-2.5 text-xs text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  />
+                  <p className="text-[10px] text-stone-500 font-light">
+                    Maydie vérifiera la disponibilité de cette référence auprès de ses fournisseurs avant de confirmer.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Récapitulatif du choix de mèche */}
+          <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs">
+            <span className="text-stone-600">Teinte de mèches retenue :</span>
+            <span className="font-serif font-bold text-brun">
+              {getFinalHairColorChoice()}
+            </span>
+          </div>
+
+          {/* Footer Navigation */}
+          <div className="pt-4 border-t border-beige flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentStep(2);
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
+              className="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-brun"
+            >
+              ← Retour (Longueur)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentStep(4);
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
+              className="inline-flex items-center space-x-2 bg-nude hover:bg-nude-dark text-white px-7 py-3 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+            >
+              <span>Continuer vers les créneaux</span>
+              <ArrowRight className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 4: DATE & TIME */}
+      {currentStep === 4 && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
+          <div className="flex items-center justify-between border-b border-beige pb-4">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
+                Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
               </span>
               <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
                 Sélectionnez le créneau
               </h2>
             </div>
             <button
-              onClick={() => setCurrentStep(2)}
+              onClick={() => {
+                if (selectedService?.includesHair) {
+                  setCurrentStep(3);
+                } else {
+                  setCurrentStep(2);
+                }
+              }}
               className="text-xs text-stone-500 hover:text-brun underline"
             >
-              Modifier longueur
+              {selectedService?.includesHair ? "Modifier couleur mèches" : "Modifier longueur"}
             </button>
           </div>
 
@@ -558,6 +921,11 @@ export default function BookingWizard({ initialServices = [] }) {
             <CalendarIcon className="w-4 h-4 text-champagne-dark shrink-0" />
             <span>
               Prestation choisie : <strong>{selectedService.name}</strong>
+              {selectedService?.includesHair && (
+                <span className="ml-2 text-champagne-dark font-semibold">
+                  (Mèches : {getFinalHairColorChoice()})
+                </span>
+              )}
             </span>
           </div>
 
@@ -650,7 +1018,14 @@ export default function BookingWizard({ initialServices = [] }) {
           {/* Navigation */}
           <div className="pt-4 border-t border-beige flex items-center justify-between">
             <button
-              onClick={() => setCurrentStep(2)}
+              onClick={() => {
+                if (selectedService?.includesHair) {
+                  setCurrentStep(3);
+                } else {
+                  setCurrentStep(2);
+                }
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
               className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-brun"
             >
               Retour
@@ -658,7 +1033,7 @@ export default function BookingWizard({ initialServices = [] }) {
             <button
               disabled={!selectedDate || !selectedTime}
               onClick={() => {
-                setCurrentStep(4);
+                setCurrentStep(5);
                 window.scrollTo({ top: 120, behavior: "smooth" });
               }}
               className="inline-flex items-center space-x-1.5 bg-champagne disabled:opacity-40 disabled:cursor-not-allowed hover:bg-champagne-dark text-brun-dark px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors"
@@ -670,12 +1045,12 @@ export default function BookingWizard({ initialServices = [] }) {
         </div>
       )}
 
-      {/* STEP 4: CLIENT CONTACT */}
-      {currentStep === 4 && (
+      {/* STEP 5: CLIENT CONTACT */}
+      {currentStep === 5 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
           <div className="border-b border-beige pb-4">
             <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
-              Étape 4 sur 5
+              Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
             </span>
             <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
               Vos Coordonnées
@@ -810,7 +1185,10 @@ export default function BookingWizard({ initialServices = [] }) {
 
           <div className="pt-4 border-t border-beige flex items-center justify-between">
             <button
-              onClick={() => setCurrentStep(3)}
+              onClick={() => {
+                setCurrentStep(4);
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
               className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-brun"
             >
               Retour
@@ -824,7 +1202,7 @@ export default function BookingWizard({ initialServices = [] }) {
                 !acceptedTerms
               }
               onClick={() => {
-                setCurrentStep(5);
+                setCurrentStep(6);
                 window.scrollTo({ top: 120, behavior: "smooth" });
               }}
               className="inline-flex items-center space-x-1.5 bg-nude disabled:opacity-40 disabled:cursor-not-allowed hover:bg-nude-dark text-white px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shadow-2xs"
@@ -836,12 +1214,12 @@ export default function BookingWizard({ initialServices = [] }) {
         </div>
       )}
 
-      {/* STEP 5: SUMMARY & SUBMIT */}
-      {currentStep === 5 && (
+      {/* STEP 6: SUMMARY & SUBMIT */}
+      {currentStep === 6 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
           <div className="border-b border-beige pb-4">
             <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
-              Étape 5 sur 5
+              Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
             </span>
             <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
               Récapitulatif de la demande
@@ -886,6 +1264,12 @@ export default function BookingWizard({ initialServices = [] }) {
                       <span className="font-medium text-brun">{choice.label}</span>
                     </div>
                   ))}
+                </div>
+              )}
+              {selectedService.includesHair && (
+                <div className="pt-2 border-t border-beige/60 flex justify-between text-stone-700">
+                  <span className="font-semibold text-brun">Mèches fournies :</span>
+                  <span className="font-bold text-champagne-dark">{getFinalHairColorChoice()}</span>
                 </div>
               )}
               {isStudent && selectedService.includesHair && (
@@ -940,7 +1324,10 @@ export default function BookingWizard({ initialServices = [] }) {
 
           <div className="pt-3 flex items-center justify-between">
             <button
-              onClick={() => setCurrentStep(4)}
+              onClick={() => {
+                setCurrentStep(5);
+                window.scrollTo({ top: 120, behavior: "smooth" });
+              }}
               className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-brun"
             >
               Modifier
@@ -963,8 +1350,8 @@ export default function BookingWizard({ initialServices = [] }) {
         </div>
       )}
 
-      {/* STEP 6: SUCCESS CONFIRMATION */}
-      {currentStep === 6 && submissionResult && (
+      {/* STEP 7: SUCCESS CONFIRMATION */}
+      {currentStep === 7 && submissionResult && (
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-champagne text-center space-y-6">
           <div className="w-12 h-12 rounded-full bg-champagne-light text-champagne-dark flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8" />

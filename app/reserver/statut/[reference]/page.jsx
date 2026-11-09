@@ -180,6 +180,16 @@ export default async function BookingStatusPage({ params }) {
                 <span className="text-stone-500">Prestation :</span>
                 <span className="font-semibold text-brun">{booking.service.name}</span>
               </div>
+              {booking.selectedOptions && booking.selectedOptions.length > 0 && (
+                <div className="py-1.5 border-b border-beige/60 space-y-1">
+                  {booking.selectedOptions.map((opt, i) => (
+                    <div key={i} className="flex justify-between text-stone-600">
+                      <span>{opt.name} :</span>
+                      <span className="font-medium text-brun">{opt.choice}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex justify-between py-1 border-b border-beige/60">
                 <span className="text-stone-500">Date :</span>
                 <span className="font-semibold text-brun">

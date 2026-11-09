@@ -277,7 +277,23 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-medium text-brun">{b.service.name}</div>
-                        <div className="text-[11px] text-stone-500">
+                        {b.selectedOptions && b.selectedOptions.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {b.selectedOptions.map((opt, optIdx) => (
+                              <div
+                                key={optIdx}
+                                className={`text-[10px] leading-tight ${
+                                  opt.name === "Couleur des mèches"
+                                    ? "font-semibold text-champagne-dark bg-champagne-light/60 px-1.5 py-0.5 rounded inline-block"
+                                    : "text-stone-500"
+                                }`}
+                              >
+                                {opt.name} : {opt.choice}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-stone-500 mt-0.5">
                           {formatDuration(b.totalDuration)}
                         </div>
                       </td>
