@@ -177,6 +177,21 @@ export default function Footer() {
             </Link>
           </div>
         </div>
+
+        {/* Signature Créateur & Portfolio (en tout petit, tout au fond) */}
+        <div className="pt-6 mt-4 text-center">
+          <p className="text-[10px] text-stone-500 tracking-wide">
+            Site créé et designé par{" "}
+            <a
+              href="https://johansonweb.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-400 hover:text-champagne transition-colors underline decoration-stone-600 underline-offset-2 font-medium"
+            >
+              Johanson Nzoda
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

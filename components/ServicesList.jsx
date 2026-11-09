@@ -28,24 +28,22 @@ export default function ServicesList({ initialServices = [] }) {
 
   return (
     <div>
-      {/* Student Promo Banner */}
-      <div className="mb-8 p-4 rounded-2xl bg-champagne-light/50 border border-champagne/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div>
-          <span className="font-bold text-brun uppercase tracking-wider block">
-            Offre Étudiante
-          </span>
-          <span className="text-brun-muted font-light">
-            Bénéficiez de -5 € de réduction sur les coiffures avec mèches incluses (sur présentation d'un justificatif étudiant en cours de validité).
+      {/* Note discrète réduction étudiante - Style salon haut de gamme */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white border border-beige rounded-xl text-xs text-stone-600 shadow-2xs">
+        <div className="flex items-center space-x-2.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-champagne-dark shrink-0" />
+          <span>
+            <strong className="text-brun font-semibold">Tarif étudiante :</strong> -5 € de réduction sur toutes les coiffures avec mèches incluses (sur présentation de votre carte).
           </span>
         </div>
-        <span className="shrink-0 font-mono font-bold text-champagne-dark px-2.5 py-1 bg-white rounded-lg border border-beige">
-          -5 € Étudiant
+        <span className="text-[11px] font-mono text-champagne-dark font-semibold shrink-0">
+          -5 € avec mèches
         </span>
       </div>
 
       {/* Filters and Search Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-        {/* Categories Pills */}
+        {/* Categories Chips */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat.id;
@@ -53,10 +51,10 @@ export default function ServicesList({ initialServices = [] }) {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`text-xs px-4 py-2 rounded-full font-medium transition-all ${
+                className={`text-xs px-3.5 py-2 rounded-xl font-medium transition-all ${
                   isActive
-                    ? "bg-brun text-creme shadow-xs"
-                    : "bg-white text-brun-muted hover:text-brun border border-beige"
+                    ? "bg-brun text-white shadow-xs font-semibold"
+                    : "bg-white text-stone-600 hover:text-brun border border-beige hover:border-champagne/60"
                 }`}
               >
                 {cat.label}

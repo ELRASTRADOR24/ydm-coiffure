@@ -74,10 +74,10 @@ export default function GalleryGrid({ initialItems }) {
             <button
               key={cat.key}
               onClick={() => setSelectedFilter(cat.key)}
-              className={`inline-flex items-center space-x-1.5 text-xs sm:text-sm px-4 py-2 rounded-full font-semibold uppercase tracking-wider transition-all duration-200 ${
+              className={`inline-flex items-center space-x-1.5 text-xs sm:text-sm px-3.5 py-2 rounded-xl font-medium uppercase tracking-wider transition-all duration-200 ${
                 isSelected
-                  ? "bg-brun text-creme shadow-sm scale-105"
-                  : "bg-white text-stone-600 hover:text-brun hover:border-champagne-dark border border-beige"
+                  ? "bg-brun text-creme shadow-sm font-semibold scale-102"
+                  : "bg-white text-stone-600 hover:text-brun hover:border-champagne/60 border border-beige"
               }`}
             >
               {cat.key === "VIDEO" && (

@@ -92,53 +92,54 @@ export default function ServiceCard({ service, priority = false }) {
           {/* Bouton Play vidéo en haut à droite */}
           {videoUrl && (
             <div
-              className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-brun/90 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/50 shadow-md group-hover/img:scale-110 group-hover/img:bg-brun-dark transition-all duration-300"
+              className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-brun/90 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/50 shadow-md group-hover/img:scale-110 group-hover/img:bg-brun-dark transition-all duration-300"
               title="Regarder la vidéo"
             >
-              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-champagne ml-0.5" />
+              <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-champagne ml-0.5" />
             </div>
           )}
 
-          {/* Pastille "Voir la vidéo" ou "Agrandir" en bas à gauche */}
-          {hasPhoto && (
-            <div className="absolute bottom-2.5 left-2.5 sm:bottom-3.5 sm:left-3.5 z-20 flex items-center space-x-1.5 bg-brun/90 backdrop-blur-md text-creme text-[10px] sm:text-[11px] font-semibold px-2.5 py-1 rounded-full border border-champagne/40 shadow-xs group-hover/img:bg-brun group-hover/img:scale-105 transition-all">
-              {videoUrl ? (
-                <>
-                  <Film className="w-3 h-3 text-champagne" />
-                  <span>Voir la vidéo</span>
-                </>
-              ) : (
-                <>
-                  <ZoomIn className="w-3 h-3 text-champagne" />
-                  <span>Agrandir</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Badges catégorie */}
-          <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 flex flex-wrap gap-1.5 sm:gap-2 z-10 max-w-[70%]">
-            <span className="bg-white/95 backdrop-blur-md text-brun text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full uppercase tracking-wider border border-beige shadow-xs">
+          {/* Badges catégorie en haut à gauche */}
+          <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 flex flex-wrap gap-1.5 z-10 max-w-[calc(100%-52px)]">
+            <span className="bg-white/95 backdrop-blur-md text-brun text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-xl uppercase tracking-wider border border-beige shadow-xs">
               {service.category}
             </span>
             {service.includesHair ? (
-              <span className="bg-champagne text-brun-dark text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm border border-champagne-dark/30">
+              <span className="bg-champagne text-brun-dark text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-xl uppercase tracking-wider shadow-sm border border-champagne-dark/30">
                 Mèches Incluses
               </span>
             ) : service.category === "Sans mèches incluses" ? (
-              <span className="bg-stone-900/85 backdrop-blur-md text-white text-[10px] sm:text-xs font-medium px-3 py-1 rounded-full uppercase tracking-wider shadow-xs">
+              <span className="bg-stone-900/85 backdrop-blur-md text-white text-[10px] sm:text-xs font-medium px-2.5 py-1 rounded-xl uppercase tracking-wider shadow-xs">
                 Mèches non fournies
               </span>
             ) : null}
           </div>
 
-          {/* Price Tag en bas à droite */}
-          <div className="absolute bottom-2.5 right-2.5 sm:bottom-3.5 sm:right-3.5 bg-brun-dark/95 backdrop-blur-md text-creme px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl border border-champagne/50 text-right shadow-sm z-10">
-            <div className="text-[10px] sm:text-xs text-stone-300 uppercase tracking-wider font-medium">
-              {service.options && service.options.length > 0 ? "À partir de" : "Tarif"}
-            </div>
-            <div className="text-base sm:text-2xl font-bold font-serif text-champagne">
-              {formatPrice(service.price)}
+          {/* Rangée basse : Pastille média + Tarif alignés sans chevauchement */}
+          <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3.5 z-20 flex items-end justify-between gap-2 pointer-events-none">
+            {hasPhoto && (
+              <div className="pointer-events-auto flex items-center space-x-1.5 bg-brun/90 backdrop-blur-md text-creme text-[10px] sm:text-[11px] font-semibold px-2.5 py-1 rounded-xl border border-champagne/40 shadow-xs group-hover/img:bg-brun group-hover/img:scale-105 transition-all">
+                {videoUrl ? (
+                  <>
+                    <Film className="w-3 h-3 text-champagne shrink-0" />
+                    <span>Voir la vidéo</span>
+                  </>
+                ) : (
+                  <>
+                    <ZoomIn className="w-3 h-3 text-champagne shrink-0" />
+                    <span>Agrandir</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="pointer-events-auto ml-auto bg-brun-dark/95 backdrop-blur-md text-creme px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl border border-champagne/50 text-right shadow-sm">
+              <div className="text-[9px] sm:text-[10px] text-stone-300 uppercase tracking-wider font-medium leading-none mb-0.5">
+                {service.options && service.options.length > 0 ? "Dès" : "Tarif"}
+              </div>
+              <div className="text-sm sm:text-xl font-bold font-serif text-champagne leading-none">
+                {formatPrice(service.price)}
+              </div>
             </div>
           </div>
         </div>
@@ -174,7 +175,7 @@ export default function ServiceCard({ service, priority = false }) {
 
           {/* Action Button */}
           <div className="pt-1 sm:pt-2">
-            <div className="w-full flex items-center justify-center space-x-2 bg-brun group-hover:bg-brun-dark text-white py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm font-semibold uppercase tracking-wider transition-all shadow-xs">
+            <div className="w-full flex items-center justify-center space-x-2 bg-brun group-hover:bg-brun-dark text-white py-2.5 sm:py-3.5 rounded-xl text-xs sm:text-sm font-semibold uppercase tracking-wider transition-all shadow-xs">
               <span>Réserver cette prestation</span>
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-champagne group-hover:translate-x-1 transition-transform" />
             </div>
