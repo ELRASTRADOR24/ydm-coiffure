@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import {
   Plus,
@@ -17,8 +17,12 @@ import {
   ImageIcon,
   ZoomIn,
   ZoomOut,
+  Upload,
+  Film,
+  Loader2,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { uploadMediaClient } from "@/lib/uploadMedia";
 
 // Liste des visuels disponibles au salon pour sélection rapide en 1 clic
 const AVAILABLE_SALON_IMAGES = [
@@ -89,12 +93,14 @@ export default function AdminServicesView({ initialServices = [] }) {
   // Form State
   const [form, setForm] = useState({
     name: "",
-    category: "Knotless Braids",
+    category: "Sans mèches incluses",
     price: 35,
     duration: 180, // Valeur par défaut conservée en arrière-plan sans affichage
     depositAmount: 10,
     description: "",
     imageUrl: "/images/realisations/knotless-still.jpeg",
+    videoUrl: "",
+    options: [],
     isActive: true,
     isPopular: false,
   });
@@ -104,6 +110,125 @@ export default function AdminServicesView({ initialServices = [] }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Media Upload State (Vidéos et Photos vers Cloudinary)
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const serviceFileInputRef = useRef(null);
+
+  // Longueurs & Options Tarifaires
+  const lengthOptionIndex = useMemo(() => {
+    return Array.isArray(form.options)
+      ? form.options.findIndex((opt) =>
+          (opt.name || "").toLowerCase().includes("longueur")
+        )
+      : -1;
+  }, [form.options]);
+
+  const currentLengthOption =
+    lengthOptionIndex >= 0 ? form.options[lengthOptionIndex] : null;
+
+  const handleActivateLengthOptions = () => {
+    const baseP = Number(form.price) || 35;
+    const defaultOption = {
+      name: "Longueur souhaitée",
+      required: true,
+      choices: [
+        { label: `Court (${baseP} €)`, priceDiff: 0, durationDiff: 0 },
+        { label: `Mi-long (${baseP + 10} €)`, priceDiff: 10, durationDiff: 30 },
+        { label: `Long (${baseP + 20} €)`, priceDiff: 20, durationDiff: 60 },
+        { label: `Extra long (${baseP + 30} €)`, priceDiff: 30, durationDiff: 90 },
+      ],
+    };
+    setForm((prev) => ({
+      ...prev,
+      options: [defaultOption],
+    }));
+  };
+
+  const handleUpdateChoice = (cIdx, field, val) => {
+    if (lengthOptionIndex < 0) return;
+    const updatedOptions = JSON.parse(JSON.stringify(form.options));
+    const targetOpt = updatedOptions[lengthOptionIndex];
+    const choices = targetOpt.choices;
+    const baseP = Number(form.price) || 0;
+
+    if (field === "totalPrice") {
+      const newTotal = Math.max(0, Number(val) || 0);
+      const diff = Math.max(0, newTotal - baseP);
+      const currentName =
+        choices[cIdx].label.replace(/\s*\(\d+\s*€\)/, "").trim() || "Longueur";
+      choices[cIdx].priceDiff = diff;
+      choices[cIdx].label = `${currentName} (${newTotal} €)`;
+    } else if (field === "name") {
+      const curPrice = baseP + (Number(choices[cIdx].priceDiff) || 0);
+      choices[cIdx].label = `${val} (${curPrice} €)`;
+    } else if (field === "durationDiff") {
+      choices[cIdx].durationDiff = Number(val) || 0;
+    }
+
+    targetOpt.choices = choices;
+    updatedOptions[lengthOptionIndex] = targetOpt;
+    setForm((prev) => ({ ...prev, options: updatedOptions }));
+  };
+
+  const handleAddLengthChoice = () => {
+    if (lengthOptionIndex < 0) return;
+    const updatedOptions = JSON.parse(JSON.stringify(form.options));
+    const targetOpt = updatedOptions[lengthOptionIndex];
+    const baseP = Number(form.price) || 0;
+    const nextDiff = targetOpt.choices.length * 10;
+    targetOpt.choices.push({
+      label: `Longueur ${targetOpt.choices.length + 1} (${baseP + nextDiff} €)`,
+      priceDiff: nextDiff,
+      durationDiff: 30,
+    });
+    updatedOptions[lengthOptionIndex] = targetOpt;
+    setForm((prev) => ({ ...prev, options: updatedOptions }));
+  };
+
+  const handleRemoveLengthChoice = (cIdx) => {
+    if (lengthOptionIndex < 0) return;
+    const updatedOptions = JSON.parse(JSON.stringify(form.options));
+    const targetOpt = updatedOptions[lengthOptionIndex];
+    targetOpt.choices = targetOpt.choices.filter((_, idx) => idx !== cIdx);
+    updatedOptions[lengthOptionIndex] = targetOpt;
+    setForm((prev) => ({ ...prev, options: updatedOptions }));
+  };
+
+  const handleRemoveAllLengths = () => {
+    setForm((prev) => ({
+      ...prev,
+      options: prev.options.filter((_, idx) => idx !== lengthOptionIndex),
+    }));
+  };
+
+  const handleMediaUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMedia(true);
+    try {
+      const res = await uploadMediaClient(file);
+      if (res.isVideo) {
+        setForm((prev) => ({
+          ...prev,
+          videoUrl: res.url,
+          imageUrl: res.thumbnailUrl || prev.imageUrl,
+        }));
+        showToast("Vidéo Cloudinary envoyée et enregistrée avec succès !");
+      } else {
+        setForm((prev) => ({
+          ...prev,
+          imageUrl: res.url,
+        }));
+        showToast("Photo Cloudinary envoyée et enregistrée avec succès !");
+      }
+    } catch (err) {
+      showToast("Erreur lors de l'envoi sur Cloudinary : " + err.message);
+    } finally {
+      setUploadingMedia(false);
+      if (e.target) e.target.value = "";
+    }
+  };
 
   // Unique existing categories list
   const existingCategories = useMemo(() => {
@@ -142,6 +267,8 @@ export default function AdminServicesView({ initialServices = [] }) {
       depositAmount: 10,
       description: "",
       imageUrl: "/images/realisations/knotless-still.jpeg",
+      videoUrl: "",
+      options: [],
       isActive: true,
       isPopular: false,
     });
@@ -161,6 +288,10 @@ export default function AdminServicesView({ initialServices = [] }) {
       depositAmount: service.depositAmount ?? 10,
       description: service.description || "",
       imageUrl: service.images?.[0] || "/images/realisations/knotless-still.jpeg",
+      videoUrl: service.videoUrl || VIDEO_MAP[service.images?.[0]] || "",
+      options: Array.isArray(service.options)
+        ? JSON.parse(JSON.stringify(service.options))
+        : [],
       isActive: service.isActive ?? true,
       isPopular: service.isPopular ?? false,
     });
@@ -175,13 +306,14 @@ export default function AdminServicesView({ initialServices = [] }) {
       ? newCategoryName.trim()
       : form.category;
 
-    const matchedVideo = form.videoUrl || VIDEO_MAP[form.imageUrl] || editingService?.videoUrl;
+    const matchedVideo = form.videoUrl || VIDEO_MAP[form.imageUrl] || editingService?.videoUrl || "";
 
     const payload = {
       ...form,
       category: finalCategory,
       images: [form.imageUrl || "/images/realisations/knotless-still.jpeg"],
-      ...(matchedVideo ? { videoUrl: matchedVideo } : {}),
+      videoUrl: matchedVideo,
+      options: form.options,
     };
 
     try {
@@ -709,66 +841,252 @@ export default function AdminServicesView({ initialServices = [] }) {
                 </div>
               </div>
 
-              {/* Visuel / Photo - Pas de type="url" pour éviter le bug de validation */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-brun">
-                    Photo de la prestation
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowImagePicker(!showImagePicker)}
-                    className="text-[11px] text-champagne-dark hover:underline font-semibold flex items-center space-x-1"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>
-                      {showImagePicker
-                        ? "Masquer la sélection rapide"
-                        : "Choisir parmi les photos du salon"}
+              {/* Longueurs & Options Tarifaires (Court, Mi-long, Long, Extra long...) */}
+              <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-serif font-bold text-sm text-brun block">
+                      Options de longueurs & tarifs
                     </span>
-                  </button>
+                    <span className="text-[11px] text-stone-500 font-light">
+                      Ajustez les prix spécifiques à chaque longueur proposée.
+                    </span>
+                  </div>
+                  {currentLengthOption && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAllLengths}
+                      className="text-[11px] text-stone-500 hover:text-red-600 font-medium transition-colors"
+                    >
+                      Désactiver (tarif unique)
+                    </button>
+                  )}
                 </div>
 
-                <input
-                  type="text"
-                  value={form.imageUrl}
-                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  placeholder="/images/realisations/... ou https://..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun font-mono text-[11px]"
-                />
-
-                {/* Sélecteur visuel en 1 clic */}
-                {showImagePicker && (
-                  <div className="mt-2.5 p-3 bg-stone-50 border border-stone-200 rounded-2xl max-h-48 overflow-y-auto space-y-2">
-                    <p className="text-[10px] text-stone-500 font-medium">
-                      Cliquez sur une photo pour l'assigner directement :
+                {!currentLengthOption ? (
+                  <div className="p-3 bg-white border border-stone-200 rounded-xl text-center space-y-2">
+                    <p className="text-xs text-stone-600">
+                      Prestation actuellement en tarif unique (<strong>{form.price} €</strong>).
                     </p>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                      {AVAILABLE_SALON_IMAGES.map((img) => (
-                        <div
-                          key={img.path}
-                          onClick={() => {
-                            setForm({ ...form, imageUrl: img.path });
-                            setShowImagePicker(false);
-                          }}
-                          className={`relative aspect-[3/4] rounded-lg overflow-hidden border cursor-pointer transition-all hover:scale-105 ${
-                            form.imageUrl === img.path
-                              ? "ring-2 ring-champagne border-champagne"
-                              : "border-stone-200"
-                          }`}
-                          title={img.label}
-                        >
-                          <Image
-                            src={img.path}
-                            alt={img.label}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ))}
+                    <button
+                      type="button"
+                      onClick={handleActivateLengthOptions}
+                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-brun" />
+                      <span>Activer les choix de longueurs (Court, Mi-long, Long...)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="space-y-2">
+                      {currentLengthOption.choices.map((choice, cIdx) => {
+                        const cleanName = choice.label.replace(/\s*\(\d+\s*€\)/, "").trim() || "Longueur";
+                        const baseP = Number(form.price) || 0;
+                        const totalPrice = baseP + (Number(choice.priceDiff) || 0);
+
+                        return (
+                          <div
+                            key={cIdx}
+                            className="p-2.5 bg-white border border-stone-200 rounded-xl flex items-center gap-2 text-xs"
+                          >
+                            <div className="flex-1">
+                              <label className="text-[10px] text-stone-400 block font-medium mb-0.5">
+                                Intitulé
+                              </label>
+                              <input
+                                type="text"
+                                value={cleanName}
+                                onChange={(e) => handleUpdateChoice(cIdx, "name", e.target.value)}
+                                placeholder="Nom (ex: Mi-long)"
+                                className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 font-medium text-brun"
+                              />
+                            </div>
+
+                            <div className="w-24">
+                              <label className="text-[10px] text-stone-400 block font-medium mb-0.5 text-right">
+                                Prix client
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={totalPrice}
+                                  onChange={(e) => handleUpdateChoice(cIdx, "totalPrice", e.target.value)}
+                                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 font-bold text-brun text-right pr-6"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 font-medium text-xs">
+                                  €
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-14 text-right pt-3 font-mono text-[10px] text-stone-400">
+                              {choice.priceDiff > 0 ? `+${choice.priceDiff}€` : "Base"}
+                            </div>
+
+                            <div className="pt-3">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveLengthChoice(cIdx)}
+                                className="text-stone-400 hover:text-red-600 p-1 rounded transition-colors"
+                                title="Supprimer cette longueur"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddLengthChoice}
+                      className="w-full py-2 border border-dashed border-stone-300 hover:border-champagne rounded-xl text-xs font-semibold text-stone-600 hover:text-brun flex items-center justify-center space-x-1.5 transition-colors bg-white/60"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Ajouter une longueur supplémentaire</span>
+                    </button>
                   </div>
                 )}
+              </div>
+
+              {/* Visuel, Vidéo & Téléversement Cloudinary */}
+              <div className="space-y-3">
+                {/* Bloc téléversement direct depuis appareil */}
+                <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-brun flex items-center space-x-1.5">
+                      <Upload className="w-4 h-4 text-champagne-dark" />
+                      <span>Ajouter une vidéo ou photo depuis cet appareil</span>
+                    </span>
+                    {uploadingMedia && (
+                      <span className="text-xs text-champagne-dark font-semibold flex items-center space-x-1.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Envoi vers Cloudinary...</span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-stone-500 font-light leading-relaxed">
+                    Téléversez vos fichiers vidéo (MOV, MP4) ou photos directement depuis votre téléphone ou ordinateur. Ils sont hébergés et optimisés automatiquement sur Cloudinary.
+                  </p>
+
+                  <input
+                    ref={serviceFileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleMediaUpload}
+                    className="hidden"
+                  />
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={uploadingMedia}
+                      onClick={() => serviceFileInputRef.current?.click()}
+                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 shadow-2xs"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-brun" />
+                      <span>Choisir un fichier sur mon appareil</span>
+                    </button>
+
+                    {form.videoUrl && (
+                      <span className="inline-flex items-center space-x-1.5 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl font-medium">
+                        <Film className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Vidéo Cloudinary liée</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Champ Vidéo URL spécifique */}
+                {form.videoUrl && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-brun text-xs flex items-center space-x-1">
+                        <Film className="w-3.5 h-3.5 text-champagne-dark" />
+                        <span>Lien de la vidéo</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, videoUrl: "" })}
+                        className="text-[11px] text-red-600 hover:underline"
+                      >
+                        Retirer la vidéo
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={form.videoUrl}
+                      onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+                      placeholder="https://res.cloudinary.com/.../video.mp4"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 text-brun font-mono text-[11px]"
+                    />
+                  </div>
+                )}
+
+                {/* Champ Photo / Visuel */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-brun text-xs">
+                      Photo principale / Vignette
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(!showImagePicker)}
+                      className="text-[11px] text-champagne-dark hover:underline font-semibold flex items-center space-x-1"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>
+                        {showImagePicker
+                          ? "Masquer la sélection"
+                          : "Choisir parmi les photos du salon"}
+                      </span>
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={form.imageUrl}
+                    onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                    placeholder="/images/realisations/... ou https://..."
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun font-mono text-[11px]"
+                  />
+
+                  {/* Sélecteur visuel en 1 clic */}
+                  {showImagePicker && (
+                    <div className="mt-2.5 p-3 bg-stone-50 border border-stone-200 rounded-2xl max-h-48 overflow-y-auto space-y-2">
+                      <p className="text-[10px] text-stone-500 font-medium">
+                        Cliquez sur une photo pour l'assigner directement :
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {AVAILABLE_SALON_IMAGES.map((img) => (
+                          <div
+                            key={img.path}
+                            onClick={() => {
+                              setForm({ ...form, imageUrl: img.path });
+                              setShowImagePicker(false);
+                            }}
+                            className={`relative aspect-[3/4] rounded-lg overflow-hidden border cursor-pointer transition-all hover:scale-105 ${
+                              form.imageUrl === img.path
+                                ? "ring-2 ring-champagne border-champagne"
+                                : "border-stone-200"
+                            }`}
+                            title={img.label}
+                          >
+                            <Image
+                              src={img.path}
+                              alt={img.label}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>

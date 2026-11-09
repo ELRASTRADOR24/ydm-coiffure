@@ -12,6 +12,8 @@ export default function CustomVideoPlayer({
   className = "",
   initialPortrait = true,
   onOrientationChange,
+  isMuted: externalMuted,
+  onMuteChange,
 }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -20,13 +22,21 @@ export default function CustomVideoPlayer({
   const controlsTimeoutRef = useRef(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Toujours muet par défaut
+  const [isMuted, setIsMuted] = useState(externalMuted ?? true); // Toujours muet par défaut
   const [volume, setVolume] = useState(0.85);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
+
+  // Synchronisation avec l'état externe si fourni
+  useEffect(() => {
+    if (externalMuted !== undefined && videoRef.current) {
+      videoRef.current.muted = externalMuted;
+      setIsMuted(externalMuted);
+    }
+  }, [externalMuted]);
 
   // Synchronisation 60fps continue sans lag CSS
   const updateProgress = useCallback(() => {
@@ -134,20 +144,19 @@ export default function CustomVideoPlayer({
     }
   };
 
-  // Bouton son épuré (icône seule, silencieux par défaut)
+  // Bouton son épuré (icône + état, silencieux par défaut)
   const toggleMute = (e) => {
     e?.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
-    if (isMuted) {
-      video.muted = false;
+    const nextMuted = !isMuted;
+    video.muted = nextMuted;
+    if (!nextMuted) {
       video.volume = volume > 0 ? volume : 0.85;
-      setIsMuted(false);
-    } else {
-      video.muted = true;
-      setIsMuted(true);
     }
+    setIsMuted(nextMuted);
+    onMuteChange?.(nextMuted);
   };
 
   // Calcul instantané de la position de la barre de progression (clic ou glisser)
@@ -297,12 +306,10 @@ export default function CustomVideoPlayer({
         )}
       </div>
 
-      {/* Barre de contrôle basse épurée & Barre de progression calibrée (clic & glisser) */}
+      {/* Barre de contrôle basse : toujours 100% visible, parfaitement lisible sur mobile & desktop */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/95 via-black/60 to-transparent z-30 transition-opacity duration-200 ${
-          showControls || !isPlaying || isScrubbing ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/95 via-black/75 to-transparent z-30 pointer-events-auto"
       >
         {/* Scrubber dynamique sans lag CSS : supporte clic instantané et glisser au doigt ou à la souris */}
         <div
@@ -313,7 +320,7 @@ export default function CustomVideoPlayer({
           onPointerCancel={handlePointerUp}
           className="relative py-2 w-full cursor-pointer touch-none group/bar flex items-center"
         >
-          <div className="relative h-1 group-hover/bar:h-1.5 w-full bg-white/30 rounded-full overflow-visible transition-[height] duration-150">
+          <div className="relative h-1.5 w-full bg-white/30 rounded-full overflow-visible transition-[height] duration-150">
             {/* Remplissage instantané (pas de transition-all pour un suivi 100% direct) */}
             <div
               className="h-full bg-champagne rounded-full relative"
@@ -321,8 +328,8 @@ export default function CustomVideoPlayer({
             >
               {/* Curseur de suivi */}
               <div
-                className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border border-champagne shadow-md transition-transform duration-100 ${
-                  isScrubbing ? "scale-125" : "scale-0 group-hover/bar:scale-100"
+                className={`absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 border-champagne shadow-md transition-transform duration-100 ${
+                  isScrubbing ? "scale-125" : "scale-100"
                 }`}
               />
             </div>
@@ -331,26 +338,28 @@ export default function CustomVideoPlayer({
 
         {/* Contrôles bas : Play/Pause, Son/Volume, Minuteur & Plein écran */}
         <div className="flex items-center justify-between text-xs text-stone-200 pt-1">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <button
               type="button"
               onClick={togglePlay}
-              className="text-white hover:text-champagne transition-colors p-1"
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-95 border border-white/20"
               aria-label={isPlaying ? "Pause" : "Lecture"}
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4 fill-white text-white" />
               ) : (
-                <Play className="w-4 h-4 fill-white text-white" />
+                <Play className="w-4 h-4 fill-white text-white ml-0.5" />
               )}
             </button>
 
-            {/* Bouton Son ergonomique, haute visibilité */}
+            {/* Bouton Son ergonomique, haute visibilité permanent */}
             <button
               type="button"
               onClick={toggleMute}
-              className={`p-1.5 flex items-center justify-center rounded-lg transition-colors ${
-                isMuted ? "text-white bg-white/10 hover:bg-white/20" : "text-champagne bg-champagne/20 hover:bg-champagne/30"
+              className={`px-2.5 py-1.5 flex items-center space-x-1.5 rounded-xl border transition-all active:scale-95 shadow-sm ${
+                isMuted
+                  ? "text-white bg-white/20 hover:bg-white/30 border-white/30"
+                  : "text-champagne bg-champagne/25 hover:bg-champagne/35 border-champagne/60 font-semibold"
               }`}
               aria-label={isMuted ? "Activer le son" : "Couper le son"}
               title={isMuted ? "Activer le son" : "Couper le son"}
@@ -360,9 +369,12 @@ export default function CustomVideoPlayer({
               ) : (
                 <Volume2 className="w-4 h-4 text-champagne" />
               )}
+              <span className="text-[11px] font-semibold tracking-wide">
+                {isMuted ? "Son coupé" : "Son actif"}
+              </span>
             </button>
 
-            <span className="font-mono text-[11px] text-white/80 font-medium pl-1">
+            <span className="font-mono text-[11px] text-white/85 font-medium pl-0.5">
               {formatSeconds(currentTime)} / {formatSeconds(duration || 0)}
             </span>
           </div>
@@ -370,7 +382,7 @@ export default function CustomVideoPlayer({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="text-white hover:text-champagne transition-colors p-1 rounded-lg hover:bg-white/10"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/10"
             aria-label="Plein écran"
             title="Plein écran"
           >

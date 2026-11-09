@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import {
   FileText,
@@ -23,9 +23,12 @@ import {
   ZoomOut,
   Image as ImageIcon,
   Film,
+  Upload,
+  Loader2,
 } from "lucide-react";
 
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
+import { uploadMediaClient } from "@/lib/uploadMedia";
 
 const DEFAULT_GALLERY_FALLBACK = DEFAULT_SALON_SETTINGS.galleryItems;
 
@@ -190,6 +193,52 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
     updated[index][field] = value;
     setGalleryList(updated);
     markChanged();
+  };
+
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const galleryFileInputRef = useRef(null);
+
+  const handleGalleryUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingGallery(true);
+    try {
+      showToast("Téléversement vers Cloudinary en cours...");
+      const res = await uploadMediaClient(file);
+      if (res.success) {
+        const isVid = res.resourceType === "video" || file.type.startsWith("video/");
+        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+        const newItem = {
+          id: Date.now(),
+          type: isVid ? "video" : "photo",
+          title: cleanName || "Nouvelle réalisation",
+          category: "Knotless Braids",
+          image: isVid ? res.thumbnailUrl || res.url : res.url,
+          videoUrl: isVid ? res.url : "",
+          aspect: "tall",
+          order: 1,
+        };
+        const updated = [newItem, ...galleryList].map((it, idx) => ({
+          ...it,
+          order: idx + 1,
+        }));
+        setGalleryList(updated);
+        markChanged();
+        showToast(
+          isVid
+            ? "Vidéo téléversée sur Cloudinary avec succès !"
+            : "Photo téléversée sur Cloudinary avec succès !"
+        );
+      } else {
+        showToast(res.error || "Erreur lors du téléversement du média.");
+      }
+    } catch (err) {
+      showToast("Échec de l'upload vers Cloudinary.");
+    } finally {
+      setUploadingGallery(false);
+      if (galleryFileInputRef.current) galleryFileInputRef.current.value = "";
+    }
   };
 
   const handleAddGalleryItem = () => {
@@ -573,6 +622,34 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
                 )}
               </button>
 
+              <input
+                ref={galleryFileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleGalleryUpload}
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                disabled={uploadingGallery}
+                onClick={() => galleryFileInputRef.current?.click()}
+                className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-2xs border border-champagne/40 disabled:opacity-50"
+                title="Téléverser directement une vidéo ou photo depuis cet appareil"
+              >
+                {uploadingGallery ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-champagne" />
+                    <span>Envoi Cloudinary...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5 text-champagne" />
+                    <span>Uploader vidéo / photo</span>
+                  </>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={handleAddGalleryItem}
@@ -726,7 +803,20 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-semibold text-brun block mb-0.5">
+                        Format :
+                      </label>
+                      <select
+                        value={item.type || "photo"}
+                        onChange={(e) => handleGalleryChange(index, "type", e.target.value)}
+                        className="w-full bg-white border border-stone-200 rounded-xl p-2 text-stone-700 focus:outline-none focus:ring-2 focus:ring-champagne"
+                      >
+                        <option value="photo">Photo</option>
+                        <option value="video">Vidéo</option>
+                      </select>
+                    </div>
                     <div>
                       <label className="font-semibold text-brun block mb-0.5">
                         Catégorie :
@@ -741,7 +831,7 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
                     </div>
                     <div>
                       <label className="font-semibold text-brun block mb-0.5">
-                        Chemin / URL Image :
+                        Image / Miniature :
                       </label>
                       <input
                         type="text"
@@ -751,6 +841,22 @@ export default function AdminSiteEditorView({ initialSettings = {} }) {
                       />
                     </div>
                   </div>
+
+                  {item.type === "video" && (
+                    <div>
+                      <label className="font-semibold text-brun block mb-0.5 flex items-center space-x-1">
+                        <Film className="w-3 h-3 text-champagne-dark" />
+                        <span>Lien vidéo (Cloudinary / MP4) :</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={item.videoUrl || ""}
+                        onChange={(e) => handleGalleryChange(index, "videoUrl", e.target.value)}
+                        className="w-full bg-white border border-stone-200 rounded-xl p-2 text-stone-700 focus:outline-none focus:ring-2 focus:ring-champagne font-mono text-[11px]"
+                        placeholder="https://res.cloudinary.com/.../video.mp4"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions de réorganisation (Monter / Descendre / Supprimer) */}

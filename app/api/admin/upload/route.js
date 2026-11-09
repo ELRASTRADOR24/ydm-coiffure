@@ -2,6 +2,44 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import cloudinary from "@/lib/cloudinary";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
+// GET: Génère une signature sécurisée pour permettre l'envoi direct depuis le navigateur vers Cloudinary (supporte les vidéos volumineuses sans limite de taille Vercel)
+export async function GET() {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
+  try {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const folder = "ydm-coiffure";
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || "r94h9y8JZOg9w_2Gb5viVRSV3t4";
+    const apiKey = process.env.CLOUDINARY_API_KEY || "638433529399836";
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "dvecpg1tz";
+
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp, folder },
+      apiSecret
+    );
+
+    return NextResponse.json({
+      success: true,
+      signature,
+      timestamp,
+      apiKey,
+      cloudName,
+      folder,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: "Impossible de générer la signature Cloudinary : " + error.message },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request) {
   const session = await getAdminSession();
   if (!session) {
