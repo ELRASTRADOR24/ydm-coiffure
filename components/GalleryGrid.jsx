@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { ZoomIn, Play, Film, Image as ImageIcon, Sparkles } from "lucide-react";
+import { ZoomIn, Play, Film, Image as ImageIcon } from "lucide-react";
 import LightboxModal from "./LightboxModal";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 
@@ -33,37 +33,29 @@ export default function GalleryGrid({ initialItems }) {
     }
   }, [initialItems]);
 
-  // Compute category counts
   const categories = [
-    { key: "ALL", label: "Toutes les créations" },
-    { key: "VIDEO", label: "Vidéos & Réels", isType: true },
+    { key: "ALL", label: "Toutes" },
+    { key: "VIDEO", label: "Vidéos", isType: true },
     { key: "PHOTO", label: "Photos", isType: true },
-    { key: "Knotless Braids", label: "Knotless" },
-    { key: "Fulani Braids", label: "Fulani" },
+    { key: "Knotless", label: "Knotless" },
+    { key: "Fulani", label: "Fulani" },
     { key: "Boho Braids", label: "Boho Braids" },
     { key: "Vanilles", label: "Vanilles" },
+    { key: "Nattes collées", label: "Nattes collées" },
+    { key: "Cornrows", label: "Cornrows" },
     { key: "Soft Locs", label: "Soft Locs" },
-    { key: "Cornrows", label: "Cornrows & Nattes" },
-    { key: "Sans rajouts", label: "Sans rajouts" },
   ];
 
   const filteredMedia = mediaItems.filter((item) => {
     if (selectedFilter === "ALL") return true;
     if (selectedFilter === "VIDEO") return item.type === "video";
     if (selectedFilter === "PHOTO") return item.type === "photo";
-    if (selectedFilter === "Cornrows") {
-      return (
-        item.category === "Cornrows" ||
-        item.category === "Création Géométrique" ||
-        item.category === "Sans rajouts"
-      );
-    }
     return item.category === selectedFilter;
   });
 
   return (
     <div>
-      {/* Category & Media Type Filter Chips */}
+      {/* Category Filter Chips */}
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mb-10 max-w-4xl mx-auto">
         {categories.map((cat) => {
           const isSelected = selectedFilter === cat.key;
@@ -73,13 +65,6 @@ export default function GalleryGrid({ initialItems }) {
             count = mediaItems.filter((m) => m.type === "video").length;
           else if (cat.key === "PHOTO")
             count = mediaItems.filter((m) => m.type === "photo").length;
-          else if (cat.key === "Cornrows")
-            count = mediaItems.filter(
-              (m) =>
-                m.category === "Cornrows" ||
-                m.category === "Création Géométrique" ||
-                m.category === "Sans rajouts"
-            ).length;
           else count = mediaItems.filter((m) => m.category === cat.key).length;
 
           if (count === 0) return null;
@@ -122,7 +107,6 @@ export default function GalleryGrid({ initialItems }) {
               onClick={() => setActiveMedia(item)}
               className="group relative cursor-pointer overflow-hidden rounded-3xl bg-beige-light border border-beige shadow-xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
             >
-              {/* Media Container - Ratio 3/4 portrait harmonisé sans espace blanc */}
               <div className="relative w-full aspect-[3/4] overflow-hidden bg-stone-900">
                 <Image
                   src={item.image}
@@ -132,17 +116,14 @@ export default function GalleryGrid({ initialItems }) {
                   className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
                 />
 
-                {/* Video Play Badge overlay */}
                 {item.type === "video" && (
                   <div className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-brun/85 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/40 shadow-md group-hover:scale-110 transition-transform">
                     <Play className="w-5 h-5 fill-champagne ml-0.5" />
                   </div>
                 )}
 
-                {/* Overlay gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-brun-dark/90 via-brun-dark/20 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
 
-                {/* Content info on bottom */}
                 <div className="absolute bottom-0 left-0 right-0 p-5 text-white transform transition-transform">
                   <span className="text-[10px] uppercase tracking-widest font-semibold text-champagne block mb-1">
                     {item.category}
@@ -150,7 +131,7 @@ export default function GalleryGrid({ initialItems }) {
                   <h3 className="font-serif text-base sm:text-lg font-bold text-creme leading-snug drop-shadow-sm">
                     {item.title}
                   </h3>
-                  <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-stone-300 opacity-90">
+                  <div className="mt-2 flex items-center space-x-1.5 text-xs text-stone-300 opacity-90">
                     {item.type === "video" ? (
                       <>
                         <Film className="w-3.5 h-3.5 text-champagne" />
@@ -170,7 +151,6 @@ export default function GalleryGrid({ initialItems }) {
         })}
       </div>
 
-      {/* Lightbox / Video Modal */}
       {activeMedia && (
         <LightboxModal
           item={activeMedia}
