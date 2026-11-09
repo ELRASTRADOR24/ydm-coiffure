@@ -15,6 +15,8 @@ import {
   ArrowDown,
   GripVertical,
   ImageIcon,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -82,6 +84,7 @@ export default function AdminServicesView({ initialServices = [] }) {
   // Drag and Drop state
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [isCompactMode, setIsCompactMode] = useState(false);
 
   // Form State
   const [form, setForm] = useState({
@@ -314,17 +317,142 @@ export default function AdminServicesView({ initialServices = [] }) {
           </p>
         </div>
 
-        <button
-          onClick={openCreateModal}
-          className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4 text-champagne" />
-          <span>Ajouter une prestation</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Bouton de zoom / dézoom pour réorganisation facile */}
+          <button
+            type="button"
+            onClick={() => setIsCompactMode(!isCompactMode)}
+            className={`inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+              isCompactMode
+                ? "bg-champagne text-brun-dark border-champagne-dark shadow-xs ring-2 ring-champagne/40"
+                : "bg-white text-stone-700 border-stone-200 hover:border-champagne hover:bg-stone-50"
+            }`}
+            title={isCompactMode ? "Revenir à la vue détaillée" : "Dézoomer pour déplacer facilement les cartes"}
+          >
+            {isCompactMode ? (
+              <>
+                <ZoomIn className="w-4 h-4 text-brun" />
+                <span>Vue détaillée</span>
+              </>
+            ) : (
+              <>
+                <ZoomOut className="w-4 h-4 text-champagne-dark" />
+                <span>Dézoomer (Vue d'ensemble)</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={openCreateModal}
+            className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4 text-champagne" />
+            <span>Ajouter une prestation</span>
+          </button>
+        </div>
       </div>
 
-      {/* Services Grid avec Drag & Drop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Message d'aide en mode dézoomé */}
+      {isCompactMode && (
+        <div className="p-3.5 rounded-2xl bg-champagne-light/50 border border-champagne/50 flex items-center justify-between text-xs text-brun animate-fadeIn">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-champagne-dark shrink-0" />
+            <span className="font-medium">
+              Mode dézoomé actif : toutes les prestations sont visibles d'un seul coup d'œil. Glissez-déposez n'importe quelle carte pour la placer rapidement où vous voulez.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsCompactMode(false)}
+            className="text-[11px] font-bold text-brun underline hover:text-champagne-dark shrink-0 ml-3"
+          >
+            Retour vue détaillée
+          </button>
+        </div>
+      )}
+
+      {/* Services Grid avec Drag & Drop (Mode Dézoomé ou Détaillé) */}
+      {isCompactMode ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          {services.map((service, index) => {
+            const id = service.id || service._id;
+            const isDragging = draggedIndex === index;
+            const isOver = dragOverIndex === index;
+
+            return (
+              <div
+                key={id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", index.toString());
+                  setDraggedIndex(index);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (dragOverIndex !== index) setDragOverIndex(index);
+                }}
+                onDragLeave={() => {
+                  if (dragOverIndex === index) setDragOverIndex(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                  if (!isNaN(fromIdx)) {
+                    handleDropService(fromIdx, index);
+                  }
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }}
+                className={`group relative aspect-[3/4] rounded-2xl overflow-hidden border cursor-grab active:cursor-grabbing transition-all duration-200 select-none shadow-xs ${
+                  isDragging
+                    ? "opacity-30 scale-90 border-dashed border-champagne shadow-inner"
+                    : isOver
+                    ? "ring-4 ring-champagne border-champagne scale-105 shadow-2xl z-20"
+                    : "border-stone-200 hover:border-champagne hover:scale-[1.02] hover:shadow-md bg-stone-900"
+                }`}
+                title={`${service.name} (#${index + 1}) - Glisser pour déplacer`}
+              >
+                <Image
+                  src={
+                    service.images?.[0] ||
+                    "/images/realisations/knotless-still.jpeg"
+                  }
+                  alt={service.name || "Prestation YDM"}
+                  fill
+                  className="object-cover object-center pointer-events-none"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+
+                {/* Badge numéro */}
+                <div className="absolute top-2 left-2 z-10 flex items-center space-x-1 bg-brun/90 backdrop-blur-md text-creme text-[10px] font-bold px-2 py-0.5 rounded-full border border-champagne/40 shadow-xs">
+                  <GripVertical className="w-3 h-3 text-champagne" />
+                  <span>#{index + 1}</span>
+                </div>
+
+                {/* Prix */}
+                <div className="absolute top-2 right-2 z-10 bg-black/75 backdrop-blur-xs text-champagne font-serif font-bold text-[11px] px-2 py-0.5 rounded-md border border-white/10">
+                  {formatPrice(service.price)}
+                </div>
+
+                {/* Titre et catégorie */}
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white">
+                  <span className="text-[9px] uppercase tracking-wider text-stone-300 block truncate">
+                    {service.category}
+                  </span>
+                  <h4 className="font-serif font-bold text-xs leading-tight line-clamp-1 drop-shadow-sm">
+                    {service.name}
+                  </h4>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service, index) => {
           const id = service.id || service._id;
           const isDragging = draggedIndex === index;
@@ -461,6 +589,7 @@ export default function AdminServicesView({ initialServices = [] }) {
           );
         })}
       </div>
+      )}
 
       {/* CREATE / EDIT MODAL SANS BUG D'URL ET SANS CHAMP D'HEURES */}
       {modalOpen && (
