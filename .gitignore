@@ -23,6 +23,10 @@ dist/
 .env.production.local
 .env*.local
 
+# Raw original heavy photo & video source dumps (web assets are in public/)
+photos YDM/
+"photos YDM/"
+
 # System & IDE files
 .DS_Store
 *.pem
