@@ -6,9 +6,9 @@ import { ZoomIn, Play, Film, Image as ImageIcon } from "lucide-react";
 import LightboxModal from "./LightboxModal";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 
-export default function GalleryGrid({ initialItems }) {
-  const [mediaItems, setMediaItems] = useState(
-    initialItems && initialItems.length > 0
+export default function GalleryGrid({ initialItems, galleryTouched = false }) {
+  const [rawItems, setRawItems] = useState(
+    Array.isArray(initialItems) && (initialItems.length > 0 || galleryTouched)
       ? initialItems
       : DEFAULT_SALON_SETTINGS.galleryItems
   );
@@ -17,21 +17,19 @@ export default function GalleryGrid({ initialItems }) {
   const [selectedFilter, setSelectedFilter] = useState("ALL");
 
   useEffect(() => {
-    if (!initialItems || initialItems.length === 0) {
+    if (!galleryTouched && (!initialItems || initialItems.length === 0)) {
       fetch("/api/settings")
         .then((res) => res.json())
         .then((data) => {
-          if (
-            data.success &&
-            Array.isArray(data.settings?.galleryItems) &&
-            data.settings.galleryItems.length > 0
-          ) {
-            setMediaItems(data.settings.galleryItems);
+          if (data.success && Array.isArray(data.settings?.galleryItems)) {
+            setRawItems(data.settings.galleryItems);
           }
         })
         .catch(() => {});
     }
-  }, [initialItems]);
+  }, [initialItems, galleryTouched]);
+
+  const mediaItems = rawItems.filter((item) => item && item.visible !== false);
 
   const categories = [
     { key: "ALL", label: "Toutes" },

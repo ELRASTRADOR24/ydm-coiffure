@@ -17,9 +17,15 @@ import {
   Menu,
   X,
   FileText,
+  AlertTriangle,
+  Mail,
 } from "lucide-react";
 
-export default function AdminSidebar({ user, children }) {
+export default function AdminSidebar({
+  user,
+  maintenanceEnabled = false,
+  children,
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -49,6 +55,7 @@ export default function AdminSidebar({ user, children }) {
   const links = [
     { label: "Tableau de bord", href: "/admin", icon: LayoutDashboard },
     { label: "Contenu & Textes", href: "/admin/site-editor", icon: FileText },
+    { label: "Cartes Mail & Gmail", href: "/admin/emails", icon: Mail },
     { label: "Calendrier", href: "/admin/calendar", icon: CalendarDays },
     { label: "Réservations", href: "/admin/bookings", icon: BookmarkCheck },
     { label: "Prestations", href: "/admin/services", icon: Scissors },
@@ -83,21 +90,32 @@ export default function AdminSidebar({ user, children }) {
             <span className="font-serif text-lg font-bold tracking-wider text-champagne block leading-tight">
               YDM COIFFURE
             </span>
-            <span className="text-[9px] uppercase tracking-wider text-stone-300 block">
+            <span className="text-[11px] uppercase tracking-wider text-stone-300 block">
               Administration
             </span>
           </div>
         </Link>
 
-        {/* Bouton Hamburger 3 traits */}
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-xl text-creme hover:text-champagne hover:bg-brun-light/40 transition-colors focus:outline-none focus:ring-2 focus:ring-champagne"
-          aria-label="Ouvrir le menu de navigation"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {maintenanceEnabled && (
+            <Link
+              href="/admin/site-editor?tab=maintenance"
+              className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-red-600 text-white text-[11px] font-bold"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <span>Maintenance</span>
+            </Link>
+          )}
+          {/* Bouton Hamburger 3 traits */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-xl text-creme hover:text-champagne hover:bg-brun-light/40 transition-colors focus:outline-none focus:ring-2 focus:ring-champagne"
+            aria-label="Ouvrir le menu de navigation"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
       </header>
 
       {/* ============================================================ */}
@@ -180,20 +198,21 @@ export default function AdminSidebar({ user, children }) {
             </div>
 
             {/* Actions en bas du tiroir mobile */}
-            <div className="space-y-2 pt-6 border-t border-brun-light/40 text-xs">
-              <Link
+            <div className="space-y-2 pt-6 border-t border-brun-light/40 text-sm">
+              <a
                 href="/"
                 target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-between px-3.5 py-2.5 text-beige-light/80 hover:text-champagne rounded-xl hover:bg-brun-light/30 transition-colors"
+                className="flex items-center justify-between px-3.5 py-3 text-beige-light/90 hover:text-champagne rounded-xl hover:bg-brun-light/30 transition-colors font-medium"
               >
                 <span>Voir le site public</span>
                 <ExternalLink className="w-4 h-4 text-champagne" />
-              </Link>
+              </a>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full flex items-center space-x-2.5 px-3.5 py-2.5 text-red-300 hover:text-red-100 hover:bg-red-950/40 rounded-xl transition-colors text-left font-medium"
+                className="w-full flex items-center space-x-2.5 px-3.5 py-3 text-red-300 hover:text-red-100 hover:bg-red-950/40 rounded-xl transition-colors text-left font-medium"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Déconnexion</span>
@@ -235,6 +254,16 @@ export default function AdminSidebar({ user, children }) {
                 Connectée : <strong>{user.name || "Yasmine D."}</strong>
               </div>
             )}
+
+            {maintenanceEnabled && (
+              <Link
+                href="/admin/site-editor?tab=maintenance"
+                className="flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition-colors"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>MODE MAINTENANCE ACTIF</span>
+              </Link>
+            )}
           </div>
 
           {/* Navigation Links Desktop */}
@@ -249,13 +278,13 @@ export default function AdminSidebar({ user, children }) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium tracking-wide transition-all ${
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium tracking-wide transition-all ${
                     isActive
-                      ? "bg-champagne text-brun-dark font-semibold shadow-xs"
-                      : "text-beige-light/80 hover:text-creme hover:bg-brun-light/40"
+                      ? "bg-champagne text-brun-dark font-bold shadow-xs"
+                      : "text-beige-light/90 hover:text-creme hover:bg-brun-light/40"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-brun-dark" : "text-champagne"}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-brun-dark" : "text-champagne"}`} />
                   <span>{link.label}</span>
                 </Link>
               );
@@ -264,21 +293,22 @@ export default function AdminSidebar({ user, children }) {
         </div>
 
         {/* Actions en bas Desktop */}
-        <div className="space-y-2 pt-6 border-t border-brun-light/40 text-xs">
-          <Link
+        <div className="space-y-2 pt-6 border-t border-brun-light/40 text-sm">
+          <a
             href="/"
             target="_blank"
-            className="flex items-center justify-between px-3 py-2 text-beige-light/70 hover:text-champagne rounded-lg hover:bg-brun-light/30 transition-colors"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between px-3.5 py-2.5 text-beige-light/90 hover:text-champagne rounded-xl hover:bg-brun-light/30 transition-colors font-medium"
           >
             <span>Voir le site public</span>
-            <ExternalLink className="w-3.5 h-3.5 text-champagne" />
-          </Link>
+            <ExternalLink className="w-4 h-4 text-champagne" />
+          </a>
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center space-x-2 px-3 py-2 text-red-300 hover:text-red-200 hover:bg-red-950/40 rounded-lg transition-colors text-left"
+            className="w-full flex items-center space-x-2.5 px-3.5 py-2.5 text-red-300 hover:text-red-200 hover:bg-red-950/40 rounded-xl transition-colors text-left font-medium cursor-pointer"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
             <span>Déconnexion</span>
           </button>
         </div>

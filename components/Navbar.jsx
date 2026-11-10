@@ -5,15 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, Calendar } from "lucide-react";
+import {
+  DEFAULT_SITE_CONTENT,
+  DEFAULT_PAGE_VISIBILITY,
+} from "@/lib/siteContent";
 
-export default function Navbar() {
+export default function Navbar({ initialSettings = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [pageVisibility, setPageVisibility] = useState({
-    prestations: true,
-    galerie: true,
-    contact: true,
-  });
+  const [liveSettings, setLiveSettings] = useState(initialSettings);
   const pathname = usePathname();
 
   const isAdmin = pathname.startsWith("/admin");
@@ -27,28 +27,48 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    if (isAdmin) return;
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.settings?.pageVisibility) {
-          setPageVisibility(data.settings.pageVisibility);
+        if (data.success && data.settings) {
+          setLiveSettings(data.settings);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [isAdmin, pathname]);
 
   if (isAdmin) return null;
 
+  const headerCfg =
+    liveSettings?.siteContent?.global?.header ||
+    DEFAULT_SITE_CONTENT.global.header;
+
+  if (headerCfg.visible === false) return null;
+
+  const pageVisibility =
+    liveSettings?.pageVisibility || DEFAULT_PAGE_VISIBILITY;
+
+  const labels = headerCfg.navLabels || DEFAULT_SITE_CONTENT.global.header.navLabels;
+  const brandTitle = headerCfg.brandTitle ?? "YDM COIFFURE";
+  const brandSubtitle = headerCfg.brandSubtitle ?? "La Roche-sur-Yon";
+  const ctaText = headerCfg.ctaText ?? "Demander un rdv";
+  const mobileCtaText = headerCfg.mobileCtaText ?? ctaText;
+  const showCta = headerCfg.ctaVisible !== false && pageVisibility.reserver !== false && Boolean(ctaText);
+
   const navLinks = [
-    { label: "Accueil", href: "/" },
-    ...(pageVisibility.prestations !== false
-      ? [{ label: "Prestations & Tarifs", href: "/prestations" }]
+    ...(labels.accueil ? [{ label: labels.accueil, href: "/" }] : []),
+    ...(pageVisibility.prestations !== false && labels.prestations
+      ? [{ label: labels.prestations, href: "/prestations" }]
       : []),
-    ...(pageVisibility.galerie !== false
-      ? [{ label: "Galerie", href: "/galerie" }]
+    ...(pageVisibility.galerie !== false && labels.galerie
+      ? [{ label: labels.galerie, href: "/galerie" }]
       : []),
-    ...(pageVisibility.contact !== false
-      ? [{ label: "Conditions & Contact", href: "/contact" }]
+    ...(headerCfg.showAProposInNav && pageVisibility.aPropos !== false && labels.aPropos
+      ? [{ label: labels.aPropos, href: "/a-propos" }]
+      : []),
+    ...(pageVisibility.contact !== false && labels.contact
+      ? [{ label: labels.contact, href: "/contact" }]
       : []),
   ];
 
@@ -73,14 +93,20 @@ export default function Navbar() {
                 priority
               />
             </div>
-            <div className="flex flex-col items-start justify-center">
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-wider text-brun group-hover:text-champagne-dark transition-colors leading-none">
-                YDM COIFFURE
-              </span>
-              <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-stone-500 font-medium mt-1">
-                La Roche-sur-Yon
-              </span>
-            </div>
+            {(brandTitle || (headerCfg.brandSubtitleVisible !== false && brandSubtitle)) && (
+              <div className="flex flex-col items-start justify-center">
+                {brandTitle && (
+                  <span className="font-serif text-lg sm:text-xl font-bold tracking-wider text-brun group-hover:text-champagne-dark transition-colors leading-none">
+                    {brandTitle}
+                  </span>
+                )}
+                {headerCfg.brandSubtitleVisible !== false && brandSubtitle && (
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-stone-500 font-medium mt-1">
+                    {brandSubtitle}
+                  </span>
+                )}
+              </div>
+            )}
           </Link>
 
           {/* Desktop Nav */}
@@ -107,15 +133,19 @@ export default function Navbar() {
           </nav>
 
           {/* CTA Button */}
-          <div className="hidden md:flex items-center space-x-3 shrink-0">
-            <Link
-              href="/reserver"
-              className="inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-white px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase shadow-xs hover:shadow transition-all active:scale-[0.98]"
-            >
-              <Calendar className="w-3.5 h-3.5 text-champagne" />
-              <span>Demander un rdv</span>
-            </Link>
-          </div>
+          {showCta ? (
+            <div className="hidden md:flex items-center space-x-3 shrink-0">
+              <Link
+                href="/reserver"
+                className="inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-white px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase shadow-xs hover:shadow transition-all active:scale-[0.98]"
+              >
+                <Calendar className="w-3.5 h-3.5 text-champagne" />
+                <span>{ctaText}</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="hidden md:block" />
+          )}
 
           {/* Mobile Menu Button */}
           <button
@@ -145,16 +175,18 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <div className="pt-2">
-            <Link
-              href="/reserver"
-              onClick={() => setIsOpen(false)}
-              className="w-full flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-white py-3 rounded-full text-xs font-semibold tracking-wider uppercase shadow-xs transition-colors"
-            >
-              <Calendar className="w-4 h-4 text-champagne" />
-              <span>Demander un rendez-vous</span>
-            </Link>
-          </div>
+          {showCta && (
+            <div className="pt-2">
+              <Link
+                href="/reserver"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-white py-3 rounded-full text-xs font-semibold tracking-wider uppercase shadow-xs transition-colors"
+              >
+                <Calendar className="w-4 h-4 text-champagne" />
+                <span>{mobileCtaText}</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -4,9 +4,16 @@ import { useState } from "react";
 import ServiceCard from "./ServiceCard";
 import { Search } from "lucide-react";
 
-export default function ServicesList({ initialServices = [] }) {
+export default function ServicesList({ initialServices = [], studentPromo = null }) {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const promoVisible = studentPromo ? studentPromo.visible !== false : true;
+  const promoLabel = studentPromo?.label ?? "Tarif étudiante :";
+  const promoText =
+    studentPromo?.text ??
+    "-5 € de réduction sur toutes les coiffures avec mèches incluses (sur présentation de votre carte).";
+  const promoBadge = studentPromo?.badge ?? "-5 € avec mèches";
 
   const categories = [
     { id: "ALL", label: "Toutes les prestations" },
@@ -22,28 +29,34 @@ export default function ServicesList({ initialServices = [] }) {
     const matchesSearch =
       searchQuery.trim() === "" ||
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (service.description || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   return (
     <div>
-      {/* Note discrète réduction étudiante - Style salon haut de gamme */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white border border-beige rounded-xl text-xs text-stone-600 shadow-2xs">
-        <div className="flex items-center space-x-2.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-champagne-dark shrink-0" />
-          <span>
-            <strong className="text-brun font-semibold">Tarif étudiante :</strong> -5 € de réduction sur toutes les coiffures avec mèches incluses (sur présentation de votre carte).
-          </span>
+      {/* Note réduction étudiante configurable */}
+      {promoVisible && (promoLabel || promoText || promoBadge) && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-white border border-beige rounded-xl text-xs text-stone-600 shadow-2xs">
+          <div className="flex items-center space-x-2.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-champagne-dark shrink-0" />
+            <span>
+              {promoLabel && (
+                <strong className="text-brun font-semibold">{promoLabel} </strong>
+              )}
+              {promoText}
+            </span>
+          </div>
+          {promoBadge && (
+            <span className="text-[11px] font-mono text-champagne-dark font-semibold shrink-0">
+              {promoBadge}
+            </span>
+          )}
         </div>
-        <span className="text-[11px] font-mono text-champagne-dark font-semibold shrink-0">
-          -5 € avec mèches
-        </span>
-      </div>
+      )}
 
       {/* Filters and Search Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-        {/* Categories Chips */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat.id;
@@ -63,7 +76,6 @@ export default function ServicesList({ initialServices = [] }) {
           })}
         </div>
 
-        {/* Search */}
         <div className="relative w-full md:w-64">
           <input
             type="text"
@@ -80,7 +92,11 @@ export default function ServicesList({ initialServices = [] }) {
       {filteredServices.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredServices.map((service, index) => (
-            <ServiceCard key={service.id || service._id} service={service} priority={index < 3} />
+            <ServiceCard
+              key={service.id || service._id}
+              service={service}
+              priority={index < 3}
+            />
           ))}
         </div>
       ) : (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -16,11 +17,25 @@ import {
   Check,
   X,
   Sparkles,
+  Power,
+  AlertTriangle,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+import { DEFAULT_MAINTENANCE } from "@/lib/siteContent";
 
-export default function AdminDashboardView({ initialStats, initialBookings }) {
+export default function AdminDashboardView({
+  initialStats,
+  initialBookings,
+  initialMaintenance = DEFAULT_MAINTENANCE,
+}) {
+  const router = useRouter();
   const [bookings, setBookings] = useState(initialBookings || []);
+  const [maintenance, setMaintenance] = useState(
+    initialMaintenance || DEFAULT_MAINTENANCE
+  );
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectModalBooking, setRejectModalBooking] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -51,6 +66,36 @@ export default function AdminDashboardView({ initialStats, initialBookings }) {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 4000);
+  };
+
+  const handleToggleMaintenance = async () => {
+    const nextEnabled = !maintenance.enabled;
+    setTogglingMaintenance(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maintenance: { ...maintenance, enabled: nextEnabled },
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMaintenance(data.settings?.maintenance || { ...maintenance, enabled: nextEnabled });
+        showToast(
+          nextEnabled
+            ? "Mode maintenance activé ! Le site public affiche la page de maintenance."
+            : "Mode maintenance désactivé ! Le site est de nouveau en ligne."
+        );
+        router.refresh();
+      } else {
+        showToast(data.error || "Impossible de modifier le mode maintenance.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors de la mise à jour du mode maintenance.");
+    } finally {
+      setTogglingMaintenance(false);
+    }
   };
 
   // 1-Click Approve Booking
@@ -132,7 +177,7 @@ export default function AdminDashboardView({ initialStats, initialBookings }) {
           <h1 className="font-serif text-3xl font-bold text-brun">
             Tableau de Bord
           </h1>
-          <p className="text-xs text-stone-500 font-light mt-1">
+          <p className="text-sm text-stone-600 mt-1">
             Aperçu en temps réel de votre activité, de vos encaissements et de votre planning.
           </p>
         </div>
@@ -140,25 +185,114 @@ export default function AdminDashboardView({ initialStats, initialBookings }) {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/admin/site-editor"
-            className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-light text-brun-dark px-4 py-2 rounded-xl text-xs font-bold shadow-2xs transition-all hover:scale-[1.02]"
+            className="inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xs transition-all hover:scale-[1.02]"
           >
-            <Sparkles className="w-3.5 h-3.5 text-brun" />
-            <span>Modifier le site (FAQ, Textes)</span>
+            <Sparkles className="w-4 h-4 text-brun" />
+            <span>Modifier tout le site</span>
+          </Link>
+          <Link
+            href="/admin/emails"
+            className="inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
+          >
+            <Mail className="w-4 h-4 text-champagne-dark" />
+            <span>Cartes Mail &amp; Gmail</span>
           </Link>
           <Link
             href="/admin/calendar"
-            className="inline-flex items-center space-x-1.5 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+            className="inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
-            <Calendar className="w-3.5 h-3.5 text-champagne" />
+            <Calendar className="w-4 h-4 text-champagne-dark" />
             <span>Ouvrir le calendrier</span>
           </Link>
           <Link
             href="/admin/bookings"
-            className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
             <span>Toutes les réservations</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </Link>
+        </div>
+      </div>
+
+      {/* Bouton de Secours Instantané : Mode Maintenance */}
+      <div
+        className={`rounded-3xl p-5 sm:p-6 border-2 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5 transition-all ${
+          maintenance.enabled
+            ? "bg-red-50 border-red-400"
+            : "bg-white border-stone-200"
+        }`}
+      >
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                maintenance.enabled
+                  ? "bg-red-600 text-white"
+                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+              }`}
+            >
+              {maintenance.enabled ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>MODE MAINTENANCE ACTIF</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>SITE EN LIGNE</span>
+                </>
+              )}
+            </span>
+          </div>
+          <h2 className="font-serif text-xl font-bold text-brun">
+            Bouton de Secours : Page de Maintenance
+          </h2>
+          <p className="text-sm text-stone-600 max-w-2xl">
+            En cas de problème technique ou de grosse mise à jour, passez le site public en mode maintenance en 1 clic tout en gardant accès à votre administration.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <button
+            type="button"
+            disabled={togglingMaintenance}
+            onClick={handleToggleMaintenance}
+            className={`inline-flex items-center space-x-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-60 ${
+              maintenance.enabled
+                ? "bg-emerald-700 hover:bg-emerald-800 text-white"
+                : "bg-red-600 hover:bg-red-700 text-white"
+            }`}
+          >
+            {togglingMaintenance ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Power className="w-4 h-4" />
+            )}
+            <span>
+              {togglingMaintenance
+                ? "Mise à jour..."
+                : maintenance.enabled
+                ? "Désactiver la maintenance"
+                : "Activer la maintenance"}
+            </span>
+          </button>
+
+          <Link
+            href="/admin/site-editor?tab=maintenance"
+            className="inline-flex items-center space-x-1.5 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
+          >
+            <span>Personnaliser le message</span>
+          </Link>
+
+          <a
+            href="/?preview_maintenance=1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center space-x-1.5 px-4 py-3 rounded-2xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 text-sm font-semibold transition-colors"
+          >
+            <span>Aperçu</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
         </div>
       </div>
 
@@ -167,22 +301,22 @@ export default function AdminDashboardView({ initialStats, initialBookings }) {
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-champagne animate-pulse" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-champagne">
-              Gestion Autonome du Site
+            <span className="text-xs font-bold uppercase tracking-wider text-champagne">
+              Contrôle Complet du Site
             </span>
           </div>
           <h2 className="font-serif text-lg sm:text-xl font-bold text-creme">
-            Modifiez vos textes, questions FAQ et masquez des pages en direct
+            Modifiez chaque page, texte, photo, FAQ et règlement en direct
           </h2>
-          <p className="text-xs text-stone-300 font-light max-w-2xl">
-            Personnalisez vos conditions de réservation, la FAQ, vos informations de bas de page et masquez ou affichez vos pages en toute autonomie.
+          <p className="text-sm text-stone-300 font-light max-w-2xl">
+            Accueil, Prestations, Galerie, À propos de moi, Contact, Règlement Intérieur, Mentions Légales, Confidentialité, Menu et Pied de page.
           </p>
         </div>
         <Link
           href="/admin/site-editor"
-          className="inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition-all shrink-0 hover:scale-[1.02]"
+          className="inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-5 py-3 rounded-2xl text-sm font-bold shadow-md transition-all shrink-0 hover:scale-[1.02]"
         >
-          <span>Ouvrir l'éditeur du site</span>
+          <span>Ouvrir l&apos;éditeur complet</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

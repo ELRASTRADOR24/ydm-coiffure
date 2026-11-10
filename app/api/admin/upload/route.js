@@ -60,12 +60,13 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload buffer to Cloudinary
+    // Upload buffer to Cloudinary with automatic optimization
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "ydm-coiffure",
           resource_type: "auto",
+          quality: "auto:good",
         },
         (error, result) => {
           if (error) reject(error);

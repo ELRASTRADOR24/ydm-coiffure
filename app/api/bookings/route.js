@@ -23,6 +23,18 @@ import {
 
 export async function POST(request) {
   try {
+    const currentSettings = await getSettings();
+    if (currentSettings?.maintenance?.enabled) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Le site est actuellement en maintenance. Les réservations en ligne sont momentanément suspendues.",
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const {
       serviceId,

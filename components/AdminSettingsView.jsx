@@ -62,31 +62,40 @@ export default function AdminSettingsView({ initialSettings }) {
         <h1 className="font-serif text-3xl font-bold text-brun">
           Paramètres du Salon
         </h1>
-        <p className="text-xs text-stone-500 font-light mt-1">
+        <p className="text-sm text-stone-600 mt-1">
           Gérez votre profil public, votre adresse privée confidentielle et vos règles de réservation.
         </p>
       </div>
 
-      {/* Raccourci vers l'Éditeur de Site */}
-      <div className="bg-stone-50 border border-stone-200 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Raccourcis vers l'Éditeur de Site & Cartes Mail */}
+      <div className="bg-stone-50 border-2 border-stone-200 rounded-3xl p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-champagne-dark block">
-            Éditeur de Contenu Direct (Façon Google Docs)
+          <span className="text-xs font-bold uppercase tracking-wider text-champagne-dark block">
+            Éditeur Complet, Cartes Mail &amp; Mode Maintenance
           </span>
-          <h3 className="font-serif text-base font-bold text-brun">
-            Modifier la FAQ, le bas de page ou masquer des pages ?
+          <h3 className="font-serif text-lg font-bold text-brun">
+            Modifier les textes du site ou la carte des e-mails Gmail ?
           </h3>
-          <p className="text-xs text-stone-500 font-light">
-            Utilisez l'éditeur de contenu intuitif pour modifier les textes du site sans toucher au code.
+          <p className="text-sm text-stone-600">
+            Tout le contenu du site et le Studio Cartes Mail (couleurs, polices, logo, cadres style Google Docs) sont accessibles en 1 clic.
           </p>
         </div>
-        <Link
-          href="/admin/site-editor"
-          className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs font-semibold shrink-0 transition-colors"
-        >
-          <span>Ouvrir l'éditeur du site</span>
-          <ArrowRight className="w-3.5 h-3.5 text-champagne" />
-        </Link>
+        <div className="flex flex-wrap gap-2.5 shrink-0">
+          <Link
+            href="/admin/emails"
+            className="inline-flex items-center space-x-2 bg-white hover:bg-champagne-light text-brun border-2 border-stone-300 hover:border-champagne px-4 py-3 rounded-xl text-sm font-bold shrink-0 transition-colors"
+          >
+            <Mail className="w-4 h-4 text-champagne-dark" />
+            <span>Modifier les cartes Mail</span>
+          </Link>
+          <Link
+            href="/admin/site-editor"
+            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-3 rounded-xl text-sm font-bold shrink-0 transition-colors"
+          >
+            <span>Ouvrir l&apos;éditeur du site</span>
+            <ArrowRight className="w-4 h-4 text-champagne" />
+          </Link>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">

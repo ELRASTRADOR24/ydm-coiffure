@@ -3,8 +3,20 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function FAQAccordion({ items }) {
+export default function FAQAccordion({ items = [] }) {
   const [openIndex, setOpenIndex] = useState(0);
+
+  const visibleItems = Array.isArray(items)
+    ? items.filter(
+        (item) =>
+          item &&
+          item.visible !== false &&
+          ((item.question && item.question.trim() !== "") ||
+            (item.answer && item.answer.trim() !== ""))
+      )
+    : [];
+
+  if (visibleItems.length === 0) return null;
 
   const toggle = (index) => {
     setOpenIndex(openIndex === index ? -1 : index);
@@ -12,7 +24,7 @@ export default function FAQAccordion({ items }) {
 
   return (
     <div className="space-y-4">
-      {items.map((item, index) => {
+      {visibleItems.map((item, index) => {
         const isOpen = openIndex === index;
         return (
           <div

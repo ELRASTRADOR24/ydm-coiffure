@@ -1,13 +1,24 @@
 import { getSettings } from "@/lib/store";
 import AdminSiteEditorView from "@/components/AdminSiteEditorView";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Éditeur du Site | Administration YDM Coiffure",
-  description: "Modifiez en direct les textes, la FAQ, le pied de page et gérez la visibilité des pages.",
+  description:
+    "Modifiez, masquez ou supprimez tous les textes et pages du site, et activez le mode maintenance.",
 };
 
-export default async function AdminSiteEditorPage() {
-  const settings = await getSettings();
+export default async function AdminSiteEditorPage({ searchParams }) {
+  const [settings, params] = await Promise.all([
+    getSettings(),
+    searchParams || Promise.resolve({}),
+  ]);
 
-  return <AdminSiteEditorView initialSettings={settings} />;
+  return (
+    <AdminSiteEditorView
+      initialSettings={settings}
+      initialTab={params?.tab || "pages"}
+    />
+  );
 }

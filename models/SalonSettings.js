@@ -57,13 +57,55 @@ const SalonSettingsSchema = new mongoose.Schema(
       aPropos: { type: Boolean, default: true },
       contact: { type: Boolean, default: true },
       prestations: { type: Boolean, default: true },
+      reglement: { type: Boolean, default: true },
+      mentionsLegales: { type: Boolean, default: true },
+      confidentialite: { type: Boolean, default: true },
+      reserver: { type: Boolean, default: true },
+    },
+    // Mode Maintenance (bouton de secours)
+    maintenance: {
+      enabled: { type: Boolean, default: false },
+      badge: { type: String, default: "Maintenance en cours" },
+      title: { type: String, default: "Site temporairement en maintenance" },
+      subtitle: {
+        type: String,
+        default:
+          "Nous effectuons actuellement une mise à jour pour améliorer votre expérience.",
+      },
+      message: {
+        type: String,
+        default:
+          "L'accès aux pages publiques et à la prise de rendez-vous en ligne est momentanément suspendu le temps de notre intervention. Merci pour votre patience et votre compréhension.",
+      },
+      estimatedReturn: {
+        type: String,
+        default: "Le site sera de nouveau accessible très prochainement.",
+      },
+      showInstagram: { type: Boolean, default: true },
+      instagramHandle: { type: String, default: "@ydm_coiffure" },
+      instagramLabel: {
+        type: String,
+        default: "Contacter YDM Coiffure sur Instagram",
+      },
+      ctaNote: {
+        type: String,
+        default:
+          "Une question urgente ou un rendez-vous déjà confirmé ? Écrivez-nous directement en message privé sur Instagram.",
+      },
+      showAdminLink: { type: Boolean, default: true },
+    },
+    // Contenu complet du site (Accueil, Prestations, Galerie, À propos, Contact, Règlement, Mentions légales, Confidentialité, Header, Footer)
+    siteContent: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     // FAQ & Règlements personnalisables
     faqItems: {
       type: [
         {
-          question: { type: String, required: true },
-          answer: { type: String, required: true },
+          question: { type: String, default: "" },
+          answer: { type: String, default: "" },
+          visible: { type: Boolean, default: true },
           order: { type: Number, default: 0 },
         },
       ],
@@ -144,85 +186,23 @@ const SalonSettingsSchema = new mongoose.Schema(
           image: { type: String },
           videoUrl: { type: String },
           aspect: { type: String, default: "tall" },
+          visible: { type: Boolean, default: true },
           order: { type: Number, default: 0 },
         },
       ],
       default: [],
     },
-    // Modèles d'e-mails & Pancartes personnalisables
+    // Modèles d'e-mails & Carte Mail personnalisable (éditeur riche type Google Docs)
     emailSettings: {
-      logoUrl: {
-        type: String,
-        default:
-          "https://res.cloudinary.com/dvecpg1tz/image/upload/v1794179815/ydm-coiffure/ydm-logo-header-tight.png",
-      },
-      showLogo: { type: Boolean, default: true },
-      brandName: { type: String, default: "YDM COIFFURE" },
-      footerText: {
-        type: String,
-        default: "YDM Coiffure • La Roche-sur-Yon (85000)",
-      },
-      footerSupportText: {
-        type: String,
-        default: "Support client en message privé sur Instagram : @ydm_coiffure",
-      },
-      requestedEmail: {
-        title: { type: String, default: "Demande de rendez-vous reçue" },
-        greeting: { type: String, default: "Bonjour {prenom}," },
-        intro: {
-          type: String,
-          default:
-            "Votre demande a bien été transmise à la coiffeuse. Chaque séance fait l'objet d'une validation manuelle.",
-        },
-        notice: {
-          type: String,
-          default:
-            "Dès validation par la coiffeuse, vous recevrez un lien pour verser votre acompte de 10 € sous 2h pour bloquer définitivement votre heure.",
-        },
-      },
-      approvedEmail: {
-        title: { type: String, default: "Votre séance est validée !" },
-        intro: {
-          type: String,
-          default:
-            "Bonjour {prenom}, votre créneau pour le {date} à {heure} ({coiffure}) est pré-réservé.",
-        },
-        buttonText: { type: String, default: "Verser mon acompte de 10 €" },
-        delayNotice: {
-          type: String,
-          default:
-            "Délai strict de 2h pour verser l'acompte afin de bloquer définitivement l'heure.",
-        },
-        footerNotice: {
-          type: String,
-          default:
-            "L'adresse de votre prestation à La Roche-sur-Yon vous sera transmise dès confirmation de l'acompte.",
-        },
-      },
-      confirmedEmail: {
-        title: { type: String, default: "Séance confirmée !" },
-        intro: {
-          type: String,
-          default:
-            "Bonjour {prenom}, votre acompte de 10 € a bien été reçu. Votre rendez-vous est bloqué dans mon planning.",
-        },
-        addressTitle: { type: String, default: "Adresse de la prestation" },
-        buttonText: { type: String, default: "Voir mon suivi en ligne" },
-      },
-      rejectedEmail: {
-        title: { type: String, default: "Information concernant votre demande" },
-        greeting: { type: String, default: "Bonjour {prenom}," },
-        intro: {
-          type: String,
-          default:
-            "Je ne peux malheureusement pas donner suite à votre demande pour le {date} à {heure}.",
-        },
-        buttonText: { type: String, default: "Choisir un autre créneau" },
-      },
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
   },
-  { timestamps: true }
+  { timestamps: true, minimize: false }
 );
 
-export default mongoose.models.SalonSettings ||
-  mongoose.model("SalonSettings", SalonSettingsSchema);
+if (mongoose.models.SalonSettings) {
+  mongoose.deleteModel("SalonSettings");
+}
+
+export default mongoose.model("SalonSettings", SalonSettingsSchema);

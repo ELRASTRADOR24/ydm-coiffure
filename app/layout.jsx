@@ -1,6 +1,13 @@
 import "./globals.css";
+import { headers } from "next/headers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import MaintenanceView from "@/components/MaintenanceView";
+import { getSettings } from "@/lib/store";
+import { buildPublicSettings } from "@/lib/siteContent";
+import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   metadataBase: new URL("https://ydmcoiffure.com"),
@@ -138,7 +145,28 @@ const jsonLdData = {
   ],
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const previewMaintenance = headersList.get("x-preview-maintenance") || "";
+
+  let rawSettings = {};
+  try {
+    rawSettings = await getSettings();
+  } catch (_) {
+    rawSettings = {};
+  }
+
+  const publicSettings = buildPublicSettings(
+    rawSettings,
+    DEFAULT_SALON_SETTINGS.galleryItems
+  );
+
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isMaintenanceMode =
+    !isAdminRoute &&
+    (Boolean(publicSettings?.maintenance?.enabled) || previewMaintenance === "1");
+
   return (
     <html lang="fr" className="scroll-smooth">
       <head>
@@ -161,9 +189,21 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
         className="min-h-screen bg-creme text-brun font-sans flex flex-col antialiased"
       >
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        {isMaintenanceMode ? (
+          <MaintenanceView
+            maintenance={publicSettings.maintenance}
+            salonName={
+              publicSettings?.siteContent?.global?.header?.brandTitle ||
+              "YDM COIFFURE"
+            }
+          />
+        ) : (
+          <>
+            <Navbar initialSettings={publicSettings} />
+            <main className="flex-grow">{children}</main>
+            <Footer initialSettings={publicSettings} />
+          </>
+        )}
       </body>
     </html>
   );

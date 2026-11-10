@@ -113,6 +113,7 @@ export default function AdminServicesView({ initialServices = [] }) {
 
   // Media Upload State (Vidéos et Photos vers Cloudinary)
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const serviceFileInputRef = useRef(null);
 
   // Longueurs & Options Tarifaires
@@ -206,8 +207,11 @@ export default function AdminServicesView({ initialServices = [] }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingMedia(true);
+    setUploadProgress(0);
     try {
-      const res = await uploadMediaClient(file);
+      const res = await uploadMediaClient(file, {
+        onProgress: (pct) => setUploadProgress(pct),
+      });
       if (res.isVideo) {
         setForm((prev) => ({
           ...prev,
@@ -226,6 +230,7 @@ export default function AdminServicesView({ initialServices = [] }) {
       showToast("Erreur lors de l'envoi sur Cloudinary : " + err.message);
     } finally {
       setUploadingMedia(false);
+      setUploadProgress(0);
       if (e.target) e.target.value = "";
     }
   };
@@ -964,7 +969,9 @@ export default function AdminServicesView({ initialServices = [] }) {
                     {uploadingMedia && (
                       <span className="text-xs text-champagne-dark font-semibold flex items-center space-x-1.5">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Envoi vers Cloudinary...</span>
+                        <span>
+                          Envoi Cloudinary{uploadProgress > 0 ? ` (${uploadProgress}%)` : "..."}
+                        </span>
                       </span>
                     )}
                   </div>
