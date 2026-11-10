@@ -10,7 +10,8 @@ export default function CustomVideoPlayer({
   autoPlay = true,
   loop = true,
   className = "",
-  initialPortrait = true,
+  videoMaxHeightClass = "max-h-[calc(82dvh-5.5rem)] sm:max-h-[calc(86vh-6rem)]",
+  hideTitleOverlay = false,
   onOrientationChange,
   isMuted: externalMuted,
   onMuteChange,
@@ -19,16 +20,39 @@ export default function CustomVideoPlayer({
   const containerRef = useRef(null);
   const progressBarRef = useRef(null);
   const animationFrameRef = useRef(null);
-  const controlsTimeoutRef = useRef(null);
+  const onOrientationChangeRef = useRef(onOrientationChange);
+  const isScrubbingRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(externalMuted ?? true); // Toujours muet par défaut
-  const [volume, setVolume] = useState(0.85);
+  const [isMuted, setIsMuted] = useState(externalMuted ?? true); // Toujours muet par défaut pour l'autoplay mobile
+  const [volume] = useState(0.85);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    onOrientationChangeRef.current = onOrientationChange;
+  }, [onOrientationChange]);
+
+  useEffect(() => {
+    isScrubbingRef.current = isScrubbing;
+  }, [isScrubbing]);
+
+  // Suivi plein écran
+  useEffect(() => {
+    const handleFsChange = () => {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+      setIsFullscreen(Boolean(fsEl && fsEl === containerRef.current));
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    document.addEventListener("webkitfullscreenchange", handleFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      document.removeEventListener("webkitfullscreenchange", handleFsChange);
+    };
+  }, []);
 
   // Synchronisation avec l'état externe si fourni
   useEffect(() => {
@@ -41,17 +65,17 @@ export default function CustomVideoPlayer({
   // Synchronisation 60fps continue sans lag CSS
   const updateProgress = useCallback(() => {
     const video = videoRef.current;
-    if (video && video.duration && !isNaN(video.duration) && !isScrubbing) {
+    if (video && video.duration && !isNaN(video.duration) && !isScrubbingRef.current) {
       const cur = video.currentTime;
       const dur = video.duration;
       setCurrentTime(cur);
       setDuration(dur);
       setProgress((cur / dur) * 100);
     }
-    if (isPlaying && !isScrubbing) {
+    if (isPlaying && !isScrubbingRef.current) {
       animationFrameRef.current = requestAnimationFrame(updateProgress);
     }
-  }, [isPlaying, isScrubbing]);
+  }, [isPlaying]);
 
   useEffect(() => {
     if (isPlaying && !isScrubbing) {
@@ -70,7 +94,7 @@ export default function CustomVideoPlayer({
     const video = videoRef.current;
     if (!video) return;
 
-    // Strictement muet par défaut dès le montage
+    // Strictement muet par défaut uniquement lors du chargement d'une nouvelle source
     video.muted = true;
     video.volume = volume;
     setIsMuted(true);
@@ -81,14 +105,12 @@ export default function CustomVideoPlayer({
       }
       if (video.videoWidth && video.videoHeight) {
         const portrait = video.videoHeight >= video.videoWidth;
-        if (onOrientationChange) {
-          onOrientationChange(portrait);
-        }
+        onOrientationChangeRef.current?.(portrait);
       }
     };
 
     const handleTimeUpdate = () => {
-      if (!isScrubbing && video.duration && !isNaN(video.duration)) {
+      if (!isScrubbingRef.current && video.duration && !isNaN(video.duration)) {
         setCurrentTime(video.currentTime);
         setDuration(video.duration);
         setProgress((video.currentTime / video.duration) * 100);
@@ -100,7 +122,6 @@ export default function CustomVideoPlayer({
     const handleEnded = () => {
       if (!loop) {
         setIsPlaying(false);
-        setShowControls(true);
       }
     };
 
@@ -125,7 +146,7 @@ export default function CustomVideoPlayer({
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("ended", handleEnded);
     };
-  }, [src, autoPlay, loop, onOrientationChange, isScrubbing, volume]);
+  }, [src, autoPlay, loop, volume]);
 
   // Clic sur la vidéo pour basculer Lecture / Pause
   const togglePlay = () => {
@@ -140,11 +161,10 @@ export default function CustomVideoPlayer({
     } else {
       video.pause();
       setIsPlaying(false);
-      setShowControls(true);
     }
   };
 
-  // Bouton son épuré (icône + état, silencieux par défaut)
+  // Bouton son permanent dans la barre du lecteur
   const toggleMute = (e) => {
     e?.stopPropagation();
     const video = videoRef.current;
@@ -181,6 +201,7 @@ export default function CustomVideoPlayer({
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch (_) {}
+    isScrubbingRef.current = true;
     setIsScrubbing(true);
     seekFromPointer(e);
   };
@@ -197,6 +218,7 @@ export default function CustomVideoPlayer({
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch (_) {}
+    isScrubbingRef.current = false;
     setIsScrubbing(false);
     seekFromPointer(e);
   };
@@ -206,26 +228,20 @@ export default function CustomVideoPlayer({
     const container = containerRef.current;
     if (!container) return;
 
-    if (!document.fullscreenElement) {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       if (container.requestFullscreen) {
         container.requestFullscreen();
       } else if (container.webkitRequestFullscreen) {
         container.webkitRequestFullscreen();
+      } else if (videoRef.current?.webkitEnterFullscreen) {
+        videoRef.current.webkitEnterFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
       }
-    }
-  };
-
-  const handleUserActivity = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    if (isPlaying) {
-      controlsTimeoutRef.current = setTimeout(() => {
-        if (!isScrubbing) setShowControls(false);
-      }, 3500);
     }
   };
 
@@ -239,22 +255,23 @@ export default function CustomVideoPlayer({
   return (
     <div
       ref={containerRef}
-      onMouseMove={handleUserActivity}
-      onTouchStart={handleUserActivity}
-      onPointerDown={handleUserActivity}
       onClick={togglePlay}
-      className={`group relative overflow-hidden bg-black select-none cursor-pointer w-full h-full flex items-center justify-center ${className}`}
+      className={`group relative overflow-hidden bg-black select-none cursor-pointer w-full min-h-[220px] flex items-center justify-center ${
+        isFullscreen ? "h-full" : ""
+      } ${className}`}
     >
-      {/* Balise vidéo responsive - object-contain garantit zéro coupure */}
+      {/* Balise vidéo responsive calée strictement dans la zone disponible sans jamais déborder */}
       <video
         ref={videoRef}
         src={src}
         poster={poster}
         playsInline
-        muted={true}
+        muted={isMuted}
         loop={loop}
         autoPlay={autoPlay}
-        className="w-full h-full object-contain object-center"
+        className={`w-full object-contain object-center block ${
+          isFullscreen ? "h-full max-h-screen" : `h-auto ${videoMaxHeightClass}`
+        }`}
       />
 
       {/* Indicateur Play/Pause central discret */}
@@ -268,50 +285,21 @@ export default function CustomVideoPlayer({
         </div>
       </div>
 
-      {/* Bouton Son Permanent Flottant (toujours visible à l'écran, sans collision avec le bouton Fermer) */}
-      <button
-        type="button"
-        onClick={toggleMute}
-        className="absolute top-3 right-14 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 backdrop-blur-md text-white hover:text-champagne flex items-center justify-center border border-white/25 shadow-xl transition-transform active:scale-95 pointer-events-auto"
-        aria-label={isMuted ? "Activer le son" : "Couper le son"}
-        title={isMuted ? "Activer le son" : "Couper le son"}
-      >
-        {isMuted ? (
-          <VolumeX className="w-4 h-4 text-white/90" />
-        ) : (
-          <Volume2 className="w-4 h-4 text-champagne" />
-        )}
-      </button>
-
-      {/* Bouton d'indication son lorsqu'elle démarre en muet */}
-      {isMuted && isPlaying && (
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="absolute top-14 left-1/2 -translate-x-1/2 z-30 cursor-pointer bg-black/85 hover:bg-black text-creme text-xs font-semibold px-4 py-2 rounded-full border border-champagne/60 shadow-2xl flex items-center space-x-2 transition-all active:scale-95 pointer-events-auto"
-        >
-          <VolumeX className="w-4 h-4 text-champagne shrink-0" />
-          <span>Toucher pour le son</span>
-        </button>
-      )}
-
-      {/* En-tête minimaliste : Titre discret à gauche */}
-      <div className="absolute top-3 left-3 right-28 flex items-center justify-between z-20 pointer-events-none">
-        {title ? (
-          <span className="bg-black/60 backdrop-blur-md text-white/90 text-[11px] font-medium px-3 py-1 rounded-full border border-white/10 line-clamp-1 max-w-[85%] pointer-events-auto">
+      {/* En-tête optionnel uniquement si demandé en dehors de la modale */}
+      {!hideTitleOverlay && title && (
+        <div className="absolute top-3 left-3 right-14 flex items-center z-20 pointer-events-none">
+          <span className="bg-black/60 backdrop-blur-md text-white/90 text-[11px] font-medium px-3 py-1 rounded-full border border-white/10 line-clamp-1 max-w-[85%]">
             {title}
           </span>
-        ) : (
-          <div />
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Barre de contrôle basse : toujours 100% visible, parfaitement lisible sur mobile & desktop */}
+      {/* Barre de contrôle basse : toujours visible, ergonomique & zéro chevauchement sur mobile */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/95 via-black/75 to-transparent z-30 pointer-events-auto"
+        className="absolute bottom-0 left-0 right-0 px-3 pb-3 pt-6 sm:px-4 sm:pb-3.5 sm:pt-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-30 pointer-events-auto"
       >
-        {/* Scrubber dynamique sans lag CSS : supporte clic instantané et glisser au doigt ou à la souris */}
+        {/* Scrubber dynamique sans lag CSS : clic instantané et glisser au doigt ou à la souris */}
         <div
           ref={progressBarRef}
           onPointerDown={handlePointerDown}
@@ -320,13 +308,11 @@ export default function CustomVideoPlayer({
           onPointerCancel={handlePointerUp}
           className="relative py-2 w-full cursor-pointer touch-none group/bar flex items-center"
         >
-          <div className="relative h-1.5 w-full bg-white/30 rounded-full overflow-visible transition-[height] duration-150">
-            {/* Remplissage instantané (pas de transition-all pour un suivi 100% direct) */}
+          <div className="relative h-1.5 w-full bg-white/30 rounded-full overflow-visible">
             <div
               className="h-full bg-champagne rounded-full relative"
               style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
             >
-              {/* Curseur de suivi */}
               <div
                 className={`absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 border-champagne shadow-md transition-transform duration-100 ${
                   isScrubbing ? "scale-125" : "scale-100"
@@ -336,13 +322,13 @@ export default function CustomVideoPlayer({
           </div>
         </div>
 
-        {/* Contrôles bas : Play/Pause, Son/Volume, Minuteur & Plein écran */}
-        <div className="flex items-center justify-between text-xs text-stone-200 pt-1">
-          <div className="flex items-center space-x-2.5">
+        {/* Contrôles bas : Play/Pause, Son/Volume unique, Minuteur & Plein écran */}
+        <div className="flex items-center justify-between gap-2 text-xs text-stone-200 pt-0.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <button
               type="button"
               onClick={togglePlay}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-95 border border-white/20"
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-95 border border-white/20 shrink-0"
               aria-label={isPlaying ? "Pause" : "Lecture"}
             >
               {isPlaying ? (
@@ -352,29 +338,29 @@ export default function CustomVideoPlayer({
               )}
             </button>
 
-            {/* Bouton Son ergonomique, haute visibilité permanent */}
+            {/* Bouton Volume principal, permanent et lisible sur mobile */}
             <button
               type="button"
               onClick={toggleMute}
-              className={`px-2.5 py-1.5 flex items-center space-x-1.5 rounded-xl border transition-all active:scale-95 shadow-sm ${
+              className={`px-2.5 py-1.5 flex items-center space-x-1.5 rounded-xl border transition-all active:scale-95 shadow-sm whitespace-nowrap shrink-0 ${
                 isMuted
-                  ? "text-white bg-white/20 hover:bg-white/30 border-white/30"
+                  ? "text-white bg-white/15 hover:bg-white/25 border-champagne/60"
                   : "text-champagne bg-champagne/25 hover:bg-champagne/35 border-champagne/60 font-semibold"
               }`}
               aria-label={isMuted ? "Activer le son" : "Couper le son"}
               title={isMuted ? "Activer le son" : "Couper le son"}
             >
               {isMuted ? (
-                <VolumeX className="w-4 h-4 text-white" />
+                <VolumeX className="w-4 h-4 text-champagne shrink-0" />
               ) : (
-                <Volume2 className="w-4 h-4 text-champagne" />
+                <Volume2 className="w-4 h-4 text-champagne shrink-0" />
               )}
               <span className="text-[11px] font-semibold tracking-wide">
                 {isMuted ? "Son coupé" : "Son actif"}
               </span>
             </button>
 
-            <span className="font-mono text-[11px] text-white/85 font-medium pl-0.5">
+            <span className="font-mono text-[11px] text-white/85 font-medium whitespace-nowrap">
               {formatSeconds(currentTime)} / {formatSeconds(duration || 0)}
             </span>
           </div>
@@ -382,7 +368,7 @@ export default function CustomVideoPlayer({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/10"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/15 shrink-0"
             aria-label="Plein écran"
             title="Plein écran"
           >
