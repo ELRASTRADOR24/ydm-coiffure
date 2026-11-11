@@ -13,7 +13,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+import { resolvePaymentAccounts } from "@/lib/adminHelpers";
 import DepositPaymentOptions from "@/components/DepositPaymentOptions";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }) {
   const { reference } = await params;
@@ -31,6 +34,26 @@ export default async function BookingStatusPage({ params }) {
   }
 
   const settings = await getSettings();
+  const paymentAccounts = resolvePaymentAccounts(settings);
+  const enabledMethodLabels = [
+    paymentAccounts.weroEnabled ? "Wero / Paylib" : null,
+    paymentAccounts.revolutEnabled ? "Revolut" : null,
+    paymentAccounts.paypalEnabled ? "PayPal" : null,
+  ].filter(Boolean);
+  const enabledMethodsSummary =
+    enabledMethodLabels.length > 1
+      ? `${enabledMethodLabels.slice(0, -1).join(", ")} ou ${enabledMethodLabels[enabledMethodLabels.length - 1]}`
+      : enabledMethodLabels[0] || "Wero, Revolut ou PayPal";
+  const formattedDeposit = formatPrice(booking.depositAmount ?? 10);
+  const holdHours = settings?.paymentHoldHours || 2;
+  const holdShort = `${holdHours}h`;
+  const holdLong = `${holdHours} heure${holdHours > 1 ? "s" : ""}`;
+  const isHoldTimedOut =
+    booking.status === "PENDING_PAYMENT" &&
+    !booking.depositDeclared &&
+    Boolean(booking.holdExpiresAt) &&
+    new Date(booking.holdExpiresAt).getTime() < Date.now();
+  const effectiveStatus = isHoldTimedOut ? "EXPIRED" : booking.status;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -42,8 +65,12 @@ export default async function BookingStatusPage({ params }) {
         };
       case "PENDING_PAYMENT":
         return {
-          label: "Approuvée - Acompte de 10 € sous 2h",
-          color: "bg-amber-50 text-amber-900 border-amber-300",
+          label: booking.depositDeclared
+            ? `Acompte de ${formattedDeposit} déclaré • Vérification admin`
+            : `Approuvée - Acompte de ${formattedDeposit} sous ${holdShort}`,
+          color: booking.depositDeclared
+            ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+            : "bg-amber-50 text-amber-900 border-amber-300",
           icon: <CreditCard className="w-3.5 h-3.5 text-amber-700" />,
         };
       case "CONFIRMED":
@@ -60,7 +87,7 @@ export default async function BookingStatusPage({ params }) {
         };
       case "EXPIRED":
         return {
-          label: "Délai de 2h expiré",
+          label: `Délai de ${holdShort} expiré`,
           color: "bg-stone-100 text-stone-600 border-stone-300",
           icon: <AlertCircle className="w-3.5 h-3.5 text-stone-500" />,
         };
@@ -79,7 +106,7 @@ export default async function BookingStatusPage({ params }) {
     }
   };
 
-  const badge = getStatusBadge(booking.status);
+  const badge = getStatusBadge(effectiveStatus);
 
   return (
     <div className="pt-28 pb-20 bg-creme min-h-screen">
@@ -104,43 +131,109 @@ export default async function BookingStatusPage({ params }) {
           </div>
 
           {/* STATUS NOTICES */}
-          {booking.status === "PENDING_APPROVAL" && (
+          {effectiveStatus === "PENDING_APPROVAL" && (
             <div className="p-4 rounded-xl bg-creme border border-beige text-xs text-stone-700 space-y-2">
               <span className="font-semibold text-brun block">
                 Examen manuel par la coiffeuse en cours
               </span>
               <p className="font-light leading-relaxed">
-                Votre demande a bien été transmise. Dès que Maydie valide le créneau, vous disposerez d'un <strong>délai strict de 2 heures</strong> pour régler l'acompte obligatoire de 10 € et finaliser votre réservation.
+                Votre demande a bien été transmise. Dès que Maydie valide le créneau, vous disposerez d&apos;un <strong>délai strict de {holdLong}</strong> pour régler l&apos;acompte obligatoire de {formattedDeposit} et finaliser votre réservation.
               </p>
               <div className="pt-2 border-t border-beige text-[11px] text-stone-500 flex flex-wrap gap-2 items-center">
                 <span className="font-medium text-brun">Moyens acceptés :</span>
-                <span className="bg-white px-2 py-0.5 rounded border border-beige">Revolut</span>
-                <span className="bg-white px-2 py-0.5 rounded border border-beige">PayPal</span>
-                <span className="bg-white px-2 py-0.5 rounded border border-beige">Wero / Paylib</span>
+                {(enabledMethodLabels.length > 0
+                  ? enabledMethodLabels
+                  : ["Wero / Paylib", "Revolut", "PayPal"]
+                ).map((label) => (
+                  <span
+                    key={label}
+                    className="bg-white px-2 py-0.5 rounded border border-beige"
+                  >
+                    {label}
+                  </span>
+                ))}
               </div>
             </div>
           )}
 
-          {booking.status === "PENDING_PAYMENT" && (
+          {effectiveStatus === "PENDING_PAYMENT" && (
             <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-950 space-y-3">
               <span className="font-bold text-sm block">
-                Demande validée : versez votre acompte de 10 €
+                Demande validée : versez votre acompte de {formattedDeposit}
               </span>
               <p className="font-light leading-relaxed">
-                Votre créneau est pré-réservé. Pour le bloquer définitivement, versez votre acompte de 10 € dans un <strong>délai strict de 2 heures</strong> via Revolut, PayPal ou Wero.
+                Votre créneau est pré-réservé. Pour le bloquer définitivement, versez votre acompte de {formattedDeposit} dans un <strong>délai strict de {holdLong}</strong> en direct via {enabledMethodsSummary}.
               </p>
 
               <DepositPaymentOptions
                 bookingReference={booking.bookingReference}
                 customerName={booking.customer.firstName}
+                depositAmount={booking.depositAmount ?? 10}
+                holdHours={holdHours}
                 initialDeclared={Boolean(booking.depositDeclared)}
                 initialMethod={booking.depositDeclaredMethod || ""}
-                stripeUrl={booking.stripePaymentUrl}
+                paymentAccounts={paymentAccounts}
               />
             </div>
           )}
 
-          {booking.status === "CONFIRMED" && (
+          {effectiveStatus === "EXPIRED" && (
+            <div className="p-5 rounded-2xl bg-stone-100 border border-stone-300 text-xs text-stone-800 space-y-2.5">
+              <span className="font-bold text-sm block text-brun">
+                Délai de {holdLong} expiré
+              </span>
+              <p className="font-light leading-relaxed text-stone-600">
+                L&apos;acompte n&apos;ayant pas été versé ni déclaré dans le délai imparti, ce créneau a été automatiquement remis en ligne. Vous pouvez sélectionner une nouvelle disponibilité directement depuis notre agenda.
+              </p>
+              <Link
+                href="/reserver"
+                className="inline-flex items-center space-x-1.5 bg-brun text-creme px-4 py-2 rounded-full font-semibold text-xs hover:bg-brun-dark transition-colors"
+              >
+                <span>Choisir un autre créneau</span>
+                <ArrowRight className="w-3.5 h-3.5 text-champagne" />
+              </Link>
+            </div>
+          )}
+
+          {effectiveStatus === "REJECTED" && (
+            <div className="p-5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-950 space-y-2.5">
+              <span className="font-bold text-sm block">
+                Demande non retenue
+              </span>
+              <p className="font-light leading-relaxed">
+                {booking.rejectionReason ||
+                  "Ce créneau n'a pas pu être validé. Vous êtes invitée à choisir une autre date disponible."}
+              </p>
+              <Link
+                href="/reserver"
+                className="inline-flex items-center space-x-1.5 bg-brun text-creme px-4 py-2 rounded-full font-semibold text-xs hover:bg-brun-dark transition-colors"
+              >
+                <span>Voir d&apos;autres créneaux</span>
+                <ArrowRight className="w-3.5 h-3.5 text-champagne" />
+              </Link>
+            </div>
+          )}
+
+          {effectiveStatus === "CANCELLED" && (
+            <div className="p-5 rounded-2xl bg-stone-100 border border-stone-300 text-xs text-stone-800 space-y-2.5">
+              <span className="font-bold text-sm block text-brun">
+                Rendez-vous annulé
+              </span>
+              <p className="font-light leading-relaxed text-stone-600">
+                {booking.cancellationReason ||
+                  "Ce rendez-vous a été annulé et le créneau a été libéré."}
+              </p>
+              <Link
+                href="/reserver"
+                className="inline-flex items-center space-x-1.5 bg-brun text-creme px-4 py-2 rounded-full font-semibold text-xs hover:bg-brun-dark transition-colors"
+              >
+                <span>Prendre un nouveau rendez-vous</span>
+                <ArrowRight className="w-3.5 h-3.5 text-champagne" />
+              </Link>
+            </div>
+          )}
+
+          {effectiveStatus === "CONFIRMED" && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1">
                 <span className="font-bold block">
@@ -211,13 +304,13 @@ export default async function BookingStatusPage({ params }) {
               <div className="flex justify-between py-1 border-b border-beige/60">
                 <span className="text-stone-500">Acompte :</span>
                 <span className="font-bold text-champagne-dark">
-                  10 €
+                  {formattedDeposit}
                 </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-stone-500">Solde restant sur place :</span>
                 <span className="font-semibold text-brun">
-                  {formatPrice(booking.remainingBalance)} (Wero, PayPal, virement, espèces)
+                  {formatPrice(booking.remainingBalance)} (Wero, Revolut, PayPal, virement, espèces)
                 </span>
               </div>
             </div>

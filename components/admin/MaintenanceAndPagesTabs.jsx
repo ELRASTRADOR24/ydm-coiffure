@@ -288,7 +288,7 @@ const PAGE_ENTRIES = [
     title: "Politique de Confidentialité (RGPD)",
     route: "/politique-confidentialite",
     tabId: "privacy",
-    description: "Utilisation des données personnelles des clientes et paiements Stripe.",
+    description: "Utilisation des données personnelles des clientes et règlements directs (Wero, Revolut, PayPal).",
   },
   {
     key: "reserver",

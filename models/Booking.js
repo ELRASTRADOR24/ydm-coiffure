@@ -10,10 +10,10 @@ const BookingSchema = new mongoose.Schema(
       trim: true,
     },
     customer: {
-      firstName: { type: String, required: true },
-      lastName: { type: String, required: true },
-      email: { type: String, required: true, lowercase: true, trim: true },
-      phone: { type: String, required: true },
+      firstName: { type: String, required: true, trim: true },
+      lastName: { type: String, default: "", trim: true },
+      email: { type: String, default: "", lowercase: true, trim: true },
+      phone: { type: String, required: true, trim: true },
       instagram: { type: String, default: "" },
       notes: { type: String, default: "" },
     },
@@ -43,8 +43,8 @@ const BookingSchema = new mongoose.Schema(
       type: String,
       enum: [
         "PENDING_APPROVAL", // Demande soumise par la cliente, en attente d'approbation
-        "PENDING_PAYMENT",  // Approuvée par la coiffeuse, lien Stripe envoyé, créneau verrouillé temporairement
-        "CONFIRMED",        // Acompte payé via Stripe
+        "PENDING_PAYMENT",  // Approuvée par la coiffeuse, lien direct Wero/Revolut/PayPal envoyé, créneau verrouillé temporairement
+        "CONFIRMED",        // Acompte validé (Wero, Revolut, PayPal ou espèces)
         "REJECTED",         // Refusée par la coiffeuse
         "CANCELLED",        // Annulée
         "COMPLETED",        // Prestation effectuée
@@ -58,6 +58,9 @@ const BookingSchema = new mongoose.Schema(
     stripePaymentIntentId: { type: String },
     stripePaymentUrl: { type: String },
     paidDepositAt: { type: Date },
+    depositDeclared: { type: Boolean, default: false },
+    depositDeclaredMethod: { type: String, default: "" },
+    depositDeclaredAt: { type: Date },
     rejectionReason: { type: String },
     cancellationReason: { type: String },
   },
@@ -66,4 +69,8 @@ const BookingSchema = new mongoose.Schema(
 
 BookingSchema.index({ date: 1, status: 1 });
 
-export default mongoose.models.Booking || mongoose.model("Booking", BookingSchema);
+if (mongoose.models.Booking) {
+  mongoose.deleteModel("Booking");
+}
+
+export default mongoose.model("Booking", BookingSchema);

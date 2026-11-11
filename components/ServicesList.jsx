@@ -15,13 +15,39 @@ export default function ServicesList({ initialServices = [], studentPromo = null
     "-5 € de réduction sur toutes les coiffures avec mèches incluses (sur présentation de votre carte).";
   const promoBadge = studentPromo?.badge ?? "-5 € avec mèches";
 
-  const categories = [
-    { id: "ALL", label: "Toutes les prestations" },
-    { id: "Sur-Mesure", label: "Sur-Mesure & Création Spéciale" },
-    { id: "Sans rajouts", label: "Sans rajouts (25 €)" },
-    { id: "Sans mèches incluses", label: "Sans mèches (vous apportez)" },
-    { id: "Avec mèches incluses", label: "Avec mèches incluses" },
-  ];
+  const categories = (() => {
+    const sansRajoutsPrices = initialServices
+      .filter((s) => s.category === "Sans rajouts" && Number.isFinite(Number(s.price)))
+      .map((s) => Number(s.price));
+
+    let sansRajoutsLabel = "Sans rajouts";
+    if (sansRajoutsPrices.length > 0) {
+      const minSR = Math.min(...sansRajoutsPrices);
+      const maxSR = Math.max(...sansRajoutsPrices);
+      sansRajoutsLabel =
+        minSR === maxSR
+          ? `Sans rajouts (${minSR} €)`
+          : `Sans rajouts (dès ${minSR} €)`;
+    }
+
+    const baseCategories = [
+      { id: "ALL", label: "Toutes les prestations" },
+      { id: "Sur-Mesure", label: "Sur-Mesure & Création Spéciale" },
+      { id: "Sans rajouts", label: sansRajoutsLabel },
+      { id: "Sans mèches incluses", label: "Sans mèches (vous apportez)" },
+      { id: "Avec mèches incluses", label: "Avec mèches incluses" },
+    ];
+
+    const knownIds = new Set(baseCategories.map((c) => c.id));
+    for (const srv of initialServices) {
+      if (srv.category && !knownIds.has(srv.category)) {
+        knownIds.add(srv.category);
+        baseCategories.push({ id: srv.category, label: srv.category });
+      }
+    }
+
+    return baseCategories;
+  })();
 
   const filteredServices = initialServices.filter((service) => {
     const matchesCategory =

@@ -164,7 +164,9 @@ export default function ServiceCard({ service, priority = false }) {
             <div className="flex items-center space-x-3 text-xs sm:text-sm text-stone-700 pt-1">
               <div className="flex items-center space-x-1.5">
                 <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-champagne-dark shrink-0" />
-                <span className="font-medium">Acompte 10 € (sous 2h)</span>
+                <span className="font-medium">
+                  Acompte {formatPrice(service.depositAmount ?? 10)} (sous 2h)
+                </span>
               </div>
             </div>
 

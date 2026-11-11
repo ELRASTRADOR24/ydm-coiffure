@@ -1,6 +1,8 @@
 import { getBookings, getServices } from "@/lib/store";
 import AdminCalendarView from "@/components/AdminCalendarView";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Planning & Calendrier | Administration YDM Coiffure",
 };

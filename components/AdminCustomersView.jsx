@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, User, Phone, Mail, Calendar, Sparkles } from "lucide-react";
 import { formatPrice, formatShortDateFrench } from "@/lib/utils";
 
@@ -8,12 +8,23 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
   const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    setCustomers(initialCustomers);
+  }, [initialCustomers]);
+
   const filteredCustomers = customers.filter((c) => {
-    const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
+    const fullName = `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase();
     const email = (c.email || "").toLowerCase();
     const phone = (c.phone || "").toLowerCase();
-    const query = search.toLowerCase();
-    return fullName.includes(query) || email.includes(query) || phone.includes(query);
+    const instagram = (c.instagram || "").toLowerCase();
+    const query = search.trim().toLowerCase();
+    return (
+      query === "" ||
+      fullName.includes(query) ||
+      email.includes(query) ||
+      phone.includes(query) ||
+      instagram.includes(query)
+    );
   });
 
   return (
@@ -74,7 +85,7 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
                       {cust.phone}
                     </td>
                     <td className="py-4 px-5 text-stone-600">
-                      {cust.email}
+                      {cust.email || "Non renseigné"}
                     </td>
                     <td className="py-4 px-5 font-semibold text-brun">
                       {cust.totalBookings || 1}

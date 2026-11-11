@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import { getSettings, updateSettings } from "@/lib/store";
 
@@ -9,7 +10,10 @@ export async function GET() {
   }
 
   const settings = await getSettings();
-  return NextResponse.json({ success: true, settings });
+  return NextResponse.json(
+    { success: true, settings },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function PUT(request) {
@@ -21,6 +25,24 @@ export async function PUT(request) {
   try {
     const body = await request.json();
     const updated = await updateSettings(body);
+    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/prestations");
+    revalidatePath("/galerie");
+    revalidatePath("/a-propos");
+    revalidatePath("/contact");
+    revalidatePath("/conditions-reservation");
+    revalidatePath("/mentions-legales");
+    revalidatePath("/politique-confidentialite");
+    revalidatePath("/reserver");
+    revalidatePath("/admin");
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/site-editor");
+    revalidatePath("/admin/emails");
+    revalidatePath("/admin/availability");
+    revalidatePath("/admin/calendar");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/services");
     return NextResponse.json({ success: true, settings: updated });
   } catch (error) {
     return NextResponse.json(

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import {
   getBookingById,
@@ -27,6 +28,7 @@ export async function POST(request, { params }) {
     const updated = await updateBooking(id, {
       status: "CONFIRMED",
       paidDepositAt: new Date().toISOString(),
+      holdExpiresAt: null,
       stripePaymentIntentId: "manual_cash_or_transfer",
     });
 
@@ -39,6 +41,12 @@ export async function POST(request, { params }) {
     } catch (e) {
       console.warn("Erreur notification confirmation (email/SMS):", e.message);
     }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/calendar");
+    revalidatePath("/reserver");
+    revalidatePath(`/reserver/statut/${updated?.bookingReference || booking.bookingReference}`);
 
     return NextResponse.json({
       success: true,

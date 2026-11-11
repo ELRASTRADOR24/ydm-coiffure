@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -16,8 +17,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+import { getParisDateString, getBookingStatusLabel } from "@/lib/adminHelpers";
 
 export default function AdminCalendarView({ initialBookings = [], services = [] }) {
+  const router = useRouter();
   const [bookings, setBookings] = useState(initialBookings);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -30,12 +33,48 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
     customerLastName: "",
     customerEmail: "",
     customerPhone: "",
-    date: new Date().toISOString().slice(0, 10),
+    date: getParisDateString(),
     startTime: "10:00",
     notes: "",
   });
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [manualError, setManualError] = useState("");
+  const [modalActionLoading, setModalActionLoading] = useState(false);
+
+  const handleMarkPaidFromCalendar = async (booking) => {
+    const bId = booking?.id || booking?._id;
+    if (!bId) return;
+    setModalActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bId}/mark-paid`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((item) => ((item.id || item._id) === bId ? data.booking : item))
+        );
+        setSelectedBooking(data.booking);
+        router.refresh();
+      }
+    } catch (_) {
+    } finally {
+      setModalActionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setBookings(initialBookings);
+  }, [initialBookings]);
+
+  useEffect(() => {
+    if (!manualForm.serviceId && services.length > 0) {
+      setManualForm((prev) => ({
+        ...prev,
+        serviceId: services[0].id || services[0]._id || "",
+      }));
+    }
+  }, [services, manualForm.serviceId]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -77,8 +116,9 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setBookings((prev) => [...prev, data.booking]);
+        router.refresh();
         setShowManualModal(false);
         setManualForm({
           serviceId: services[0]?.id || services[0]?._id || "",
@@ -86,7 +126,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
           customerLastName: "",
           customerEmail: "",
           customerPhone: "",
-          date: new Date().toISOString().slice(0, 10),
+          date: getParisDateString(),
           startTime: "10:00",
           notes: "",
         });
@@ -237,7 +277,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               );
             }
 
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = getParisDateString();
             const isToday = cell.dateStr === todayStr;
 
             return (
@@ -310,7 +350,12 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
             <div className="space-y-3 text-xs">
               <div className="flex justify-between py-1.5 border-b border-stone-100">
                 <span className="text-stone-500">Statut :</span>
-                <span className="font-bold text-brun">{selectedBooking.status}</span>
+                <span className="font-bold text-brun">
+                  {getBookingStatusLabel(selectedBooking.status)}
+                  {selectedBooking.depositDeclared && selectedBooking.status === "PENDING_PAYMENT"
+                    ? ` (Déclaré • ${selectedBooking.depositDeclaredMethod || "Direct"})`
+                    : ""}
+                </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-stone-100">
                 <span className="text-stone-500">Prestation :</span>
@@ -340,7 +385,9 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               </div>
               <div className="flex justify-between py-1.5 border-b border-stone-100">
                 <span className="text-stone-500">E-mail :</span>
-                <span className="font-bold text-brun">{selectedBooking.customer.email}</span>
+                <span className="font-bold text-brun">
+                  {selectedBooking.customer.email || "Non renseigné"}
+                </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-stone-100">
                 <span className="text-stone-500">Montant total :</span>
@@ -368,7 +415,19 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               </div>
             )}
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex flex-wrap items-center justify-end gap-3">
+              {selectedBooking.status === "PENDING_PAYMENT" && (
+                <button
+                  type="button"
+                  disabled={modalActionLoading}
+                  onClick={() => handleMarkPaidFromCalendar(selectedBooking)}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+                >
+                  {modalActionLoading
+                    ? "Confirmation..."
+                    : `Valider acompte reçu (${formatPrice(selectedBooking.depositAmount ?? 10)})`}
+                </button>
+              )}
               <button
                 onClick={() => setSelectedBooking(null)}
                 className="bg-brun hover:bg-brun-dark text-creme px-6 py-2 rounded-xl text-xs font-semibold"

@@ -6,17 +6,21 @@ import {
   getSettings,
 } from "@/lib/store";
 import { calculateAvailableSlots } from "@/lib/availabilityEngine";
+import { isValidDateString } from "@/lib/adminHelpers";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get("mode");
 
-    // Mode pour récupérer les dates entièrement bloquées (indisponibilités toute la journée)
+    // Mode pour récupérer les dates entièrement bloquées, jours fermés et règles d'avance
     if (mode === "blocked") {
-      const [unavailabilities, weekly] = await Promise.all([
+      const [unavailabilities, weekly, settings] = await Promise.all([
         getUnavailabilities(),
         getAvailabilities(),
+        getSettings(),
       ]);
       const blockedDates = unavailabilities
         .filter((u) => u.isAllDay)
@@ -25,19 +29,32 @@ export async function GET(request) {
         .filter((w) => !w.isOpen)
         .map((w) => w.dayOfWeek);
 
-      return NextResponse.json({
-        success: true,
-        blockedDates,
-        closedDayOfWeeks,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          blockedDates,
+          closedDayOfWeeks,
+          maxDaysInAdvance: settings?.maxDaysInAdvance ?? 60,
+          minNoticeHours: settings?.minNoticeHours ?? 24,
+          paymentHoldHours: settings?.paymentHoldHours ?? 2,
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
     }
 
     const dateStr = searchParams.get("date"); // YYYY-MM-DD
-    const durationStr = searchParams.get("duration") || "60"; // en minutes (60 min par défaut pour flexibilité totale)
+    const durationStr = searchParams.get("duration") || "60";
 
     if (!dateStr) {
       return NextResponse.json(
         { success: false, error: "La date est requise." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidDateString(dateStr)) {
+      return NextResponse.json(
+        { success: false, error: "Format de date invalide (attendu: YYYY-MM-DD)." },
         { status: 400 }
       );
     }
@@ -51,13 +68,6 @@ export async function GET(request) {
     }
 
     const targetDate = new Date(`${dateStr}T12:00:00Z`);
-    if (isNaN(targetDate.getTime())) {
-      return NextResponse.json(
-        { success: false, error: "Format de date invalide (attendu: YYYY-MM-DD)." },
-        { status: 400 }
-      );
-    }
-
     const dayOfWeek = targetDate.getUTCDay(); // 0 = Dimanche, 1 = Lundi, ...
 
     const [availabilities, unavailabilities, existingBookings, settings] =
@@ -82,13 +92,16 @@ export async function GET(request) {
       now: new Date(),
     });
 
-    return NextResponse.json({
-      success: true,
-      date: dateStr,
-      slots,
-      isOpen: weeklyAvailability ? weeklyAvailability.isOpen : false,
-      totalDuration,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        date: dateStr,
+        slots,
+        isOpen: weeklyAvailability ? weeklyAvailability.isOpen : false,
+        totalDuration,
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     console.error("Erreur calcul disponibilités:", error);
     return NextResponse.json(

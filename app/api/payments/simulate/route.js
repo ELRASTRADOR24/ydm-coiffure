@@ -7,6 +7,21 @@ import {
 import { sendBookingConfirmedEmail } from "@/lib/email";
 
 export async function POST(request) {
+  const allowSimulation =
+    process.env.NODE_ENV !== "production" &&
+    process.env.ALLOW_PAYMENT_SIMULATION === "true";
+
+  if (!allowSimulation) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "La simulation de paiement est désactivée. Veuillez régler votre acompte en direct via les moyens officiels (Wero, Revolut ou PayPal).",
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const { reference } = await request.json();
     if (!reference) {

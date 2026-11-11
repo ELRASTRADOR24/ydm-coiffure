@@ -31,7 +31,10 @@ export async function GET(request) {
       });
     }
 
-    return NextResponse.json({ success: true, bookings });
+    return NextResponse.json(
+      { success: true, bookings },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     console.error("Erreur récupération réservations admin:", error);
     return NextResponse.json(

@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
-import { updateService, deleteService, getServiceById } from "@/lib/store";
+import { updateService, deleteService, getServiceById, getServices } from "@/lib/store";
 import { slugify } from "@/lib/utils";
+import {
+  normalizeServiceServerPayload,
+  inferIncludesHairFromCategory,
+} from "@/lib/servicePricing";
+import { ensureUniqueServiceSlug } from "@/lib/adminHelpers";
+
+function revalidateServicePages() {
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/prestations");
+  revalidatePath("/reserver");
+  revalidatePath("/admin");
+  revalidatePath("/admin/services");
+  revalidatePath("/admin/calendar");
+}
 
 export async function PATCH(request, { params }) {
   const session = await getAdminSession();
@@ -13,17 +29,45 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const body = await request.json();
 
-    if (body.name) {
-      body.slug = slugify(body.name);
+    const existing = await getServiceById(id);
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: "Prestation introuvable." },
+        { status: 404 }
+      );
     }
 
-    const updated = await updateService(id, body);
+    const normalized = normalizeServiceServerPayload(body, existing);
+
+    if (normalized.name) {
+      normalized.name = String(normalized.name).trim();
+      const allServices = await getServices(false);
+      normalized.slug = ensureUniqueServiceSlug(
+        slugify(normalized.name),
+        allServices,
+        id
+      );
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(normalized, "category") &&
+      !Object.prototype.hasOwnProperty.call(normalized, "includesHair")
+    ) {
+      normalized.includesHair = inferIncludesHairFromCategory(
+        normalized.category,
+        existing.includesHair
+      );
+    }
+
+    const updated = await updateService(id, normalized);
     if (!updated) {
       return NextResponse.json(
         { success: false, error: "Prestation introuvable." },
         { status: 404 }
       );
     }
+
+    revalidateServicePages();
 
     return NextResponse.json({ success: true, service: updated });
   } catch (error) {
@@ -43,6 +87,7 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
     await deleteService(id);
+    revalidateServicePages();
     return NextResponse.json({ success: true, message: "Prestation supprimée." });
   } catch (error) {
     return NextResponse.json(

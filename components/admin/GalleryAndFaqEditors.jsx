@@ -148,7 +148,7 @@ export function FaqEditorTab({
               const isShown = faq.visible !== false;
               return (
                 <div
-                  key={index}
+                  key={faq._id || faq.id || index}
                   className={`p-5 rounded-2xl border-2 space-y-4 transition-colors ${
                     isShown
                       ? "bg-stone-50 border-stone-200"

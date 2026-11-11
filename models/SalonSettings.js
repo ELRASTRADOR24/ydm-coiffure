@@ -49,7 +49,16 @@ const SalonSettingsSchema = new mongoose.Schema(
     preparationGuidelinesText: {
       type: String,
       default:
-        "Venir les cheveux propres et démêlés. 1 seul accompagnateur autorisé sur préavis. Règlements acceptés : Wero, PayPal, virement ou espèces.",
+        "Venir les cheveux propres et démêlés. 1 seul accompagnateur autorisé sur préavis. Règlements acceptés : Wero, Revolut, PayPal, virement ou espèces.",
+    },
+    // Comptes de paiement directs (aucun Stripe sur le site)
+    paymentAccounts: {
+      revolutEnabled: { type: Boolean, default: true },
+      revolutTag: { type: String, default: "@ydmcoiffure" },
+      paypalEnabled: { type: Boolean, default: true },
+      paypalHandle: { type: String, default: "ydmcoiffure" },
+      weroEnabled: { type: Boolean, default: true },
+      weroPhone: { type: String, default: "07 67 66 38 69" },
     },
     // Page Visibility Toggles
     pageVisibility: {
@@ -147,7 +156,7 @@ const SalonSettingsSchema = new mongoose.Schema(
       type: [String],
       default: [
         "Acompte : 10 € obligatoire sous 2h pour confirmer",
-        "Paiements : Wero, PayPal, virement ou espèces",
+        "Paiements : Wero, Revolut, PayPal, virement ou espèces",
         "Retard max : 20 min (1h = rdv annulé)",
         "Mèches incluses : prévenir 1 semaine à l'avance",
         "Réduction étudiante : -5 € avec mèches incluses",

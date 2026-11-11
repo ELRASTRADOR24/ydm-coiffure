@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Plus,
@@ -23,6 +24,21 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { uploadMediaClient } from "@/lib/uploadMedia";
+import {
+  createServiceFormDraft,
+  updateDraftBasePrice,
+  updateDraftLengthPrice,
+  updateDraftLengthName,
+  activateDraftLengthOptions,
+  deactivateDraftLengthOptions,
+  addDraftLengthChoice,
+  removeDraftLengthChoice,
+  buildServicePayloadFromDraft,
+  inferIncludesHairFromCategory,
+  parseDecimalInput,
+  formatEuroAmount,
+  roundPrice,
+} from "@/lib/servicePricing";
 
 // Liste des visuels disponibles au salon pour sélection rapide en 1 clic
 const AVAILABLE_SALON_IMAGES = [
@@ -80,30 +96,23 @@ const VIDEO_MAP = {
 };
 
 export default function AdminServicesView({ initialServices = [] }) {
+  const router = useRouter();
   const [services, setServices] = useState(initialServices);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
+
+  useEffect(() => {
+    setServices(initialServices);
+  }, [initialServices]);
 
   // Drag and Drop state
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [isCompactMode, setIsCompactMode] = useState(false);
 
-  // Form State
-  const [form, setForm] = useState({
-    name: "",
-    category: "Sans mèches incluses",
-    price: 35,
-    duration: 180, // Valeur par défaut conservée en arrière-plan sans affichage
-    depositAmount: 10,
-    description: "",
-    imageUrl: "/images/realisations/knotless-still.jpeg",
-    videoUrl: "",
-    options: [],
-    isActive: true,
-    isPopular: false,
-  });
+  // Form State (stocke des chaînes libres pour permettre l'effacement complet au clavier)
+  const [form, setForm] = useState(() => createServiceFormDraft(null));
 
   // Custom Category State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -116,91 +125,41 @@ export default function AdminServicesView({ initialServices = [] }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const serviceFileInputRef = useRef(null);
 
-  // Longueurs & Options Tarifaires
-  const lengthOptionIndex = useMemo(() => {
-    return Array.isArray(form.options)
-      ? form.options.findIndex((opt) =>
-          (opt.name || "").toLowerCase().includes("longueur")
-        )
-      : -1;
-  }, [form.options]);
+  const currentLengthOption = form.lengthOption;
 
-  const currentLengthOption =
-    lengthOptionIndex >= 0 ? form.options[lengthOptionIndex] : null;
+  const lengthPricePreviewBase = useMemo(() => {
+    if (!currentLengthOption || !Array.isArray(currentLengthOption.choices)) {
+      return null;
+    }
+    const validTotals = currentLengthOption.choices
+      .map((c) => parseDecimalInput(c.priceInput))
+      .filter((v) => v !== null);
+    if (validTotals.length === 0) return null;
+    return Math.min(...validTotals);
+  }, [currentLengthOption]);
 
   const handleActivateLengthOptions = () => {
-    const baseP = Number(form.price) || 35;
-    const defaultOption = {
-      name: "Longueur souhaitée",
-      required: true,
-      choices: [
-        { label: `Court (${baseP} €)`, priceDiff: 0, durationDiff: 0 },
-        { label: `Mi-long (${baseP + 10} €)`, priceDiff: 10, durationDiff: 30 },
-        { label: `Long (${baseP + 20} €)`, priceDiff: 20, durationDiff: 60 },
-        { label: `Extra long (${baseP + 30} €)`, priceDiff: 30, durationDiff: 90 },
-      ],
-    };
-    setForm((prev) => ({
-      ...prev,
-      options: [defaultOption],
-    }));
+    setForm((prev) => activateDraftLengthOptions(prev));
   };
 
   const handleUpdateChoice = (cIdx, field, val) => {
-    if (lengthOptionIndex < 0) return;
-    const updatedOptions = JSON.parse(JSON.stringify(form.options));
-    const targetOpt = updatedOptions[lengthOptionIndex];
-    const choices = targetOpt.choices;
-    const baseP = Number(form.price) || 0;
-
     if (field === "totalPrice") {
-      const newTotal = Math.max(0, Number(val) || 0);
-      const diff = Math.max(0, newTotal - baseP);
-      const currentName =
-        choices[cIdx].label.replace(/\s*\(\d+\s*€\)/, "").trim() || "Longueur";
-      choices[cIdx].priceDiff = diff;
-      choices[cIdx].label = `${currentName} (${newTotal} €)`;
+      setForm((prev) => updateDraftLengthPrice(prev, cIdx, val));
     } else if (field === "name") {
-      const curPrice = baseP + (Number(choices[cIdx].priceDiff) || 0);
-      choices[cIdx].label = `${val} (${curPrice} €)`;
-    } else if (field === "durationDiff") {
-      choices[cIdx].durationDiff = Number(val) || 0;
+      setForm((prev) => updateDraftLengthName(prev, cIdx, val));
     }
-
-    targetOpt.choices = choices;
-    updatedOptions[lengthOptionIndex] = targetOpt;
-    setForm((prev) => ({ ...prev, options: updatedOptions }));
   };
 
   const handleAddLengthChoice = () => {
-    if (lengthOptionIndex < 0) return;
-    const updatedOptions = JSON.parse(JSON.stringify(form.options));
-    const targetOpt = updatedOptions[lengthOptionIndex];
-    const baseP = Number(form.price) || 0;
-    const nextDiff = targetOpt.choices.length * 10;
-    targetOpt.choices.push({
-      label: `Longueur ${targetOpt.choices.length + 1} (${baseP + nextDiff} €)`,
-      priceDiff: nextDiff,
-      durationDiff: 30,
-    });
-    updatedOptions[lengthOptionIndex] = targetOpt;
-    setForm((prev) => ({ ...prev, options: updatedOptions }));
+    setForm((prev) => addDraftLengthChoice(prev));
   };
 
   const handleRemoveLengthChoice = (cIdx) => {
-    if (lengthOptionIndex < 0) return;
-    const updatedOptions = JSON.parse(JSON.stringify(form.options));
-    const targetOpt = updatedOptions[lengthOptionIndex];
-    targetOpt.choices = targetOpt.choices.filter((_, idx) => idx !== cIdx);
-    updatedOptions[lengthOptionIndex] = targetOpt;
-    setForm((prev) => ({ ...prev, options: updatedOptions }));
+    setForm((prev) => removeDraftLengthChoice(prev, cIdx));
   };
 
   const handleRemoveAllLengths = () => {
-    setForm((prev) => ({
-      ...prev,
-      options: prev.options.filter((_, idx) => idx !== lengthOptionIndex),
-    }));
+    setForm((prev) => deactivateDraftLengthOptions(prev));
   };
 
   const handleMediaUpload = async (e) => {
@@ -264,19 +223,12 @@ export default function AdminServicesView({ initialServices = [] }) {
     setIsCreatingCategory(false);
     setNewCategoryName("");
     setShowImagePicker(false);
-    setForm({
-      name: "",
-      category: existingCategories[0] || "Sans mèches incluses",
-      price: 35,
-      duration: 180,
-      depositAmount: 10,
-      description: "",
-      imageUrl: "/images/realisations/knotless-still.jpeg",
-      videoUrl: "",
-      options: [],
-      isActive: true,
-      isPopular: false,
-    });
+    setForm(
+      createServiceFormDraft(null, {
+        defaultCategory: existingCategories[0] || "Sans mèches incluses",
+        videoMap: VIDEO_MAP,
+      })
+    );
     setModalOpen(true);
   };
 
@@ -285,41 +237,41 @@ export default function AdminServicesView({ initialServices = [] }) {
     setIsCreatingCategory(false);
     setNewCategoryName("");
     setShowImagePicker(false);
-    setForm({
-      name: service.name || "",
-      category: service.category || "Sans mèches incluses",
-      price: service.price || 0,
-      duration: service.duration || 180,
-      depositAmount: service.depositAmount ?? 10,
-      description: service.description || "",
-      imageUrl: service.images?.[0] || "/images/realisations/knotless-still.jpeg",
-      videoUrl: service.videoUrl || VIDEO_MAP[service.images?.[0]] || "",
-      options: Array.isArray(service.options)
-        ? JSON.parse(JSON.stringify(service.options))
-        : [],
-      isActive: service.isActive ?? true,
-      isPopular: service.isPopular ?? false,
-    });
+    setForm(
+      createServiceFormDraft(service, {
+        defaultCategory: "Sans mèches incluses",
+        videoMap: VIDEO_MAP,
+      })
+    );
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
 
-    const finalCategory = isCreatingCategory && newCategoryName.trim()
+    if (isCreatingCategory && !newCategoryName.trim()) {
+      showToast("Veuillez saisir le nom de la nouvelle catégorie.");
+      return;
+    }
+
+    const finalCategory = isCreatingCategory
       ? newCategoryName.trim()
       : form.category;
 
-    const matchedVideo = form.videoUrl || VIDEO_MAP[form.imageUrl] || editingService?.videoUrl || "";
+    const matchedVideo =
+      form.videoUrl || VIDEO_MAP[form.imageUrl] || editingService?.videoUrl || "";
 
-    const payload = {
-      ...form,
-      category: finalCategory,
-      images: [form.imageUrl || "/images/realisations/knotless-still.jpeg"],
-      videoUrl: matchedVideo,
-      options: form.options,
-    };
+    const { payload, error } = buildServicePayloadFromDraft(form, {
+      categoryOverride: finalCategory,
+      videoUrlOverride: matchedVideo,
+    });
+
+    if (error) {
+      showToast(error);
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       if (editingService) {
@@ -330,10 +282,11 @@ export default function AdminServicesView({ initialServices = [] }) {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success) {
+        if (res.ok && data.success) {
           setServices((prev) =>
             prev.map((s) => ((s.id || s._id) === id ? data.service : s))
           );
+          router.refresh();
           showToast("Prestation mise à jour avec succès !");
           setModalOpen(false);
         } else {
@@ -346,8 +299,9 @@ export default function AdminServicesView({ initialServices = [] }) {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success) {
+        if (res.ok && data.success) {
           setServices((prev) => [...prev, data.service]);
+          router.refresh();
           showToast("Nouvelle prestation créée avec succès !");
           setModalOpen(false);
         } else {
@@ -368,9 +322,12 @@ export default function AdminServicesView({ initialServices = [] }) {
         method: "DELETE",
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setServices((prev) => prev.filter((s) => (s.id || s._id) !== id));
+        router.refresh();
         showToast("Prestation retirée avec succès.");
+      } else {
+        showToast(data.error || "Impossible de supprimer cette prestation.");
       }
     } catch (e) {
       showToast("Impossible de supprimer cette prestation pour le moment.");
@@ -387,15 +344,18 @@ export default function AdminServicesView({ initialServices = [] }) {
         body: JSON.stringify({ isActive: newStatus }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setServices((prev) =>
           prev.map((s) => ((s.id || s._id) === id ? data.service : s))
         );
+        router.refresh();
         showToast(
           newStatus
             ? "Prestation rendue visible aux clientes."
             : "Prestation masquée du catalogue."
         );
+      } else {
+        showToast(data.error || "Impossible de modifier la visibilité.");
       }
     } catch (e) {
       showToast("Impossible de modifier la visibilité de cette prestation.");
@@ -413,7 +373,7 @@ export default function AdminServicesView({ initialServices = [] }) {
     setServices(updated);
 
     try {
-      await Promise.all(
+      const responses = await Promise.all(
         updated.map((s) =>
           fetch(`/api/admin/services/${s.id || s._id}`, {
             method: "PATCH",
@@ -422,6 +382,11 @@ export default function AdminServicesView({ initialServices = [] }) {
           })
         )
       );
+      if (responses.some((r) => !r.ok)) {
+        showToast("Une erreur est survenue lors de l'enregistrement de l'ordre.");
+        return;
+      }
+      router.refresh();
       showToast("Emplacement des prestations réorganisé avec succès !");
     } catch (_) {
       showToast("Erreur lors de la mise à jour de l'ordre.");
@@ -797,10 +762,18 @@ export default function AdminServicesView({ initialServices = [] }) {
                         setIsCreatingCategory(true);
                         setNewCategoryName("");
                       } else {
-                        setForm({ ...form, category: e.target.value });
+                        const nextCategory = e.target.value;
+                        setForm((prev) => ({
+                          ...prev,
+                          category: nextCategory,
+                          includesHair: inferIncludesHairFromCategory(
+                            nextCategory,
+                            prev.includesHair
+                          ),
+                        }));
                       }
                     }}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-brun"
                   >
                     {existingCategories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -819,14 +792,15 @@ export default function AdminServicesView({ initialServices = [] }) {
                     Prix de base (€) *
                   </label>
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     required
-                    value={form.price}
+                    value={form.priceInput}
                     onChange={(e) =>
-                      setForm({ ...form, price: Number(e.target.value) })
+                      setForm((prev) => updateDraftBasePrice(prev, e.target.value))
                     }
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                    placeholder="Ex: 35"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm font-semibold text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                 </div>
                 <div>
@@ -834,34 +808,35 @@ export default function AdminServicesView({ initialServices = [] }) {
                     Montant de l'acompte (€) *
                   </label>
                   <input
-                    type="number"
-                    min="5"
+                    type="text"
+                    inputMode="decimal"
                     required
-                    value={form.depositAmount}
+                    value={form.depositInput}
                     onChange={(e) =>
-                      setForm({ ...form, depositAmount: Number(e.target.value) })
+                      setForm((prev) => ({ ...prev, depositInput: e.target.value }))
                     }
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                    placeholder="Ex: 10"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm font-semibold text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                 </div>
               </div>
 
               {/* Longueurs & Options Tarifaires (Court, Mi-long, Long, Extra long...) */}
               <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <span className="font-serif font-bold text-sm text-brun block">
                       Options de longueurs & tarifs
                     </span>
                     <span className="text-[11px] text-stone-500 font-light">
-                      Ajustez les prix spécifiques à chaque longueur proposée.
+                      Le tarif affiché sur la fiche (« Dès ... € ») suit automatiquement la longueur la moins chère.
                     </span>
                   </div>
                   {currentLengthOption && (
                     <button
                       type="button"
                       onClick={handleRemoveAllLengths}
-                      className="text-[11px] text-stone-500 hover:text-red-600 font-medium transition-colors"
+                      className="text-[11px] text-stone-500 hover:text-red-600 font-medium transition-colors shrink-0"
                     >
                       Désactiver (tarif unique)
                     </button>
@@ -871,7 +846,13 @@ export default function AdminServicesView({ initialServices = [] }) {
                 {!currentLengthOption ? (
                   <div className="p-3 bg-white border border-stone-200 rounded-xl text-center space-y-2">
                     <p className="text-xs text-stone-600">
-                      Prestation actuellement en tarif unique (<strong>{form.price} €</strong>).
+                      Prestation actuellement en tarif unique (
+                      <strong>
+                        {parseDecimalInput(form.priceInput) !== null
+                          ? `${formatEuroAmount(parseDecimalInput(form.priceInput))} €`
+                          : "à saisir"}
+                      </strong>
+                      ).
                     </p>
                     <button
                       type="button"
@@ -886,9 +867,11 @@ export default function AdminServicesView({ initialServices = [] }) {
                   <div className="space-y-2.5">
                     <div className="space-y-2">
                       {currentLengthOption.choices.map((choice, cIdx) => {
-                        const cleanName = choice.label.replace(/\s*\(\d+\s*€\)/, "").trim() || "Longueur";
-                        const baseP = Number(form.price) || 0;
-                        const totalPrice = baseP + (Number(choice.priceDiff) || 0);
+                        const parsedTotal = parseDecimalInput(choice.priceInput);
+                        const diff =
+                          parsedTotal !== null && lengthPricePreviewBase !== null
+                            ? roundPrice(parsedTotal - lengthPricePreviewBase)
+                            : null;
 
                         return (
                           <div
@@ -901,10 +884,10 @@ export default function AdminServicesView({ initialServices = [] }) {
                               </label>
                               <input
                                 type="text"
-                                value={cleanName}
+                                value={choice.name}
                                 onChange={(e) => handleUpdateChoice(cIdx, "name", e.target.value)}
                                 placeholder="Nom (ex: Mi-long)"
-                                className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 font-medium text-brun"
+                                className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-sm font-medium text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                               />
                             </div>
 
@@ -914,20 +897,25 @@ export default function AdminServicesView({ initialServices = [] }) {
                               </label>
                               <div className="relative">
                                 <input
-                                  type="number"
-                                  min="0"
-                                  value={totalPrice}
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={choice.priceInput}
                                   onChange={(e) => handleUpdateChoice(cIdx, "totalPrice", e.target.value)}
-                                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 font-bold text-brun text-right pr-6"
+                                  placeholder="0"
+                                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-sm font-bold text-brun text-right pr-6 focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                                 />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 font-medium text-xs">
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 font-medium text-xs pointer-events-none">
                                   €
                                 </span>
                               </div>
                             </div>
 
-                            <div className="w-14 text-right pt-3 font-mono text-[10px] text-stone-400">
-                              {choice.priceDiff > 0 ? `+${choice.priceDiff}€` : "Base"}
+                            <div className="w-14 text-right pt-3 font-mono text-[10px] text-stone-500">
+                              {diff === null
+                                ? "—"
+                                : diff > 0
+                                ? `+${formatEuroAmount(diff)}€`
+                                : "Base"}
                             </div>
 
                             <div className="pt-3">
@@ -1112,7 +1100,19 @@ export default function AdminServicesView({ initialServices = [] }) {
                 />
               </div>
 
-              <div className="flex items-center space-x-6 pt-2">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5 pt-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.includesHair)}
+                    onChange={(e) =>
+                      setForm({ ...form, includesHair: e.target.checked })
+                    }
+                    className="rounded border-stone-300 text-brun"
+                  />
+                  <span>Mèches incluses (couleurs + tarif étudiant)</span>
+                </label>
+
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"

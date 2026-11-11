@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import {
   getServiceById,
   getAvailabilities,
@@ -12,6 +13,11 @@ import {
   timeToMinutes,
   minutesToTime,
 } from "@/lib/availabilityEngine";
+import {
+  isValidDateString,
+  isValidTimeString,
+  resolveValidatedBookingOptions,
+} from "@/lib/adminHelpers";
 import {
   sendBookingRequestedCustomerEmail,
   sendNewBookingAdminNotification,
@@ -49,6 +55,13 @@ export async function POST(request) {
     if (!serviceId || !date || !startTime || !customer) {
       return NextResponse.json(
         { success: false, error: "Tous les champs obligatoires doivent être renseignés." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidDateString(date) || !isValidTimeString(startTime)) {
+      return NextResponse.json(
+        { success: false, error: "Format de date ou d'horaire invalide." },
         { status: 400 }
       );
     }
@@ -91,27 +104,23 @@ export async function POST(request) {
       );
     }
 
-    // 3. Calcul précis du prix et de la durée avec les options
-    let totalDuration = service.duration;
-    let totalPrice = service.price;
-    const validatedOptions = [];
-
-    if (Array.isArray(selectedOptions)) {
-      for (const opt of selectedOptions) {
-        const priceDiff = Number(opt.priceDiff) || 0;
-        const durationDiff = Number(opt.durationDiff) || 0;
-        totalPrice += priceDiff;
-        totalDuration += durationDiff;
-        validatedOptions.push({
-          name: opt.name,
-          choice: opt.choice,
-          priceDiff,
-          durationDiff,
-        });
-      }
+    // 3. Calcul précis du prix et de la durée avec validation stricte des options en base
+    const optionResolution = resolveValidatedBookingOptions(
+      service,
+      selectedOptions
+    );
+    if (optionResolution.error) {
+      return NextResponse.json(
+        { success: false, error: optionResolution.error },
+        { status: 400 }
+      );
     }
 
-    const depositAmount = 10; // Acompte officiel strict de 10 €
+    const { validatedOptions, totalPrice, totalDuration } = optionResolution;
+
+    const rawDeposit = Number(service.depositAmount);
+    const depositAmount =
+      Number.isFinite(rawDeposit) && rawDeposit >= 0 ? rawDeposit : 10;
     const remainingBalance = Math.max(0, totalPrice - depositAmount);
     const startMin = timeToMinutes(startTime);
     const endMin = startMin + totalDuration;
@@ -136,7 +145,7 @@ export async function POST(request) {
     const isAvailable = isSpecificSlotAvailable({
       dateStr: date,
       startTime,
-      totalDuration: 60,
+      totalDuration,
       weeklyAvailability,
       existingBookings,
       unavailabilities,
@@ -186,14 +195,20 @@ export async function POST(request) {
     // 6. Envoi des notifications transactionnelles (Emails & SMS) asynchrones
     try {
       await Promise.allSettled([
-        sendBookingRequestedCustomerEmail(newBooking),
-        sendNewBookingAdminNotification(newBooking),
+        sendBookingRequestedCustomerEmail(newBooking, settings),
+        sendNewBookingAdminNotification(newBooking, settings),
         sendBookingRequestedSms(newBooking),
         sendNewBookingAdminSms(newBooking, settings?.phone),
       ]);
     } catch (e) {
       console.warn("Erreur envoi notification e-mail / SMS:", e.message);
     }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/calendar");
+    revalidatePath("/admin/customers");
+    revalidatePath("/reserver");
 
     return NextResponse.json({
       success: true,

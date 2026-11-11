@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
         remainingBalance: booking.remainingBalance,
         service: booking.service,
         selectedOptions: booking.selectedOptions,
-        customerName: `${booking.customer.firstName} ${booking.customer.lastName.charAt(0)}.`,
+        customerName: `${booking.customer.firstName}${booking.customer.lastName ? ` ${booking.customer.lastName.charAt(0)}.` : ""}`,
         holdExpiresAt: booking.holdExpiresAt,
         stripePaymentUrl: booking.stripePaymentUrl,
       },

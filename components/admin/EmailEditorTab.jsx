@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   Mail,
   Palette,
@@ -90,6 +90,12 @@ export default function EmailEditorTab({
     salonSettings?.email || ""
   );
   const [sendingTest, setSendingTest] = useState(false);
+
+  useEffect(() => {
+    if (!testEmailAddress && salonSettings?.email) {
+      setTestEmailAddress(salonSettings.email);
+    }
+  }, [salonSettings?.email, testEmailAddress]);
 
   const logoFileRef = useRef(null);
 
@@ -326,7 +332,7 @@ export default function EmailEditorTab({
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         if (data.simulated) {
           onToast?.(
             `Mode simulation local (pas de clé Resend configurée ici) : e-mail « ${data.subject} » généré pour ${data.recipient}.`
@@ -1596,13 +1602,13 @@ export default function EmailEditorTab({
                       <div>
                         <label className="text-xs font-bold text-brun flex justify-between mb-1">
                           <span>Arrondi du logo</span>
-                          <span>{header.logoBorderRadius || 0} px</span>
+                          <span>{header.logoBorderRadius ?? 0} px</span>
                         </label>
                         <input
                           type="range"
                           min="0"
                           max="80"
-                          value={header.logoBorderRadius || 0}
+                          value={header.logoBorderRadius ?? 0}
                           onChange={(e) =>
                             updateHeader({
                               logoBorderRadius: Number(e.target.value),
@@ -1660,7 +1666,7 @@ export default function EmailEditorTab({
                       />
                       <ColorControl
                         label="Couleur du titre"
-                        value={header.brandTitleColor || "#1A1A1A"}
+                        value={header.brandTitleColor ?? "#1A1A1A"}
                         onChange={(val) =>
                           updateHeader({ brandTitleColor: val })
                         }
@@ -1688,7 +1694,7 @@ export default function EmailEditorTab({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <ColorControl
                         label="Couleur du trait"
-                        value={header.dividerColor || "#C2A696"}
+                        value={header.dividerColor ?? "#C2A696"}
                         onChange={(val) => updateHeader({ dividerColor: val })}
                         fallback="#C2A696"
                       />

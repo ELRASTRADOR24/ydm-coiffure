@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Clock,
   Calendar,
@@ -11,11 +12,18 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import {
+  getParisDateString,
+  isValidTimeString,
+  expandDateRangeInclusive,
+} from "@/lib/adminHelpers";
+import { timeToMinutes } from "@/lib/availabilityEngine";
 
 export default function AdminAvailabilityView({
   initialAvailabilities = [],
   initialUnavailabilities = [],
 }) {
+  const router = useRouter();
   const [availabilities, setAvailabilities] = useState(initialAvailabilities);
   const [unavailabilities, setUnavailabilities] = useState(
     initialUnavailabilities
@@ -23,12 +31,20 @@ export default function AdminAvailabilityView({
   const [toastMessage, setToastMessage] = useState("");
   const [savingDay, setSavingDay] = useState(null);
 
+  useEffect(() => {
+    setAvailabilities(initialAvailabilities);
+  }, [initialAvailabilities]);
+
+  useEffect(() => {
+    setUnavailabilities(initialUnavailabilities);
+  }, [initialUnavailabilities]);
+
   // Mode de blocage : "single" (jour unique), "range" (plusieurs jours), "hours" (plage horaire)
   const [unavMode, setUnavMode] = useState("single");
   const [newUnav, setNewUnav] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    startDate: new Date().toISOString().slice(0, 10),
-    endDate: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
+    date: getParisDateString(),
+    startDate: getParisDateString(),
+    endDate: getParisDateString(new Date(Date.now() + 86400000 * 2)),
     isAllDay: true,
     startTime: "12:00",
     endTime: "18:00",
@@ -50,6 +66,17 @@ export default function AdminAvailabilityView({
   };
 
   const handleSaveDay = async (day) => {
+    if (day.isOpen) {
+      if (!isValidTimeString(day.startTime) || !isValidTimeString(day.endTime)) {
+        showToast("Veuillez renseigner des heures d'ouverture et de fermeture valides.");
+        return;
+      }
+      if (timeToMinutes(day.startTime) >= timeToMinutes(day.endTime)) {
+        showToast("L'heure de fermeture doit être postérieure à l'heure d'ouverture.");
+        return;
+      }
+    }
+
     setSavingDay(day.dayOfWeek);
     try {
       const res = await fetch("/api/admin/availability", {
@@ -58,7 +85,15 @@ export default function AdminAvailabilityView({
         body: JSON.stringify(day),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        if (data.availability) {
+          setAvailabilities((prev) =>
+            prev.map((d) =>
+              d.dayOfWeek === day.dayOfWeek ? data.availability : d
+            )
+          );
+        }
+        router.refresh();
         showToast(`Horaires du ${day.dayName} sauvegardés !`);
       } else {
         showToast(data.error || "Impossible de sauvegarder les horaires.");
@@ -72,6 +107,23 @@ export default function AdminAvailabilityView({
 
   const handleAddUnavailability = async (e) => {
     e.preventDefault();
+    if (unavMode === "range") {
+      const check = expandDateRangeInclusive(newUnav.startDate, newUnav.endDate);
+      if (check.error) {
+        showToast(check.error);
+        return;
+      }
+    } else if (unavMode === "hours") {
+      if (!isValidTimeString(newUnav.startTime) || !isValidTimeString(newUnav.endTime)) {
+        showToast("Veuillez renseigner une plage horaire valide.");
+        return;
+      }
+      if (timeToMinutes(newUnav.startTime) >= timeToMinutes(newUnav.endTime)) {
+        showToast("L'heure de fin doit être postérieure à l'heure de début.");
+        return;
+      }
+    }
+
     setAddingUnav(true);
     try {
       let payload = {
@@ -99,9 +151,12 @@ export default function AdminAvailabilityView({
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.success) {
-        const created = data.unavailabilities || (data.unavailability ? [data.unavailability] : []);
+      if (res.ok && data.success) {
+        const created =
+          data.unavailabilities ||
+          (data.unavailability ? [data.unavailability] : []);
         setUnavailabilities((prev) => [...prev, ...created]);
+        router.refresh();
         showToast(
           unavMode === "range"
             ? `${created.length} jours bloqués avec succès !`
@@ -128,13 +183,14 @@ export default function AdminAvailabilityView({
         method: "DELETE",
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setUnavailabilities((prev) =>
           prev.filter((u) => (u.id || u._id) !== id)
         );
+        router.refresh();
         showToast("Indisponibilité retirée avec succès.");
       } else {
-        showToast("Impossible de supprimer cette fermeture pour le moment.");
+        showToast(data.error || "Impossible de supprimer cette fermeture pour le moment.");
       }
     } catch (e) {
       showToast("Impossible de retirer cette fermeture.");
@@ -210,7 +266,7 @@ export default function AdminAvailabilityView({
                       <span className="text-stone-500">Heures :</span>
                       <input
                         type="time"
-                        value={day.startTime || "09:30"}
+                        value={day.startTime ?? ""}
                         onChange={(e) =>
                           handleDayChange(day.dayOfWeek, "startTime", e.target.value)
                         }
@@ -219,7 +275,7 @@ export default function AdminAvailabilityView({
                       <span>à</span>
                       <input
                         type="time"
-                        value={day.endTime || "19:00"}
+                        value={day.endTime ?? ""}
                         onChange={(e) =>
                           handleDayChange(day.dayOfWeek, "endTime", e.target.value)
                         }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -14,8 +15,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+import { matchesBookingStatusFilter } from "@/lib/adminHelpers";
 
 export default function AdminBookingsView({ initialBookings = [] }) {
+  const router = useRouter();
   const [bookings, setBookings] = useState(initialBookings);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [search, setSearch] = useState("");
@@ -26,6 +29,10 @@ export default function AdminBookingsView({ initialBookings = [] }) {
   // Reject modal
   const [rejectBooking, setRejectBooking] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  useEffect(() => {
+    setBookings(initialBookings);
+  }, [initialBookings]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -40,14 +47,17 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         method: "POST",
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setBookings((prev) =>
           prev.map((b) => ((b.id || b._id) === id ? data.booking : b))
         );
+        router.refresh();
         showToast("Demande acceptée ! SMS & e-mail transmis à la cliente.");
       } else {
         showToast(data.error || "Impossible d'approuver cette réservation.");
       }
+    } catch (_) {
+      showToast("Erreur réseau lors de la validation de la demande.");
     } finally {
       setActionLoading(null);
     }
@@ -60,14 +70,17 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         method: "POST",
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setBookings((prev) =>
           prev.map((b) => ((b.id || b._id) === id ? data.booking : b))
         );
+        router.refresh();
         showToast("Acompte validé ! Confirmation transmise à la cliente.");
       } else {
         showToast(data.error || "Impossible de valider le paiement.");
       }
+    } catch (_) {
+      showToast("Erreur réseau lors de la validation de l'acompte.");
     } finally {
       setActionLoading(null);
     }
@@ -81,14 +94,17 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         method: "POST",
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setBookings((prev) =>
           prev.map((b) => ((b.id || b._id) === id ? data.booking : b))
         );
+        router.refresh();
         showToast("Réservation annulée.");
       } else {
         showToast(data.error || "Impossible d'annuler le rendez-vous.");
       }
+    } catch (_) {
+      showToast("Erreur réseau lors de l'annulation du rendez-vous.");
     } finally {
       setActionLoading(null);
     }
@@ -106,16 +122,19 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         body: JSON.stringify({ reason: rejectReason }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setBookings((prev) =>
           prev.map((b) => ((b.id || b._id) === id ? data.booking : b))
         );
+        router.refresh();
         showToast("Demande refusée et créneau libéré.");
         setRejectBooking(null);
         setRejectReason("");
       } else {
         showToast(data.error || "Impossible d'enregistrer le refus.");
       }
+    } catch (_) {
+      showToast("Erreur réseau lors du refus de la demande.");
     } finally {
       setActionLoading(null);
     }
@@ -123,17 +142,23 @@ export default function AdminBookingsView({ initialBookings = [] }) {
 
   // Filter logic
   const filteredBookings = bookings.filter((b) => {
-    const matchesStatus =
-      statusFilter === "ALL" || b.status === statusFilter;
+    const matchesStatus = matchesBookingStatusFilter(b.status, statusFilter);
     const matchesDate = !dateFilter || b.date === dateFilter;
-    const fullName = `${b.customer?.firstName} ${b.customer?.lastName}`.toLowerCase();
+    const fullName = `${b.customer?.firstName || ""} ${b.customer?.lastName || ""}`.toLowerCase();
     const ref = (b.bookingReference || "").toLowerCase();
     const phone = (b.customer?.phone || "").toLowerCase();
+    const email = (b.customer?.email || "").toLowerCase();
+    const insta = (b.customer?.instagram || "").toLowerCase();
+    const serviceName = (b.service?.name || "").toLowerCase();
+    const query = search.trim().toLowerCase();
     const matchesSearch =
-      search.trim() === "" ||
-      fullName.includes(search.toLowerCase()) ||
-      ref.includes(search.toLowerCase()) ||
-      phone.includes(search.toLowerCase());
+      query === "" ||
+      fullName.includes(query) ||
+      ref.includes(query) ||
+      phone.includes(query) ||
+      email.includes(query) ||
+      insta.includes(query) ||
+      serviceName.includes(query);
     return matchesStatus && matchesDate && matchesSearch;
   });
 
@@ -356,10 +381,10 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                             <button
                               disabled={isLoading}
                               onClick={() => handleMarkPaid(bId)}
-                              title="Valider la réception des 10 € d'acompte (Revolut, Wero, etc.)"
+                              title={`Confirmer avoir bien reçu les ${formatPrice(b.depositAmount ?? 10)} d'acompte (Wero, Revolut, PayPal)`}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors shadow-2xs"
                             >
-                              Valider acompte (10 €)
+                              Valider acompte reçu ({formatPrice(b.depositAmount ?? 10)})
                             </button>
                           )}
 
@@ -417,9 +442,12 @@ export default function AdminBookingsView({ initialBookings = [] }) {
               </button>
               <button
                 onClick={handleConfirmReject}
-                className="bg-red-700 hover:bg-red-800 text-white px-5 py-2 rounded-xl text-xs font-semibold"
+                disabled={actionLoading === (rejectBooking.id || rejectBooking._id)}
+                className="bg-red-700 hover:bg-red-800 text-white px-5 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
               >
-                Confirmer le refus
+                {actionLoading === (rejectBooking.id || rejectBooking._id)
+                  ? "Enregistrement..."
+                  : "Confirmer le refus"}
               </button>
             </div>
           </div>

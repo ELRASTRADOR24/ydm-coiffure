@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
-import { getBookingById, updateBooking } from "@/lib/store";
+import { getBookingById, updateBooking, getSettings } from "@/lib/store";
 import { sendBookingRejectedEmail } from "@/lib/email";
 import { sendBookingRejectedSms } from "@/lib/sms";
 
@@ -28,14 +29,21 @@ export async function POST(request, { params }) {
       rejectionReason: reason,
     });
 
+    const settings = await getSettings();
     try {
       await Promise.allSettled([
-        sendBookingRejectedEmail(updated || booking, reason),
+        sendBookingRejectedEmail(updated || booking, reason, settings),
         sendBookingRejectedSms(updated || booking, reason),
       ]);
     } catch (e) {
       console.warn("Erreur envoi refus (email/SMS):", e.message);
     }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/calendar");
+    revalidatePath("/reserver");
+    revalidatePath(`/reserver/statut/${updated?.bookingReference || booking.bookingReference}`);
 
     return NextResponse.json({
       success: true,

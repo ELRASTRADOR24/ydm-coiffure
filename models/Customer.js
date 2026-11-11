@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 const CustomerSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
-    email: { type: String, required: true, lowercase: true, trim: true, index: true },
+    lastName: { type: String, default: "", trim: true },
+    email: { type: String, default: "", lowercase: true, trim: true, index: true },
     phone: { type: String, required: true, trim: true },
     instagram: { type: String, default: "" },
     notes: { type: String, default: "" },
@@ -15,4 +15,8 @@ const CustomerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.Customer || mongoose.model("Customer", CustomerSchema);
+if (mongoose.models.Customer) {
+  mongoose.deleteModel("Customer");
+}
+
+export default mongoose.model("Customer", CustomerSchema);

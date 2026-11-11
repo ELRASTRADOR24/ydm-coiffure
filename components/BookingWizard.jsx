@@ -21,6 +21,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+import {
+  formatOptionChoiceDisplayLabel,
+  isLengthOption,
+} from "@/lib/servicePricing";
 
 // Couleurs de mèches principales et options de personnalisation
 const PRIMARY_HAIR_COLORS = [
@@ -59,7 +63,10 @@ const MIX_PRESET_COLORS = [
   { name: "Châtain clair", color: "#7a5435" },
 ];
 
-export default function BookingWizard({ initialServices = [] }) {
+export default function BookingWizard({
+  initialServices = [],
+  initialBookingRules = {},
+}) {
   const searchParams = useSearchParams();
   const preselectedSlug = searchParams.get("service");
 
@@ -112,19 +119,45 @@ export default function BookingWizard({ initialServices = [] }) {
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Async slot loading state
+  // Async slot loading & live salon rules state
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotError, setSlotError] = useState("");
-  const [blockedDates, setBlockedDates] = useState([]);
+  const [blockedDates, setBlockedDates] = useState(
+    initialBookingRules.blockedDates || []
+  );
+  const [closedDayOfWeeks, setClosedDayOfWeeks] = useState(
+    initialBookingRules.closedDayOfWeeks || []
+  );
+  const [maxDaysInAdvance, setMaxDaysInAdvance] = useState(
+    initialBookingRules.maxDaysInAdvance ?? 60
+  );
+  const [minNoticeHours, setMinNoticeHours] = useState(
+    initialBookingRules.minNoticeHours ?? 24
+  );
+  const [paymentHoldHours, setPaymentHoldHours] = useState(
+    initialBookingRules.paymentHoldHours ?? 2
+  );
 
-  // Fetch blocked dates on mount
+  // Fetch live blocked dates, closed weekdays & booking rules on mount
   useEffect(() => {
-    fetch("/api/availability?mode=blocked")
+    fetch("/api/availability?mode=blocked", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
-        if (d.success && Array.isArray(d.blockedDates)) {
-          setBlockedDates(d.blockedDates);
+        if (d.success) {
+          if (Array.isArray(d.blockedDates)) setBlockedDates(d.blockedDates);
+          if (Array.isArray(d.closedDayOfWeeks)) {
+            setClosedDayOfWeeks(d.closedDayOfWeeks);
+          }
+          if (Number.isFinite(Number(d.maxDaysInAdvance))) {
+            setMaxDaysInAdvance(Number(d.maxDaysInAdvance));
+          }
+          if (Number.isFinite(Number(d.minNoticeHours))) {
+            setMinNoticeHours(Number(d.minNoticeHours));
+          }
+          if (Number.isFinite(Number(d.paymentHoldHours))) {
+            setPaymentHoldHours(Number(d.paymentHoldHours));
+          }
         }
       })
       .catch(() => {});
@@ -183,7 +216,9 @@ export default function BookingWizard({ initialServices = [] }) {
         price = Math.max(0, price - 5);
       }
 
-      const deposit = 10; // RÈGLE OFFICIELLE : ACOMPTE STRICT DE 10 €
+      const rawDeposit = Number(selectedService?.depositAmount);
+      const deposit =
+        Number.isFinite(rawDeposit) && rawDeposit >= 0 ? rawDeposit : 10;
       const balance = Math.max(0, price - deposit);
 
       let computedEnd = "";
@@ -213,7 +248,9 @@ export default function BookingWizard({ initialServices = [] }) {
     setSlotError("");
     setSelectedTime("");
 
-    fetch(`/api/availability?date=${selectedDate}&duration=${totalDuration}`)
+    fetch(`/api/availability?date=${selectedDate}&duration=${totalDuration}`, {
+      cache: "no-store",
+    })
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
@@ -275,7 +312,11 @@ export default function BookingWizard({ initialServices = [] }) {
     const formattedOptions = Object.entries(selectedOptions).map(
       ([name, choice]) => ({
         name,
-        choice: choice.label,
+        choice: formatOptionChoiceDisplayLabel(
+          choice,
+          selectedService.price,
+          isLengthOption({ name })
+        ),
         priceDiff: choice.priceDiff,
         durationDiff: choice.durationDiff,
       })
@@ -330,31 +371,64 @@ export default function BookingWizard({ initialServices = [] }) {
   };
 
   const availableDateOptions = useMemo(() => {
+    const parisTodayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Paris",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    const [py, pm, pd] = parisTodayStr.split("-").map(Number);
+    const safeMaxDays = Math.max(
+      1,
+      Math.min(180, Number(maxDaysInAdvance) || 60)
+    );
+    const noticeHours = Number(minNoticeHours);
+    const startOffset =
+      Number.isFinite(noticeHours) && noticeHours >= 24
+        ? Math.floor(noticeHours / 24)
+        : 0;
+
     const dates = [];
-    const today = new Date();
-    for (let i = 1; i <= 45; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      const dateStr = `${yyyy}-${mm}-${dd}`;
-      const dayName = new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(d);
-      const dayNumber = d.getDate();
-      const monthName = new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(d);
+    for (let i = startOffset; i <= safeMaxDays; i++) {
+      const d = new Date(Date.UTC(py, pm - 1, pd + i, 12, 0, 0));
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayOfWeek = d.getUTCDay();
+      const dayName = new Intl.DateTimeFormat("fr-FR", {
+        weekday: "short",
+        timeZone: "UTC",
+      }).format(d);
+      const dayNumber = d.getUTCDate();
+      const monthName = new Intl.DateTimeFormat("fr-FR", {
+        month: "short",
+        timeZone: "UTC",
+      }).format(d);
       const isBlocked = blockedDates.includes(dateStr);
+      const isClosedDay = closedDayOfWeeks.includes(dayOfWeek);
 
       dates.push({
         dateStr,
         dayName,
         dayNumber,
         monthName,
-        isSunday: d.getDay() === 0,
+        isClosedDay,
         isBlocked,
       });
     }
     return dates;
-  }, [blockedDates]);
+  }, [blockedDates, closedDayOfWeeks, maxDaysInAdvance, minNoticeHours]);
+
+  const safeHoldHours =
+    Number.isFinite(Number(paymentHoldHours)) && Number(paymentHoldHours) > 0
+      ? Number(paymentHoldHours)
+      : 2;
+  const holdShort = `${safeHoldHours}h`;
+  const holdLong = `${safeHoldHours} heure${safeHoldHours > 1 ? "s" : ""}`;
+
+  const trimmedEmail = customer.email.trim();
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+  const trimmedPhone = customer.phone.trim();
+  const phoneDigitsCount = trimmedPhone.replace(/\D/g, "").length;
+  const isPhoneValid = trimmedPhone.length >= 8 && phoneDigitsCount >= 8;
 
   const stepsConfig = useMemo(() => {
     const list = [
@@ -454,10 +528,11 @@ export default function BookingWizard({ initialServices = [] }) {
                 <div className="pt-3 mt-3 border-t border-beige flex items-center justify-between">
                   <div>
                     <div className="text-base font-bold font-serif text-brun">
+                      {service.options && service.options.length > 0 ? "Dès " : ""}
                       {formatPrice(service.price)}
                     </div>
                     <div className="text-[10px] text-stone-400">
-                      Acompte 10 €
+                      Acompte {formatPrice(service.depositAmount ?? 10)}
                     </div>
                   </div>
                   <button className="bg-creme group-hover:bg-champagne text-brun group-hover:text-brun-dark px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center space-x-1 border border-beige">
@@ -477,7 +552,7 @@ export default function BookingWizard({ initialServices = [] }) {
           <div className="flex items-center justify-between border-b border-beige pb-4">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
-                Étape 2 sur 5
+                Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
               </span>
               <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
                 Longueur & Personnalisation
@@ -499,10 +574,11 @@ export default function BookingWizard({ initialServices = [] }) {
             </div>
             <div className="text-right">
               <span className="font-serif font-bold text-sm text-brun block">
+                {selectedService.options && selectedService.options.length > 0 ? "Dès " : ""}
                 {formatPrice(selectedService.price)}
               </span>
               <span className="text-[10px] text-stone-400">
-                Acompte : 10 €
+                Acompte : {formatPrice(depositAmount)}
               </span>
             </div>
           </div>
@@ -529,9 +605,14 @@ export default function BookingWizard({ initialServices = [] }) {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {opt.choices.map((choice, cIndex) => {
+                        const displayLabel = formatOptionChoiceDisplayLabel(
+                          choice,
+                          selectedService.price,
+                          isLengthOpt
+                        );
                         const isSelected =
                           selectedOptions[opt.name]?.label === choice.label;
-                        const thumb = isLengthOpt ? getLengthThumbnail(choice.label) : null;
+                        const thumb = isLengthOpt ? getLengthThumbnail(displayLabel) : null;
 
                         return (
                           <div
@@ -548,7 +629,7 @@ export default function BookingWizard({ initialServices = [] }) {
                                 <div className="relative w-12 h-14 rounded-lg overflow-hidden shrink-0 border border-beige/80 bg-white">
                                   <Image
                                     src={thumb}
-                                    alt={choice.label}
+                                    alt={displayLabel}
                                     fill
                                     className="object-cover object-top"
                                   />
@@ -557,7 +638,7 @@ export default function BookingWizard({ initialServices = [] }) {
                               <div className="flex-1">
                                 <div className="flex items-center justify-between">
                                   <span className="font-semibold text-brun">
-                                    {choice.label}
+                                    {displayLabel}
                                   </span>
                                   {isSelected && (
                                     <CheckCircle2 className="w-4 h-4 text-champagne-dark" />
@@ -671,7 +752,14 @@ export default function BookingWizard({ initialServices = [] }) {
             <div>
               <span className="font-bold text-brun block">{selectedService.name}</span>
               <span className="text-stone-600 text-[11px]">
-                {selectedOptions["Longueur souhaitée"]?.label || "Longueur standard"} • Formule Complète avec mèches
+                {selectedOptions["Longueur souhaitée"]
+                  ? formatOptionChoiceDisplayLabel(
+                      selectedOptions["Longueur souhaitée"],
+                      selectedService.price,
+                      true
+                    )
+                  : "Longueur standard"}{" "}
+                • Formule Complète avec mèches
               </span>
             </div>
             <div className="text-right">
@@ -937,7 +1025,7 @@ export default function BookingWizard({ initialServices = [] }) {
             <div className="flex space-x-2.5 overflow-x-auto pb-2 scrollbar-thin">
               {availableDateOptions.map((item) => {
                 const isSelected = selectedDate === item.dateStr;
-                const isDisabled = item.isSunday || item.isBlocked;
+                const isDisabled = item.isClosedDay || item.isBlocked;
                 return (
                   <button
                     key={item.dateStr}
@@ -959,7 +1047,7 @@ export default function BookingWizard({ initialServices = [] }) {
                       {item.dayNumber}
                     </span>
                     <span className="text-[9px] text-stone-400">
-                      {item.isBlocked ? "Fermé" : item.monthName}
+                      {isDisabled ? "Fermé" : item.monthName}
                     </span>
                   </button>
                 );
@@ -1108,8 +1196,15 @@ export default function BookingWizard({ initialServices = [] }) {
                   onChange={(e) =>
                     setCustomer({ ...customer, email: e.target.value })
                   }
-                  className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+                  className={`w-full bg-creme border rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne ${
+                    trimmedEmail && !isEmailValid ? "border-red-400" : "border-beige"
+                  }`}
                 />
+                {trimmedEmail && !isEmailValid && (
+                  <p className="text-[10px] text-red-600 mt-1">
+                    Merci de saisir une adresse e-mail complète (ex: nom@domaine.fr).
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1124,8 +1219,15 @@ export default function BookingWizard({ initialServices = [] }) {
                   onChange={(e) =>
                     setCustomer({ ...customer, phone: e.target.value })
                   }
-                  className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+                  className={`w-full bg-creme border rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne ${
+                    trimmedPhone && !isPhoneValid ? "border-red-400" : "border-beige"
+                  }`}
                 />
+                {trimmedPhone && !isPhoneValid && (
+                  <p className="text-[10px] text-red-600 mt-1">
+                    Indiquez un numéro joignable à au moins 8 chiffres.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1177,7 +1279,7 @@ export default function BookingWizard({ initialServices = [] }) {
                   >
                     règlement intérieur
                   </Link>{" "}
-                  : <strong>acompte obligatoire de 10 € sous 2 heures</strong> dès validation manuelle de la coiffeuse (non remboursable), retards tolérés de 20 min maximum, 1 seul accompagnateur sur préavis, cheveux propres et démêlés.
+                  : <strong>acompte obligatoire de {formatPrice(depositAmount)} sous {holdLong}</strong> dès validation manuelle de la coiffeuse (non remboursable), retards tolérés de 20 min maximum, 1 seul accompagnateur sur préavis, cheveux propres et démêlés.
                 </span>
               </label>
             </div>
@@ -1197,8 +1299,8 @@ export default function BookingWizard({ initialServices = [] }) {
               disabled={
                 !customer.firstName.trim() ||
                 !customer.lastName.trim() ||
-                !customer.email.trim() ||
-                !customer.phone.trim() ||
+                !isEmailValid ||
+                !isPhoneValid ||
                 !acceptedTerms
               }
               onClick={() => {
@@ -1261,7 +1363,13 @@ export default function BookingWizard({ initialServices = [] }) {
                   {Object.entries(selectedOptions).map(([name, choice]) => (
                     <div key={name} className="flex justify-between text-stone-600">
                       <span>{name} :</span>
-                      <span className="font-medium text-brun">{choice.label}</span>
+                      <span className="font-medium text-brun">
+                        {formatOptionChoiceDisplayLabel(
+                          choice,
+                          selectedService.price,
+                          isLengthOption({ name })
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1296,7 +1404,7 @@ export default function BookingWizard({ initialServices = [] }) {
                   </span>
                 </div>
                 <div className="flex justify-between p-2 rounded-lg bg-champagne-light border border-champagne/40">
-                  <span className="font-medium text-brun">Acompte exigé sous 2h :</span>
+                  <span className="font-medium text-brun">Acompte exigé sous {holdShort} :</span>
                   <span className="font-bold text-champagne-dark">
                     {formatPrice(depositAmount)}
                   </span>
@@ -1309,7 +1417,7 @@ export default function BookingWizard({ initialServices = [] }) {
                 </div>
               </div>
               <div className="pt-2 border-t border-beige/60 text-[11px] text-stone-500">
-                Paiements acceptés sur place : Wero, PayPal, virement ou espèces.
+                Acompte en direct : Wero, Revolut ou PayPal • Solde sur place : Wero, Revolut, PayPal, virement ou espèces.
               </div>
             </div>
           </div>
@@ -1318,7 +1426,7 @@ export default function BookingWizard({ initialServices = [] }) {
           <div className="p-3.5 rounded-xl bg-stone-100 border border-stone-200 text-xs text-stone-700 flex items-start space-x-2">
             <Lock className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <strong>Validation manuelle requise :</strong> Aucun prélèvement immédiat. Dès que la coiffeuse approuve votre créneau, vous disposerez d'un délai strict de <strong>2 heures</strong> pour verser l'acompte de 10 € afin de bloquer définitivement votre heure.
+              <strong>Validation manuelle requise :</strong> Aucun prélèvement immédiat. Dès que la coiffeuse approuve votre créneau, vous disposerez d&apos;un délai strict de <strong>{holdLong}</strong> pour verser l&apos;acompte de {formatPrice(depositAmount)} afin de bloquer définitivement votre heure.
             </div>
           </div>
 
@@ -1385,17 +1493,19 @@ export default function BookingWizard({ initialServices = [] }) {
             </div>
             <div className="flex justify-between text-stone-600">
               <span>Acompte après validation :</span>
-              <span className="font-medium text-brun">10 €</span>
+              <span className="font-medium text-brun">
+                {formatPrice(submissionResult.depositAmount ?? depositAmount)}
+              </span>
             </div>
           </div>
 
-          {/* 2-Hour Rule Alert */}
+          {/* Hold Rule Alert */}
           <div className="p-4 rounded-xl bg-champagne-light/50 border border-champagne/40 max-w-md mx-auto text-left text-xs text-brun space-y-1">
             <span className="font-bold block">
-              Délai strict de 2 heures :
+              Délai strict de {holdLong} :
             </span>
             <p className="font-light text-stone-600 leading-relaxed text-[11px]">
-              Dès que votre demande sera acceptée par la coiffeuse, vous recevrez un lien pour régler l'acompte de 10 €. Vous disposerez de 2 heures maximum pour finaliser le versement, faute de quoi le créneau sera automatiquement remis en ligne.
+              Dès que votre demande sera acceptée par la coiffeuse, vous recevrez un lien pour régler l&apos;acompte de {formatPrice(submissionResult.depositAmount ?? depositAmount)}. Vous disposerez de {holdLong} maximum pour finaliser le versement, faute de quoi le créneau sera automatiquement remis en ligne.
             </p>
           </div>
 

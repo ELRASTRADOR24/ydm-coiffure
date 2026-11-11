@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Save, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
@@ -13,12 +13,19 @@ import EmailEditorTab from "./admin/EmailEditorTab";
 
 export default function AdminEmailsStudioPage({ initialSettings = {} }) {
   const router = useRouter();
+  const [currentSettings, setCurrentSettings] = useState(initialSettings || {});
   const [emailSettings, setEmailSettings] = useState(() =>
     getResolvedEmailSettings(initialSettings)
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
+  useEffect(() => {
+    if (hasUnsavedChanges || !initialSettings) return;
+    setCurrentSettings(initialSettings);
+    setEmailSettings(getResolvedEmailSettings(initialSettings));
+  }, [initialSettings, hasUnsavedChanges]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -52,7 +59,8 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
         body: JSON.stringify({ emailSettings }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        if (data.settings) setCurrentSettings(data.settings);
         setEmailSettings(getResolvedEmailSettings(data.settings));
         setHasUnsavedChanges(false);
         showToast("Cartes mail enregistrées ! Les prochains e-mails utiliseront ce design.");
@@ -123,7 +131,7 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
 
       <EmailEditorTab
         emailSettings={emailSettings}
-        salonSettings={initialSettings}
+        salonSettings={currentSettings}
         onChangeEmailSettings={handleChangeEmails}
         onResetEmails={handleResetAll}
         onToast={showToast}

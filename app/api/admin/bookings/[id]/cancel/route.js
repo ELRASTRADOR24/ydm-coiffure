@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import { getBookingById, updateBooking } from "@/lib/store";
 
@@ -25,6 +26,12 @@ export async function POST(request, { params }) {
       status: "CANCELLED",
       cancellationReason: reason,
     });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/calendar");
+    revalidatePath("/reserver");
+    revalidatePath(`/reserver/statut/${updated?.bookingReference || booking.bookingReference}`);
 
     return NextResponse.json({
       success: true,

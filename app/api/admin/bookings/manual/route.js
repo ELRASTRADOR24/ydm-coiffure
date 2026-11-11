@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import {
   getServiceById,
   createBooking,
   getBookings,
-  getAvailabilities,
   getUnavailabilities,
-  getSettings,
 } from "@/lib/store";
-import {
-  timeToMinutes,
-  minutesToTime,
-  isSpecificSlotAvailable,
-} from "@/lib/availabilityEngine";
+import { timeToMinutes, minutesToTime } from "@/lib/availabilityEngine";
+import { findManualBookingConflict } from "@/lib/adminHelpers";
+
+function revalidateBookingRoutes() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/calendar");
+  revalidatePath("/admin/customers");
+  revalidatePath("/reserver");
+}
 
 export async function POST(request) {
   const session = await getAdminSession();
@@ -36,7 +40,13 @@ export async function POST(request) {
       status = "CONFIRMED",
     } = body;
 
-    if (!serviceId || !date || !startTime || !customerFirstName || !customerPhone) {
+    if (
+      !serviceId ||
+      !date ||
+      !startTime ||
+      !String(customerFirstName || "").trim() ||
+      !String(customerPhone || "").trim()
+    ) {
       return NextResponse.json(
         { success: false, error: "Veuillez renseigner tous les champs requis." },
         { status: 400 }
@@ -51,57 +61,54 @@ export async function POST(request) {
       );
     }
 
-    const duration = customDuration || service.duration;
-    const price = customPrice !== undefined ? customPrice : service.price;
-    const depositAmount = service.depositAmount || 0;
+    const parsedDuration = Number(customDuration || service.duration);
+    const duration =
+      Number.isFinite(parsedDuration) && parsedDuration > 0
+        ? Math.round(parsedDuration)
+        : 180;
+    const rawPrice = customPrice !== undefined ? Number(customPrice) : Number(service.price);
+    const price = Number.isFinite(rawPrice) && rawPrice >= 0 ? rawPrice : service.price;
+    const rawDeposit = Number(service.depositAmount);
+    const depositAmount =
+      Number.isFinite(rawDeposit) && rawDeposit >= 0 ? rawDeposit : 10;
     const remainingBalance = Math.max(0, price - depositAmount);
+
+    const [unavailabilities, existingBookings] = await Promise.all([
+      getUnavailabilities(),
+      getBookings({ date }),
+    ]);
+
+    const conflictCheck = findManualBookingConflict({
+      date,
+      startTime,
+      duration,
+      existingBookings,
+      unavailabilities,
+    });
+
+    if (conflictCheck.conflict) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            conflictCheck.reason ||
+            "Attention : ce créneau chevauche un autre rendez-vous ou une indisponibilité.",
+        },
+        { status: conflictCheck.type === "invalid" ? 400 : 409 }
+      );
+    }
 
     const startMin = timeToMinutes(startTime);
     const endMin = startMin + duration;
     const endTime = minutesToTime(endMin);
 
-    // Contrôle facultatif de conflit
-    const [availabilities, unavailabilities, existingBookings, settings] =
-      await Promise.all([
-        getAvailabilities(),
-        getUnavailabilities(),
-        getBookings({ date }),
-        getSettings(),
-      ]);
-
-    const targetDate = new Date(`${date}T12:00:00Z`);
-    const dayOfWeek = targetDate.getUTCDay();
-    const weeklyAvailability = availabilities.find((a) => a.dayOfWeek === dayOfWeek);
-
-    const isAvailable = isSpecificSlotAvailable({
-      dateStr: date,
-      startTime,
-      totalDuration: duration,
-      weeklyAvailability,
-      existingBookings,
-      unavailabilities,
-      settings,
-      now: new Date(),
-    });
-
-    if (!isAvailable) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Attention : ce créneau chevauche un autre rendez-vous ou une pause. Choisissez un autre horaire.",
-        },
-        { status: 409 }
-      );
-    }
-
     const newBooking = await createBooking({
       customer: {
-        firstName: customerFirstName,
-        lastName: customerLastName || "",
-        email: customerEmail || "client.manuel@ydm-coiffure.fr",
-        phone: customerPhone,
-        notes: notes || "Réservation manuelle ajoutée par le salon.",
+        firstName: String(customerFirstName).trim(),
+        lastName: String(customerLastName || "").trim(),
+        email: String(customerEmail || "").trim().toLowerCase(),
+        phone: String(customerPhone).trim(),
+        notes: String(notes || "").trim() || "Réservation manuelle ajoutée par le salon.",
       },
       service: {
         id: service.id || service._id.toString(),
@@ -121,6 +128,8 @@ export async function POST(request) {
       status,
       paidDepositAt: status === "CONFIRMED" ? new Date().toISOString() : null,
     });
+
+    revalidateBookingRoutes();
 
     return NextResponse.json({
       success: true,

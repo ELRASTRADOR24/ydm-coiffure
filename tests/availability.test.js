@@ -6,6 +6,7 @@ import {
   doIntervalsOverlap,
   calculateAvailableSlots,
   isSpecificSlotAvailable,
+  parisWallTimeToUtcMs,
 } from "../lib/availabilityEngine.js";
 
 test("timeToMinutes converts HH:mm to minutes correctly", () => {
@@ -133,4 +134,63 @@ test("isSpecificSlotAvailable correctly identifies slot availability", () => {
   });
 
   assert.equal(isFree, true);
+});
+
+test("calculateAvailableSlots keeps depositDeclared PENDING_PAYMENT blocked even after holdExpiresAt", () => {
+  const weeklyAvailability = {
+    dayOfWeek: 0, // Dimanche ouvert
+    isOpen: true,
+    startTime: "09:00",
+    endTime: "20:00",
+    breaks: [],
+    bufferTimeMinutes: 15,
+  };
+
+  const existingBookings = [
+    {
+      id: "bk_declared",
+      startTime: "10:00",
+      endTime: "13:00",
+      status: "PENDING_PAYMENT",
+      depositDeclared: true,
+      holdExpiresAt: "2026-12-05T10:00:00.000Z", // expired
+    },
+    {
+      id: "bk_unpaid_expired",
+      startTime: "15:00",
+      endTime: "17:00",
+      status: "PENDING_PAYMENT",
+      depositDeclared: false,
+      holdExpiresAt: "2026-12-05T10:00:00.000Z", // expired and not declared
+    },
+  ];
+
+  const slots = calculateAvailableSlots({
+    dateStr: "2026-12-06", // Sunday
+    totalDuration: 120,
+    weeklyAvailability,
+    existingBookings,
+    unavailabilities: [],
+    settings: { minNoticeHours: 24, maxDaysInAdvance: 60 },
+    now: new Date("2026-12-05T14:00:00.000Z"),
+  });
+
+  // 10:00 must stay blocked because client clicked "J'ai payé"
+  assert.ok(!slots.includes("10:00"));
+  assert.ok(!slots.includes("11:00"));
+  // 15:00 reopened because hold expired without declaration
+  assert.ok(slots.includes("15:00"));
+});
+
+test("parisWallTimeToUtcMs handles CET (+1) and CEST (+2) transitions accurately", () => {
+  // Winter CET (UTC+1): 2026-12-01 10:00 Paris == 09:00 UTC
+  assert.equal(
+    new Date(parisWallTimeToUtcMs("2026-12-01", 10 * 60)).toISOString(),
+    "2026-12-01T09:00:00.000Z"
+  );
+  // Summer CEST (UTC+2): 2026-07-15 10:00 Paris == 08:00 UTC
+  assert.equal(
+    new Date(parisWallTimeToUtcMs("2026-07-15", 10 * 60)).toISOString(),
+    "2026-07-15T08:00:00.000Z"
+  );
 });

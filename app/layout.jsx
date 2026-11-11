@@ -99,7 +99,7 @@ const jsonLdData = {
       telephone: "+33600000000",
       priceRange: "€€",
       currenciesAccepted: "EUR",
-      paymentAccepted: "Wero, PayPal, Espèces",
+      paymentAccepted: "Wero, Revolut, PayPal, Espèces",
       address: {
         "@type": "PostalAddress",
         addressLocality: "La Roche-sur-Yon",

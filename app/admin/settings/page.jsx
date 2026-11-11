@@ -1,6 +1,8 @@
 import { getSettings } from "@/lib/store";
 import AdminSettingsView from "@/components/AdminSettingsView";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Paramètres du Salon | Administration YDM Coiffure",
 };

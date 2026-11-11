@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { getBookings } from "@/lib/store";
+import { getParisDateString } from "@/lib/adminHelpers";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -10,7 +11,7 @@ export async function GET() {
 
   try {
     const allBookings = await getBookings();
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getParisDateString();
 
     const todayBookings = allBookings.filter(
       (b) => b.date === todayStr && b.status === "CONFIRMED"

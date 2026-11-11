@@ -107,3 +107,26 @@ test("getResolvedSiteContent merges partial page edits while preserving sibling 
   assert.ok(resolved.privacyPage.sections.length >= 3);
   assert.ok(resolved.rulesPage.sections.length >= 7);
 });
+
+test("buildPublicSettings exposes normalized paymentAccounts and privacyPage describes direct Wero/Revolut/PayPal settlements without Stripe", () => {
+  const pub = buildPublicSettings({
+    homeAddress: { street: "Secret" },
+    paymentAccounts: {
+      revolutEnabled: true,
+      revolutTag: "maydie_rev",
+      paypalEnabled: true,
+      paypalHandle: "maydie_pp",
+      weroEnabled: true,
+      weroPhone: "06 11 22 33 44",
+    },
+  });
+
+  assert.equal(pub.paymentAccounts.revolutUrl, "https://revolut.me/maydie_rev");
+  assert.equal(pub.paymentAccounts.paypalBaseUrl, "https://paypal.me/maydie_pp");
+  assert.equal(pub.paymentAccounts.weroDigits, "0611223344");
+  const privacySerialized = JSON.stringify(DEFAULT_SITE_CONTENT.privacyPage).toLowerCase();
+  assert.equal(privacySerialized.includes("stripe"), false);
+  assert.equal(privacySerialized.includes("wero"), true);
+  assert.equal(privacySerialized.includes("revolut"), true);
+  assert.equal(privacySerialized.includes("paypal"), true);
+});

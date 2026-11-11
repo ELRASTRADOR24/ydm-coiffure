@@ -89,21 +89,21 @@ test("End-to-End Booking Lifecycle Workflow", async () => {
   });
   assert.equal(slotStillFree, false, "Slot must be blocked once requested");
 
-  // 4. Braider approves booking -> PENDING_PAYMENT
+  // 4. Braider approves booking -> PENDING_PAYMENT (direct tracking link)
   const bookingId = booking.id || booking._id;
   const holdHours = settings.paymentHoldHours || 5;
   const approved = await updateBooking(bookingId, {
     status: "PENDING_PAYMENT",
     holdExpiresAt: new Date(Date.now() + holdHours * 3600 * 1000).toISOString(),
-    stripePaymentUrl: "https://checkout.stripe.com/test",
+    stripePaymentUrl: `http://localhost:3000/reserver/statut/${booking.bookingReference}`,
   });
   assert.equal(approved.status, "PENDING_PAYMENT");
 
-  // 5. Payment completed via Stripe Webhook -> CONFIRMED
+  // 5. Direct deposit confirmed by braider (Wero / Revolut / PayPal) -> CONFIRMED
   const confirmed = await updateBooking(bookingId, {
     status: "CONFIRMED",
     paidDepositAt: new Date().toISOString(),
-    stripePaymentIntentId: "pi_test_12345",
+    stripePaymentIntentId: "manual_cash_or_transfer",
   });
   assert.equal(confirmed.status, "CONFIRMED");
   assert.ok(confirmed.paidDepositAt);

@@ -95,6 +95,36 @@ export default function AdminSiteEditorView({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  const [currentSettings, setCurrentSettings] = useState(initialSettings || {});
+
+  const resolveGalleryItems = (settingsObj) => {
+    const galleryTouched = Boolean(
+      settingsObj?.siteContent?.flags?.galleryTouched
+    );
+    if (
+      Array.isArray(settingsObj?.galleryItems) &&
+      (settingsObj.galleryItems.length > 0 || galleryTouched)
+    ) {
+      return settingsObj.galleryItems;
+    }
+    return cloneValue(DEFAULT_SALON_SETTINGS.galleryItems);
+  };
+
+  const resolvePolicies = (settingsObj) => ({
+    cancellationPolicyText:
+      settingsObj?.cancellationPolicyText ??
+      DEFAULT_SALON_SETTINGS.cancellationPolicyText ??
+      "",
+    depositPolicyText:
+      settingsObj?.depositPolicyText ??
+      DEFAULT_SALON_SETTINGS.depositPolicyText ??
+      "",
+    preparationGuidelinesText:
+      settingsObj?.preparationGuidelinesText ??
+      DEFAULT_SALON_SETTINGS.preparationGuidelinesText ??
+      "",
+  });
+
   // États structurés du CMS
   const [maintenance, setMaintenance] = useState(() =>
     getResolvedMaintenance(initialSettings)
@@ -111,33 +141,24 @@ export default function AdminSiteEditorView({
   const [faqList, setFaqList] = useState(() =>
     getResolvedFaqItems(initialSettings)
   );
-  const [galleryList, setGalleryList] = useState(() => {
-    const galleryTouched = Boolean(
-      initialSettings?.siteContent?.flags?.galleryTouched
-    );
-    if (
-      Array.isArray(initialSettings?.galleryItems) &&
-      (initialSettings.galleryItems.length > 0 || galleryTouched)
-    ) {
-      return initialSettings.galleryItems;
-    }
-    return cloneValue(DEFAULT_SALON_SETTINGS.galleryItems);
-  });
+  const [galleryList, setGalleryList] = useState(() =>
+    resolveGalleryItems(initialSettings)
+  );
+  const [policies, setPolicies] = useState(() =>
+    resolvePolicies(initialSettings)
+  );
 
-  const [policies, setPolicies] = useState({
-    cancellationPolicyText:
-      initialSettings?.cancellationPolicyText ??
-      DEFAULT_SALON_SETTINGS.cancellationPolicyText ??
-      "",
-    depositPolicyText:
-      initialSettings?.depositPolicyText ??
-      DEFAULT_SALON_SETTINGS.depositPolicyText ??
-      "",
-    preparationGuidelinesText:
-      initialSettings?.preparationGuidelinesText ??
-      DEFAULT_SALON_SETTINGS.preparationGuidelinesText ??
-      "",
-  });
+  useEffect(() => {
+    if (hasUnsavedChanges || !initialSettings) return;
+    setCurrentSettings(initialSettings);
+    setMaintenance(getResolvedMaintenance(initialSettings));
+    setPageVis(getResolvedPageVisibility(initialSettings));
+    setSiteContent(getResolvedSiteContent(initialSettings));
+    setEmailSettings(getResolvedEmailSettings(initialSettings));
+    setFaqList(getResolvedFaqItems(initialSettings));
+    setGalleryList(resolveGalleryItems(initialSettings));
+    setPolicies(resolvePolicies(initialSettings));
+  }, [initialSettings, hasUnsavedChanges]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -165,7 +186,8 @@ export default function AdminSiteEditorView({
         body: JSON.stringify({ maintenance: nextMaintenance }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        if (data.settings) setCurrentSettings(data.settings);
         setMaintenance(getResolvedMaintenance(data.settings));
         showToast(
           nextEnabled
@@ -242,11 +264,14 @@ export default function AdminSiteEditorView({
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        if (data.settings) setCurrentSettings(data.settings);
         setMaintenance(getResolvedMaintenance(data.settings));
         setPageVis(getResolvedPageVisibility(data.settings));
         setSiteContent(getResolvedSiteContent(data.settings));
         setFaqList(getResolvedFaqItems(data.settings));
+        setGalleryList(resolveGalleryItems(data.settings));
+        setPolicies(resolvePolicies(data.settings));
         setEmailSettings(getResolvedEmailSettings(data.settings));
         setHasUnsavedChanges(false);
         showToast("Modifications enregistrées et publiées en direct !");
@@ -674,7 +699,7 @@ export default function AdminSiteEditorView({
       {activeTab === "emails" && (
         <EmailEditorTab
           emailSettings={emailSettings}
-          salonSettings={initialSettings}
+          salonSettings={currentSettings}
           onChangeEmailSettings={(nextEmails) => {
             setEmailSettings(nextEmails);
             markChanged();

@@ -1,5 +1,10 @@
 import { Suspense } from "react";
-import { getServices, getSettings } from "@/lib/store";
+import {
+  getServices,
+  getSettings,
+  getAvailabilities,
+  getUnavailabilities,
+} from "@/lib/store";
 import { buildPublicSettings } from "@/lib/siteContent";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 import BookingWizard from "@/components/BookingWizard";
@@ -15,10 +20,25 @@ export const metadata = {
 };
 
 export default async function ReserverPage() {
-  const [services, rawSettings] = await Promise.all([
-    getServices(true),
-    getSettings(),
-  ]);
+  const [services, rawSettings, availabilities, unavailabilities] =
+    await Promise.all([
+      getServices(true),
+      getSettings(),
+      getAvailabilities(),
+      getUnavailabilities(),
+    ]);
+
+  const initialBookingRules = {
+    blockedDates: unavailabilities
+      .filter((u) => u.isAllDay)
+      .map((u) => u.date),
+    closedDayOfWeeks: availabilities
+      .filter((w) => !w.isOpen)
+      .map((w) => w.dayOfWeek),
+    maxDaysInAdvance: rawSettings?.maxDaysInAdvance ?? 60,
+    minNoticeHours: rawSettings?.minNoticeHours ?? 24,
+    paymentHoldHours: rawSettings?.paymentHoldHours ?? 2,
+  };
 
   const publicSettings = buildPublicSettings(
     rawSettings,
@@ -61,12 +81,15 @@ export default async function ReserverPage() {
             <div className="max-w-md mx-auto text-center py-20">
               <Sparkles className="w-8 h-8 text-champagne mx-auto animate-spin mb-4" />
               <div className="font-serif text-lg text-brun">
-                Chargement de l'espace de réservation...
+                Chargement de l&apos;espace de réservation...
               </div>
             </div>
           }
         >
-          <BookingWizard initialServices={services} />
+          <BookingWizard
+            initialServices={services}
+            initialBookingRules={initialBookingRules}
+          />
         </Suspense>
       </div>
     </div>

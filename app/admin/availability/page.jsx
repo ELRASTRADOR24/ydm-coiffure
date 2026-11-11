@@ -1,6 +1,8 @@
 import { getAvailabilities, getUnavailabilities } from "@/lib/store";
 import AdminAvailabilityView from "@/components/AdminAvailabilityView";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Horaires & Disponibilités | Administration YDM Coiffure",
 };

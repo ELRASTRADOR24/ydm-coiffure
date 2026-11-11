@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import {
   getBookingById,
@@ -40,7 +41,7 @@ export async function POST(request, { params }) {
     const holdHours = settings?.paymentHoldHours || 2; // Délai officiel strict de 2 heures
     const holdExpiresAt = new Date(Date.now() + holdHours * 60 * 60 * 1000);
 
-    // Création de la session Stripe Checkout
+    // Génération du lien direct de suivi & règlement d'acompte (Wero, Revolut, PayPal)
     const checkoutSession = await createDepositCheckoutSession({ booking });
 
     // Mise à jour de la réservation
@@ -57,16 +58,24 @@ export async function POST(request, { params }) {
         sendBookingApprovedPaymentEmail(
           updated || booking,
           checkoutSession.url,
-          holdHours
+          holdHours,
+          settings
         ),
         sendBookingApprovedPaymentSms(
           updated || booking,
-          checkoutSession.url
+          checkoutSession.url,
+          holdHours
         ),
       ]);
     } catch (e) {
       console.warn("Erreur envoi notification validation (email/SMS):", e.message);
     }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    revalidatePath("/admin/calendar");
+    revalidatePath("/reserver");
+    revalidatePath(`/reserver/statut/${updated?.bookingReference || booking.bookingReference}`);
 
     return NextResponse.json({
       success: true,

@@ -9,5 +9,8 @@ export async function GET() {
   }
 
   const customers = await getCustomers();
-  return NextResponse.json({ success: true, customers });
+  return NextResponse.json(
+    { success: true, customers },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
