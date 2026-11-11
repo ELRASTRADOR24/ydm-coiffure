@@ -17,7 +17,12 @@ import {
   sendNewBookingAdminSms,
   sendDepositDeclaredAdminSms,
   sendBookingApprovedPaymentSms,
+  sendDepositNotReceivedCustomerSms,
 } from "../lib/sms.js";
+import {
+  sendDepositDeclaredAdminEmail,
+  sendDepositNotReceivedCustomerEmail,
+} from "../lib/email.js";
 
 function withEnv(vars, fn) {
   const previous = {};
@@ -235,4 +240,104 @@ test("SMS helpers emit live production URLs even when NEXT_PUBLIC_APP_URL is loc
       assert.equal(line.includes("localhost"), false);
     }
   });
+});
+
+test("sendDepositDeclaredAdminEmail notifies admin cleanly without localhost URLs", async () => {
+  await withEnv(
+    {
+      RESEND_API_KEY: undefined,
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    },
+    async () => {
+      const captured = [];
+      const origLog = console.log;
+      console.log = (...args) => captured.push(args.join(" "));
+      let result;
+      try {
+        result = await sendDepositDeclaredAdminEmail(
+          {
+            bookingReference: "YDM-2026-9012",
+            depositAmount: 10,
+            date: "2026-12-20",
+            startTime: "10:00",
+            service: { name: "Fulani Braids" },
+            customer: {
+              firstName: "Amina",
+              lastName: "D.",
+              phone: "06 11 22 33 44",
+              instagram: "@amina_d",
+            },
+          },
+          "Revolut",
+          {}
+        );
+      } finally {
+        console.log = origLog;
+      }
+
+      assert.equal(result.success, true);
+      assert.equal(result.simulated, true);
+      assert.ok(
+        captured.some((line) => line.includes("Acompte déclaré (10 € via Revolut) • YDM-2026-9012"))
+      );
+    }
+  );
+});
+
+test("sendDepositNotReceivedCustomerEmail and SMS notify client cleanly with live status link", async () => {
+  await withEnv(
+    {
+      RESEND_API_KEY: undefined,
+      TWILIO_ACCOUNT_SID: undefined,
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    },
+    async () => {
+      const captured = [];
+      const origLog = console.log;
+      console.log = (...args) => captured.push(args.join(" "));
+      let emailRes;
+      let smsRes;
+      try {
+        const booking = {
+          bookingReference: "YDM-2026-9123",
+          depositAmount: 10,
+          stripePaymentUrl: "http://localhost:3000/reserver/statut/YDM-2026-9123",
+          customer: {
+            firstName: "Kenza",
+            email: "kenza@example.com",
+            phone: "06 11 22 33 44",
+          },
+        };
+        emailRes = await sendDepositNotReceivedCustomerEmail(
+          booking,
+          "Aucun virement reçu sur Revolut.",
+          { phone: "07 67 66 38 69" }
+        );
+        smsRes = await sendDepositNotReceivedCustomerSms(
+          booking,
+          "Aucun virement reçu."
+        );
+      } finally {
+        console.log = origLog;
+      }
+
+      assert.equal(emailRes.success, true);
+      assert.equal(smsRes.success, true);
+      assert.ok(
+        captured.some((line) =>
+          line.includes("Acompte de 10 € non encore reçu • YDM-2026-9123")
+        )
+      );
+      assert.ok(
+        captured.some((line) =>
+          line.includes(
+            "https://www.ydmcoiffure.com/reserver/statut/YDM-2026-9123"
+          )
+        )
+      );
+      for (const line of captured) {
+        assert.equal(line.includes("localhost"), false);
+      }
+    }
+  );
 });

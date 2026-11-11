@@ -61,6 +61,8 @@ const BookingSchema = new mongoose.Schema(
     depositDeclared: { type: Boolean, default: false },
     depositDeclaredMethod: { type: String, default: "" },
     depositDeclaredAt: { type: Date },
+    depositRejectedAt: { type: Date },
+    depositRejectionReason: { type: String, default: "" },
     rejectionReason: { type: String },
     cancellationReason: { type: String },
   },

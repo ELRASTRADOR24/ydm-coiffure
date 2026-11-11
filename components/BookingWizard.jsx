@@ -25,6 +25,12 @@ import {
   formatOptionChoiceDisplayLabel,
   isLengthOption,
 } from "@/lib/servicePricing";
+import {
+  saveTrackedBooking,
+  getTrackedBookings,
+  isValidBookingReference,
+  normalizeBookingReference,
+} from "@/lib/bookingPersistence";
 
 // Couleurs de mèches principales et options de personnalisation
 const PRIMARY_HAIR_COLORS = [
@@ -163,10 +169,32 @@ export default function BookingWizard({
       .catch(() => {});
   }, []);
 
-  // Submission state
+  // Submission & persisted tracking state
   const [submitting, setSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
   const [submitError, setSubmitError] = useState("");
+  const [savedShortcut, setSavedShortcut] = useState(null);
+  const preselectedRef = searchParams.get("ref");
+
+  useEffect(() => {
+    const cleanRef = normalizeBookingReference(preselectedRef || "");
+    if (cleanRef && isValidBookingReference(cleanRef)) {
+      fetch(`/api/bookings/${encodeURIComponent(cleanRef)}`, { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.booking) {
+            setSubmissionResult(data.booking);
+            setCurrentStep(7);
+            saveTrackedBooking(data.booking);
+          }
+        })
+        .catch(() => {});
+    }
+    const list = getTrackedBookings();
+    if (list.length > 0) {
+      setSavedShortcut(list[0]);
+    }
+  }, [preselectedRef]);
 
   // Pre-select service from URL query if present
   useEffect(() => {
@@ -359,6 +387,21 @@ export default function BookingWizard({
       if (data.success) {
         setSubmissionResult(data.booking);
         setCurrentStep(7);
+        saveTrackedBooking(data.booking);
+        setSavedShortcut({
+          bookingReference: data.booking.bookingReference,
+          status: data.booking.status,
+          date: data.booking.date,
+          startTime: data.booking.startTime,
+          serviceName: data.booking.service?.name || "",
+        });
+        if (typeof window !== "undefined" && data.booking?.bookingReference) {
+          window.history.replaceState(
+            null,
+            "",
+            `/reserver?ref=${encodeURIComponent(data.booking.bookingReference)}`
+          );
+        }
         window.scrollTo({ top: 100, behavior: "smooth" });
       } else {
         setSubmitError(data.error || "Nous n'avons pas pu valider votre demande. Merci de vérifier vos informations.");
@@ -451,6 +494,28 @@ export default function BookingWizard({
 
   return (
     <div className="max-w-3xl mx-auto">
+      {/* Persisted tracking banner if user already has a saved reference on this browser */}
+      {currentStep < 7 && savedShortcut?.bookingReference && (
+        <div className="mb-6 max-w-xl mx-auto px-4">
+          <div className="p-3.5 rounded-2xl bg-white border border-champagne/60 shadow-2xs flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-brun">
+              <CheckCircle2 className="w-4 h-4 text-champagne-dark shrink-0" />
+              <span>
+                Dossier mémorisé :{" "}
+                <strong className="font-mono">{savedShortcut.bookingReference}</strong>
+              </span>
+            </div>
+            <Link
+              href={`/reserver/statut/${savedShortcut.bookingReference}`}
+              className="inline-flex items-center gap-1 font-semibold text-champagne-dark hover:text-brun underline"
+            >
+              <span>Voir mon suivi</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Steps Header Minimaliste & Épuré */}
       {currentStep < 7 && (
         <div className="mb-8 max-w-md mx-auto px-4">
@@ -1470,10 +1535,10 @@ export default function BookingWizard({
               Demande transmise
             </span>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
-              Merci {customer.firstName}
+              Merci {customer.firstName || submissionResult.customer?.firstName || submissionResult.customerName || ""}
             </h2>
             <p className="text-stone-500 text-xs sm:text-sm font-light max-w-md mx-auto">
-              Votre demande pour {selectedService.name} a été transmise à la coiffeuse pour validation manuelle.
+              Votre demande pour {selectedService?.name || submissionResult.service?.name || "votre prestation"} a été transmise à la coiffeuse pour validation manuelle.
             </p>
           </div>
 
@@ -1514,14 +1579,25 @@ export default function BookingWizard({
               href={`/reserver/statut/${submissionResult.bookingReference}`}
               className="w-full sm:w-auto inline-flex items-center justify-center bg-champagne hover:bg-champagne-dark text-brun-dark px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors"
             >
-              Suivre l'état de ma demande
+              Suivre l&apos;état de ma demande
             </Link>
-            <Link
-              href="/"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-full text-xs font-medium text-stone-600 hover:text-brun border border-beige"
+            <button
+              type="button"
+              onClick={() => {
+                setSubmissionResult(null);
+                setSelectedService(null);
+                setSelectedOptions({});
+                setSelectedDate("");
+                setSelectedTime("");
+                setCurrentStep(1);
+                if (typeof window !== "undefined") {
+                  window.history.replaceState(null, "", "/reserver");
+                }
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-full text-xs font-medium text-stone-600 hover:text-brun border border-beige cursor-pointer"
             >
-              Retour à l'accueil
-            </Link>
+              Nouveau rendez-vous
+            </button>
           </div>
         </div>
       )}

@@ -43,6 +43,8 @@ export default function AdminDashboardView({
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectModalBooking, setRejectModalBooking] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [depositNotReceivedBooking, setDepositNotReceivedBooking] = useState(null);
+  const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
   const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
@@ -54,15 +56,16 @@ export default function AdminDashboardView({
   }, [initialMaintenance]);
 
   useEffect(() => {
-    if (!rejectModalBooking) return;
+    if (!rejectModalBooking && !depositNotReceivedBooking) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         setRejectModalBooking(null);
+        setDepositNotReceivedBooking(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [rejectModalBooking]);
+  }, [rejectModalBooking, depositNotReceivedBooking]);
 
   const pendingApprovals = bookings.filter(
     (b) => b.status === "PENDING_APPROVAL"
@@ -172,6 +175,42 @@ export default function AdminDashboardView({
       }
     } catch (e) {
       showToast("Problème de connexion lors de la validation de l'acompte.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Signal Deposit Not Received Yet
+  const handleConfirmDepositNotReceived = async () => {
+    if (!depositNotReceivedBooking) return;
+    const bookingId = depositNotReceivedBooking.id || depositNotReceivedBooking._id;
+    setActionLoading(bookingId);
+
+    try {
+      const res = await fetch(
+        `/api/admin/bookings/${bookingId}/deposit-not-received`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: depositNotReceivedNote }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            (b.id || b._id) === bookingId ? data.booking : b
+          )
+        );
+        router.refresh();
+        showToast("Relance envoyée à la cliente par e-mail et SMS !");
+        setDepositNotReceivedBooking(null);
+        setDepositNotReceivedNote("");
+      } else {
+        showToast(data.error || "Erreur lors de l'envoi de la relance.");
+      }
+    } catch (e) {
+      showToast("Erreur réseau.");
     } finally {
       setActionLoading(null);
     }
@@ -664,19 +703,34 @@ export default function AdminDashboardView({
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => handleMarkPaid(bId)}
-                      className="min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>
-                        {isLoading
-                          ? "Confirmation..."
-                          : `Valider acompte reçu (${formatPrice(b.depositAmount ?? 10)})`}
-                      </span>
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {b.depositDeclared && (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setDepositNotReceivedBooking(b);
+                            setDepositNotReceivedNote("");
+                          }}
+                          className="min-h-[44px] inline-flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-900 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          Acompte non reçu
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleMarkPaid(bId)}
+                        className="min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        <span>
+                          {isLoading
+                            ? "Confirmation..."
+                            : `Valider acompte reçu (${formatPrice(b.depositAmount ?? 10)})`}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -815,6 +869,78 @@ export default function AdminDashboardView({
                 {actionLoading === (rejectModalBooking.id || rejectModalBooking._id)
                   ? "Enregistrement..."
                   : "Confirmer le refus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DEPOSIT NOT RECEIVED MODAL */}
+      {depositNotReceivedBooking && (
+        <div
+          onClick={() => setDepositNotReceivedBooking(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full max-h-[88dvh] flex flex-col overflow-hidden border border-stone-300 shadow-2xl"
+          >
+            <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
+              <h3 className="font-serif text-xl font-bold text-brun">
+                Acompte non reçu ({depositNotReceivedBooking.customer.firstName})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDepositNotReceivedBooking(null)}
+                aria-label="Fermer"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 inline-flex items-center justify-center text-brun cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-4">
+              <p className="text-sm text-stone-600 font-light">
+                Un e-mail et un SMS seront envoyés à la cliente pour l&apos;informer que le virement n&apos;apparaît pas encore sur votre compte afin qu&apos;elle vérifie et re-valide.
+              </p>
+
+              <div>
+                <label className="text-sm font-semibold text-brun block mb-1.5">
+                  Message complémentaire (optionnel) :
+                </label>
+                <textarea
+                  rows={3}
+                  value={depositNotReceivedNote}
+                  onChange={(e) => setDepositNotReceivedNote(e.target.value)}
+                  placeholder="Ex : Aucun virement reçu sur Wero/Revolut/PayPal. Merci de vérifier le 07 67 66 38 69."
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-stone-200 bg-stone-50 flex flex-wrap items-center justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setDepositNotReceivedBooking(null)}
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-200 cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDepositNotReceived}
+                disabled={
+                  actionLoading ===
+                  (depositNotReceivedBooking.id || depositNotReceivedBooking._id)
+                }
+                className="min-h-[44px] bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 cursor-pointer"
+              >
+                {actionLoading ===
+                (depositNotReceivedBooking.id || depositNotReceivedBooking._id)
+                  ? "Envoi..."
+                  : "Renvoyer à la cliente"}
               </button>
             </div>
           </div>

@@ -29,21 +29,25 @@ export default function AdminBookingsView({ initialBookings = [] }) {
   // Reject modal
   const [rejectBooking, setRejectBooking] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  // Deposit not received modal
+  const [depositNotReceivedBooking, setDepositNotReceivedBooking] = useState(null);
+  const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
 
   useEffect(() => {
     setBookings(initialBookings);
   }, [initialBookings]);
 
   useEffect(() => {
-    if (!rejectBooking) return;
+    if (!rejectBooking && !depositNotReceivedBooking) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         setRejectBooking(null);
+        setDepositNotReceivedBooking(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [rejectBooking]);
+  }, [rejectBooking, depositNotReceivedBooking]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -146,6 +150,36 @@ export default function AdminBookingsView({ initialBookings = [] }) {
       }
     } catch (_) {
       showToast("Erreur réseau lors du refus de la demande.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleConfirmDepositNotReceived = async () => {
+    if (!depositNotReceivedBooking) return;
+    const id = depositNotReceivedBooking.id || depositNotReceivedBooking._id;
+    setActionLoading(id);
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/deposit-not-received`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: depositNotReceivedNote }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((b) => ((b.id || b._id) === id ? data.booking : b))
+        );
+        router.refresh();
+        showToast("Relance envoyée ! La cliente est prévenue par e-mail et SMS.");
+        setDepositNotReceivedBooking(null);
+        setDepositNotReceivedNote("");
+      } else {
+        showToast(data.error || "Impossible d'envoyer la relance.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors de l'envoi de la relance.");
     } finally {
       setActionLoading(null);
     }
@@ -413,6 +447,19 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                           >
                             Valider acompte reçu ({formatPrice(b.depositAmount ?? 10)})
                           </button>
+                          {b.depositDeclared && (
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => {
+                                setDepositNotReceivedBooking(b);
+                                setDepositNotReceivedNote("");
+                              }}
+                              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Acompte non reçu
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={async () => {
@@ -617,6 +664,20 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                               >
                                 Valider acompte reçu ({formatPrice(b.depositAmount ?? 10)})
                               </button>
+                              {b.depositDeclared && (
+                                <button
+                                  type="button"
+                                  disabled={isLoading}
+                                  onClick={() => {
+                                    setDepositNotReceivedBooking(b);
+                                    setDepositNotReceivedNote("");
+                                  }}
+                                  title="Signaler que le virement n'est pas encore arrivé sur le compte et renvoyer à la cliente"
+                                  className="min-h-[44px] bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-2 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
+                                >
+                                  Non reçu
+                                </button>
+                              )}
                             </>
                           )}
 
@@ -706,6 +767,72 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                 {actionLoading === (rejectBooking.id || rejectBooking._id)
                   ? "Enregistrement..."
                   : "Confirmer le refus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit Not Received Modal */}
+      {depositNotReceivedBooking && (
+        <div
+          onClick={() => setDepositNotReceivedBooking(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full max-h-[88dvh] flex flex-col overflow-hidden border border-stone-300 shadow-2xl"
+          >
+            <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
+              <h3 className="font-serif text-xl font-bold text-brun">
+                Acompte non reçu ({depositNotReceivedBooking.bookingReference})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDepositNotReceivedBooking(null)}
+                aria-label="Fermer"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 inline-flex items-center justify-center text-brun cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-4">
+              <p className="text-sm text-stone-600 font-light">
+                La cliente sera prévenue par e-mail et SMS que son virement n&apos;a pas encore été retrouvé sur votre compte, et pourra revérifier puis re-valider son paiement.
+              </p>
+              <textarea
+                rows={3}
+                value={depositNotReceivedNote}
+                onChange={(e) => setDepositNotReceivedNote(e.target.value)}
+                placeholder="Note optionnelle (ex: Vérifiez le numéro 07 67 66 38 69 ou envoyez une capture sur Instagram)..."
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+              />
+            </div>
+
+            <div className="px-6 py-4 border-t border-stone-200 bg-stone-50 flex flex-wrap justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setDepositNotReceivedBooking(null)}
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-200 cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDepositNotReceived}
+                disabled={
+                  actionLoading ===
+                  (depositNotReceivedBooking.id || depositNotReceivedBooking._id)
+                }
+                className="min-h-[44px] bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 cursor-pointer"
+              >
+                {actionLoading ===
+                (depositNotReceivedBooking.id || depositNotReceivedBooking._id)
+                  ? "Envoi..."
+                  : "Renvoyer à la cliente"}
               </button>
             </div>
           </div>

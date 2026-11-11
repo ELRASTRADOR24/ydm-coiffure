@@ -45,6 +45,9 @@ export async function GET(request, { params }) {
         selectedOptions: booking.selectedOptions,
         customerName: `${booking.customer.firstName}${booking.customer.lastName ? ` ${booking.customer.lastName.charAt(0)}.` : ""}`,
         holdExpiresAt: booking.holdExpiresAt,
+        depositDeclared: Boolean(booking.depositDeclared),
+        depositDeclaredMethod: booking.depositDeclaredMethod || "",
+        depositRejectionReason: booking.depositRejectionReason || "",
         stripePaymentUrl: resolvedPaymentUrl,
       },
     });

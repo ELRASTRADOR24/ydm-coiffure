@@ -4,19 +4,37 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, Calendar } from "lucide-react";
+import { Menu, X, Calendar, BookmarkCheck } from "lucide-react";
 import {
   DEFAULT_SITE_CONTENT,
   DEFAULT_PAGE_VISIBILITY,
 } from "@/lib/siteContent";
+import {
+  getLatestTrackedBookingRef,
+  BOOKING_TRACKED_EVENT,
+} from "@/lib/bookingPersistence";
 
 export default function Navbar({ initialSettings = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [liveSettings, setLiveSettings] = useState(initialSettings);
+  const [trackedRef, setTrackedRef] = useState("");
   const pathname = usePathname();
 
   const isAdmin = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    const syncTracked = () => {
+      setTrackedRef(getLatestTrackedBookingRef());
+    };
+    syncTracked();
+    window.addEventListener(BOOKING_TRACKED_EVENT, syncTracked);
+    window.addEventListener("storage", syncTracked);
+    return () => {
+      window.removeEventListener(BOOKING_TRACKED_EVENT, syncTracked);
+      window.removeEventListener("storage", syncTracked);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -132,9 +150,27 @@ export default function Navbar({ initialSettings = null }) {
             })}
           </nav>
 
-          {/* CTA Button */}
-          {showCta ? (
-            <div className="hidden md:flex items-center space-x-3 shrink-0">
+          {/* CTA Button + Suivi RDV */}
+          <div className="hidden md:flex items-center space-x-2.5 shrink-0">
+            <Link
+              href={trackedRef ? `/reserver/statut/${trackedRef}` : "/suivi"}
+              className={`inline-flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase transition-all border ${
+                pathname.startsWith("/suivi") || pathname.startsWith("/reserver/statut")
+                  ? "bg-champagne-light border-champagne text-brun"
+                  : trackedRef
+                  ? "bg-creme hover:bg-champagne-light/70 border-champagne text-brun"
+                  : "bg-transparent hover:bg-beige-light border-beige text-stone-600 hover:text-brun"
+              }`}
+              title={
+                trackedRef
+                  ? `Ouvrir votre dossier ${trackedRef}`
+                  : "Suivre votre réservation"
+              }
+            >
+              <BookmarkCheck className="w-3.5 h-3.5 text-champagne-dark shrink-0" />
+              <span>{trackedRef ? "Mon suivi" : "Suivi"}</span>
+            </Link>
+            {showCta && (
               <Link
                 href="/reserver"
                 className="inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-white px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase shadow-xs hover:shadow transition-all active:scale-[0.98]"
@@ -142,10 +178,8 @@ export default function Navbar({ initialSettings = null }) {
                 <Calendar className="w-3.5 h-3.5 text-champagne" />
                 <span>{ctaText}</span>
               </Link>
-            </div>
-          ) : (
-            <div className="hidden md:block" />
-          )}
+            )}
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -175,8 +209,16 @@ export default function Navbar({ initialSettings = null }) {
               {link.label}
             </Link>
           ))}
-          {showCta && (
-            <div className="pt-2">
+          <div className="pt-2 space-y-2">
+            <Link
+              href={trackedRef ? `/reserver/statut/${trackedRef}` : "/suivi"}
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center justify-center space-x-2 bg-champagne-light/60 hover:bg-champagne-light border border-champagne text-brun py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase transition-colors"
+            >
+              <BookmarkCheck className="w-4 h-4 text-champagne-dark" />
+              <span>{trackedRef ? `Mon suivi (${trackedRef})` : "Suivi de réservation"}</span>
+            </Link>
+            {showCta && (
               <Link
                 href="/reserver"
                 onClick={() => setIsOpen(false)}
@@ -185,8 +227,8 @@ export default function Navbar({ initialSettings = null }) {
                 <Calendar className="w-4 h-4 text-champagne" />
                 <span>{mobileCtaText}</span>
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </header>

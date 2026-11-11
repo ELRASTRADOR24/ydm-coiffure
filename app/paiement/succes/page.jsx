@@ -9,6 +9,7 @@ import {
   Clock,
 } from "lucide-react";
 import { formatPrice, formatDateFrench } from "@/lib/utils";
+import BookingRefPersister from "@/components/BookingRefPersister";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ export default async function PaymentSuccessPage({ searchParams }) {
   if (!isConfirmed) {
     return (
       <div className="pt-32 pb-24 bg-creme min-h-screen">
+        <BookingRefPersister booking={booking} />
         <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-3xl p-8 sm:p-10 border border-amber-200 shadow-sm text-center space-y-5">
             <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
@@ -105,6 +107,7 @@ export default async function PaymentSuccessPage({ searchParams }) {
 
   return (
     <div className="pt-32 pb-24 bg-creme min-h-screen">
+      <BookingRefPersister booking={booking} />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-3xl p-8 sm:p-12 border border-champagne shadow-lg text-center space-y-6">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">

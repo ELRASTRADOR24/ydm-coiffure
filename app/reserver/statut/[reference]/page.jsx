@@ -15,6 +15,7 @@ import {
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { resolvePaymentAccounts } from "@/lib/adminHelpers";
 import DepositPaymentOptions from "@/components/DepositPaymentOptions";
+import BookingRefPersister from "@/components/BookingRefPersister";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +111,7 @@ export default async function BookingStatusPage({ params }) {
 
   return (
     <div className="pt-28 pb-20 bg-creme min-h-screen">
+      <BookingRefPersister booking={booking} />
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige space-y-6">
           {/* Header */}
@@ -162,7 +164,7 @@ export default async function BookingStatusPage({ params }) {
                 Demande validée : versez votre acompte de {formattedDeposit}
               </span>
               <p className="font-light leading-relaxed">
-                Votre créneau est pré-réservé. Pour le bloquer définitivement, versez votre acompte de {formattedDeposit} dans un <strong>délai strict de {holdLong}</strong> en direct via {enabledMethodsSummary}.
+                Votre créneau est pré-réservé. <strong>Il n&apos;y a aucun paiement par carte en ligne sur le site</strong> : réglez l&apos;acompte de {formattedDeposit} en direct via {enabledMethodsSummary} dans un <strong>délai strict de {holdLong}</strong>, puis prévenez YDM Coiffure pour confirmation immédiate.
               </p>
 
               <DepositPaymentOptions
@@ -172,7 +174,12 @@ export default async function BookingStatusPage({ params }) {
                 holdHours={holdHours}
                 initialDeclared={Boolean(booking.depositDeclared)}
                 initialMethod={booking.depositDeclaredMethod || ""}
+                initialRejectionReason={booking.depositRejectionReason || ""}
                 paymentAccounts={paymentAccounts}
+                salonPhone={settings?.phone || paymentAccounts.weroPhone || "07 67 66 38 69"}
+                salonInstagram={settings?.instagram || "@ydm_coiffure"}
+                appointmentDate={formatDateFrench(booking.date)}
+                appointmentTime={booking.startTime}
               />
             </div>
           )}
@@ -316,13 +323,21 @@ export default async function BookingStatusPage({ params }) {
             </div>
           </div>
 
-          <div className="pt-2 flex items-center justify-between text-xs">
-            <Link
-              href="/"
-              className="text-stone-500 hover:text-brun underline"
-            >
-              Retour à l'accueil
-            </Link>
+          <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/"
+                className="text-stone-500 hover:text-brun underline"
+              >
+                Retour à l&apos;accueil
+              </Link>
+              <Link
+                href="/suivi"
+                className="text-stone-500 hover:text-brun underline"
+              >
+                Mes réservations
+              </Link>
+            </div>
             <Link
               href="/reserver"
               className="bg-stone-100 hover:bg-stone-200 text-brun px-4 py-2 rounded-full font-medium transition-colors"

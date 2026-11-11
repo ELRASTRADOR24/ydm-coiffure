@@ -6,6 +6,7 @@ import {
   getSettings,
 } from "@/lib/store";
 import { sendDepositDeclaredAdminSms } from "@/lib/sms";
+import { sendDepositDeclaredAdminEmail } from "@/lib/email";
 
 export async function POST(request, { params }) {
   try {
@@ -74,20 +75,30 @@ export async function POST(request, { params }) {
       depositDeclared: true,
       depositDeclaredMethod: method,
       depositDeclaredAt: booking.depositDeclaredAt || new Date().toISOString(),
+      depositRejectedAt: null,
+      depositRejectionReason: "",
       holdExpiresAt: null,
     });
 
     if (!wasAlreadyDeclared) {
       try {
         const settings = await getSettings();
-        await sendDepositDeclaredAdminSms(
-          updated || booking,
-          method,
-          settings?.phone,
-          { request }
-        );
+        await Promise.allSettled([
+          sendDepositDeclaredAdminSms(
+            updated || booking,
+            method,
+            settings?.phone,
+            { request }
+          ),
+          sendDepositDeclaredAdminEmail(
+            updated || booking,
+            method,
+            settings,
+            { request }
+          ),
+        ]);
       } catch (e) {
-        console.warn("Erreur envoi SMS admin déclaration:", e.message);
+        console.warn("Erreur envoi notification admin déclaration:", e.message);
       }
     }
 

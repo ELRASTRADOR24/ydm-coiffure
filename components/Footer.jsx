@@ -202,6 +202,12 @@ export default function Footer({ initialSettings = null }) {
               <div />
             )}
             <div className="flex flex-wrap items-center justify-center gap-6">
+              <Link
+                href="/suivi"
+                className="hover:text-champagne transition-colors"
+              >
+                Suivre ma réservation
+              </Link>
               {showAPropos && (
                 <Link
                   href="/a-propos"

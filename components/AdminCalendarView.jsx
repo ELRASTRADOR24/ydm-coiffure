@@ -111,6 +111,31 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
     }
   };
 
+  const handleDepositNotReceivedFromCalendar = async (booking) => {
+    const bId = booking.id || booking._id;
+    setModalActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bId}/deposit-not-received`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((item) => ((item.id || item._id) === bId ? data.booking : item))
+        );
+        if (selectedBooking && (selectedBooking.id || selectedBooking._id) === bId) {
+          setSelectedBooking(data.booking);
+        }
+        router.refresh();
+      }
+    } catch (_) {
+    } finally {
+      setModalActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     setBookings(initialBookings);
   }, [initialBookings]);
@@ -475,14 +500,26 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                       </button>
                     )}
                     {b.status === "PENDING_PAYMENT" && (
-                      <button
-                        type="button"
-                        disabled={modalActionLoading}
-                        onClick={() => handleMarkPaidFromCalendar(b)}
-                        className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
-                      >
-                        Valider acompte ({formatPrice(b.depositAmount ?? 10)})
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          disabled={modalActionLoading}
+                          onClick={() => handleMarkPaidFromCalendar(b)}
+                          className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                        >
+                          Valider acompte ({formatPrice(b.depositAmount ?? 10)})
+                        </button>
+                        {b.depositDeclared && (
+                          <button
+                            type="button"
+                            disabled={modalActionLoading}
+                            onClick={() => handleDepositNotReceivedFromCalendar(b)}
+                            className="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                          >
+                            Acompte non reçu
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -619,16 +656,30 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 </button>
               )}
               {selectedBooking.status === "PENDING_PAYMENT" && (
-                <button
-                  type="button"
-                  disabled={modalActionLoading}
-                  onClick={() => handleMarkPaidFromCalendar(selectedBooking)}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {modalActionLoading
-                    ? "Confirmation..."
-                    : `Valider acompte reçu (${formatPrice(selectedBooking.depositAmount ?? 10)})`}
-                </button>
+                <>
+                  {selectedBooking.depositDeclared && (
+                    <button
+                      type="button"
+                      disabled={modalActionLoading}
+                      onClick={() =>
+                        handleDepositNotReceivedFromCalendar(selectedBooking)
+                      }
+                      className="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {modalActionLoading ? "Envoi..." : "Acompte non reçu"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={modalActionLoading}
+                    onClick={() => handleMarkPaidFromCalendar(selectedBooking)}
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {modalActionLoading
+                      ? "Confirmation..."
+                      : `Valider acompte reçu (${formatPrice(selectedBooking.depositAmount ?? 10)})`}
+                  </button>
+                </>
               )}
               <button
                 type="button"

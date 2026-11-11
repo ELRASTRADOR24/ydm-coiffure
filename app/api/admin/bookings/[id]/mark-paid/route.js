@@ -29,6 +29,8 @@ export async function POST(request, { params }) {
       status: "CONFIRMED",
       paidDepositAt: new Date().toISOString(),
       holdExpiresAt: null,
+      depositRejectedAt: null,
+      depositRejectionReason: "",
       stripePaymentIntentId: "manual_cash_or_transfer",
     });
 

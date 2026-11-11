@@ -15,6 +15,9 @@ import {
   ensureUniqueServiceSlug,
   resolveValidatedBookingOptions,
   resolvePaymentAccounts,
+  buildDepositConfirmationMessage,
+  buildSalonSmsHref,
+  buildInstagramProfileUrl,
 } from "../lib/adminHelpers.js";
 
 test("getParisDateString uses Europe/Paris timezone across UTC midnight", () => {
@@ -388,4 +391,47 @@ test("resolvePaymentAccounts normalizes Revolut, PayPal and Wero accounts cleanl
   assert.equal(emptyHandle.revolutEnabled, false);
   assert.equal(emptyHandle.paypalEnabled, false);
   assert.equal(emptyHandle.weroEnabled, false);
+});
+
+test("buildDepositConfirmationMessage, buildSalonSmsHref and buildInstagramProfileUrl build valid quick-alert links", () => {
+  const msg = buildDepositConfirmationMessage({
+    bookingReference: "YDM-2026-4321",
+    customerName: "Inès",
+    depositAmount: 10,
+    method: "Wero / Paylib",
+    appointmentDate: "15 décembre 2026",
+    appointmentTime: "14:00",
+  });
+  assert.ok(msg.includes("Inès"));
+  assert.ok(msg.includes("10 €"));
+  assert.ok(msg.includes("Wero / Paylib"));
+  assert.ok(msg.includes("15 décembre 2026 à 14:00"));
+  assert.ok(msg.includes("YDM-2026-4321"));
+
+  const fallbackMsg = buildDepositConfirmationMessage();
+  assert.ok(fallbackMsg.includes("Bonjour !"));
+  assert.ok(fallbackMsg.includes("10 €"));
+
+  const smsHref = buildSalonSmsHref("07 67 66 38 69", msg);
+  assert.ok(smsHref.startsWith("sms:+33767663869?&body="));
+  assert.ok(decodeURIComponent(smsHref).includes("YDM-2026-4321"));
+  assert.equal(buildSalonSmsHref("0033612345678"), "sms:+33612345678");
+  assert.equal(buildSalonSmsHref(""), "");
+
+  assert.equal(
+    buildInstagramProfileUrl("@ydm_coiffure"),
+    "https://instagram.com/ydm_coiffure"
+  );
+  assert.equal(
+    buildInstagramProfileUrl("instagram.com/ydm_coiffure/"),
+    "https://instagram.com/ydm_coiffure"
+  );
+  assert.equal(
+    buildInstagramProfileUrl("https://instagram.com/custom"),
+    "https://instagram.com/custom"
+  );
+  assert.equal(
+    buildInstagramProfileUrl(""),
+    "https://instagram.com/ydm_coiffure"
+  );
 });
