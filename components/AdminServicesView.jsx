@@ -106,10 +106,20 @@ export default function AdminServicesView({ initialServices = [] }) {
     setServices(initialServices);
   }, [initialServices]);
 
-  // Drag and Drop state
+  // Drag and Drop & iPad 2-Tap Reorder state
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [isCompactMode, setIsCompactMode] = useState(false);
+  const [movingIndex, setMovingIndex] = useState(null);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [modalOpen]);
 
   // Form State (stocke des chaînes libres pour permettre l'effacement complet au clavier)
   const [form, setForm] = useState(() => createServiceFormDraft(null));
@@ -362,7 +372,7 @@ export default function AdminServicesView({ initialServices = [] }) {
     }
   };
 
-  // Drag and drop reordering
+  // Drag and drop & iPad tap reordering
   const handleDropService = async (fromIndex, toIndex) => {
     if (fromIndex === toIndex || fromIndex === null || toIndex === null) return;
     const newServices = [...services];
@@ -371,6 +381,7 @@ export default function AdminServicesView({ initialServices = [] }) {
 
     const updated = newServices.map((s, idx) => ({ ...s, order: idx + 1 }));
     setServices(updated);
+    setMovingIndex(null);
 
     try {
       const responses = await Promise.all(
@@ -396,14 +407,24 @@ export default function AdminServicesView({ initialServices = [] }) {
   const handleMoveService = async (index, direction) => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= services.length) return;
-    handleDropService(index, targetIndex);
+    await handleDropService(index, targetIndex);
+  };
+
+  const handleCompactCardTap = (index) => {
+    if (movingIndex === null) {
+      setMovingIndex(index);
+    } else if (movingIndex === index) {
+      setMovingIndex(null);
+    } else {
+      handleDropService(movingIndex, index);
+    }
   };
 
   return (
     <div className="space-y-6">
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-champagne" />
+        <div className="fixed top-20 lg:top-6 right-4 lg:right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
+          <Sparkles className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -411,20 +432,23 @@ export default function AdminServicesView({ initialServices = [] }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-brun">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
             Gestion des Prestations
           </h1>
-          <p className="text-xs text-stone-500 font-light mt-1">
-            Glissez-déposez les cartes pour changer leur ordre comme sur Instagram, ou modifiez tarifs, photos et catégories.
+          <p className="text-xs sm:text-sm text-stone-500 font-light mt-1">
+            Réorganisez l&apos;ordre par position, flèches ou sélection tactile sur iPad, et modifiez tarifs, photos et catégories.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Bouton de zoom / dézoom pour réorganisation facile */}
           <button
             type="button"
-            onClick={() => setIsCompactMode(!isCompactMode)}
-            className={`inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+            onClick={() => {
+              setIsCompactMode(!isCompactMode);
+              setMovingIndex(null);
+            }}
+            className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition-all cursor-pointer ${
               isCompactMode
                 ? "bg-champagne text-brun-dark border-champagne-dark shadow-xs ring-2 ring-champagne/40"
                 : "bg-white text-stone-700 border-stone-200 hover:border-champagne hover:bg-stone-50"
@@ -439,14 +463,15 @@ export default function AdminServicesView({ initialServices = [] }) {
             ) : (
               <>
                 <ZoomOut className="w-4 h-4 text-champagne-dark" />
-                <span>Dézoomer (Vue d'ensemble)</span>
+                <span>Dézoomer (Vue d&apos;ensemble)</span>
               </>
             )}
           </button>
 
           <button
+            type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 text-champagne" />
             <span>Ajouter une prestation</span>
@@ -454,36 +479,101 @@ export default function AdminServicesView({ initialServices = [] }) {
         </div>
       </div>
 
-      {/* Message d'aide en mode dézoomé */}
+      {/* Message d'aide + Contrôles 2-taps iPad en mode dézoomé */}
       {isCompactMode && (
-        <div className="p-3.5 rounded-2xl bg-champagne-light/50 border border-champagne/50 flex items-center justify-between text-xs text-brun animate-fadeIn">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-champagne-dark shrink-0" />
-            <span className="font-medium">
-              Mode dézoomé actif : toutes les prestations sont visibles d'un seul coup d'œil. Glissez-déposez n'importe quelle carte pour la placer rapidement où vous voulez.
-            </span>
+        <div className="p-4 rounded-2xl bg-champagne-light/60 border-2 border-champagne/60 space-y-3 text-xs sm:text-sm text-brun animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-champagne-dark shrink-0 mt-0.5 sm:mt-0" />
+              <span className="font-medium">
+                {movingIndex !== null && services[movingIndex]
+                  ? `Déplacement de « ${services[movingIndex].name} » (#${movingIndex + 1}) : touchez une autre carte pour l'y placer, ou utilisez les boutons ci-dessous.`
+                  : "Mode dézoomé iPad & Tactile : touchez une carte puis touchez l'emplacement où vous voulez la placer (ou glissez-déposez sur ordinateur)."}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCompactMode(false);
+                setMovingIndex(null);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun hover:bg-stone-50 shrink-0 cursor-pointer"
+            >
+              Retour vue détaillée
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsCompactMode(false)}
-            className="text-[11px] font-bold text-brun underline hover:text-champagne-dark shrink-0 ml-3"
-          >
-            Retour vue détaillée
-          </button>
+
+          {movingIndex !== null && services[movingIndex] && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-champagne/40">
+              <button
+                type="button"
+                disabled={movingIndex === 0}
+                onClick={() => handleDropService(movingIndex, movingIndex - 1)}
+                className="inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
+              >
+                <ArrowUp className="w-4 h-4 -rotate-90" />
+                <span>Reculer</span>
+              </button>
+              <button
+                type="button"
+                disabled={movingIndex === services.length - 1}
+                onClick={() => handleDropService(movingIndex, movingIndex + 1)}
+                className="inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
+              >
+                <ArrowDown className="w-4 h-4 -rotate-90" />
+                <span>Avancer</span>
+              </button>
+              <button
+                type="button"
+                disabled={movingIndex === 0}
+                onClick={() => handleDropService(movingIndex, 0)}
+                className="px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
+              >
+                Mettre en #1
+              </button>
+              <button
+                type="button"
+                onClick={() => openEditModal(services[movingIndex])}
+                className="inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-brun text-creme text-xs sm:text-sm font-bold cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-champagne" />
+                <span>Modifier cette coiffure</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMovingIndex(null)}
+                className="px-3.5 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs sm:text-sm font-semibold cursor-pointer ml-auto"
+              >
+                Annuler sélection
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Services Grid avec Drag & Drop (Mode Dézoomé ou Détaillé) */}
+      {/* Services Grid avec Drag & Drop + 2-Tap iPad Reordering */}
       {isCompactMode ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
           {services.map((service, index) => {
             const id = service.id || service._id;
             const isDragging = draggedIndex === index;
             const isOver = dragOverIndex === index;
+            const isSelectedForMove = movingIndex === index;
+            const isDropTargetCandidate = movingIndex !== null && movingIndex !== index;
 
             return (
               <div
                 key={id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${service.name}, position ${index + 1}`}
+                onClick={() => handleCompactCardTap(index)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleCompactCardTap(index);
+                  }
+                }}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", index.toString());
@@ -509,14 +599,18 @@ export default function AdminServicesView({ initialServices = [] }) {
                   setDraggedIndex(null);
                   setDragOverIndex(null);
                 }}
-                className={`group relative aspect-[3/4] rounded-2xl overflow-hidden border cursor-grab active:cursor-grabbing transition-all duration-200 select-none shadow-xs ${
-                  isDragging
+                className={`group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 cursor-pointer transition-all duration-200 select-none shadow-xs ${
+                  isSelectedForMove
+                    ? "ring-4 ring-champagne border-champagne scale-[1.03] shadow-2xl z-20"
+                    : isDragging
                     ? "opacity-30 scale-90 border-dashed border-champagne shadow-inner"
                     : isOver
                     ? "ring-4 ring-champagne border-champagne scale-105 shadow-2xl z-20"
+                    : isDropTargetCandidate
+                    ? "border-dashed border-champagne/80 hover:border-champagne bg-stone-900"
                     : "border-stone-200 hover:border-champagne hover:scale-[1.02] hover:shadow-md bg-stone-900"
                 }`}
-                title={`${service.name} (#${index + 1}) - Glisser pour déplacer`}
+                title={`${service.name} (#${index + 1}) - Toucher pour déplacer`}
               >
                 <Image
                   src={
@@ -540,6 +634,22 @@ export default function AdminServicesView({ initialServices = [] }) {
                   {formatPrice(service.price)}
                 </div>
 
+                {isDropTargetCandidate && (
+                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
+                    <span className="inline-block bg-brun/90 text-champagne border border-champagne/70 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
+                      Placer ici (#{index + 1})
+                    </span>
+                  </div>
+                )}
+
+                {isSelectedForMove && (
+                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
+                    <span className="inline-block bg-champagne text-brun-dark text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
+                      Sélectionnée
+                    </span>
+                  </div>
+                )}
+
                 {/* Titre et catégorie */}
                 <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white">
                   <span className="text-[9px] uppercase tracking-wider text-stone-300 block truncate">
@@ -554,7 +664,7 @@ export default function AdminServicesView({ initialServices = [] }) {
           })}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {services.map((service, index) => {
           const id = service.id || service._id;
           const isDragging = draggedIndex === index;
@@ -588,18 +698,18 @@ export default function AdminServicesView({ initialServices = [] }) {
                 setDraggedIndex(null);
                 setDragOverIndex(null);
               }}
-              className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 cursor-grab active:cursor-grabbing relative select-none ${
+              className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 relative select-none flex flex-col ${
                 isDragging
                   ? "opacity-40 scale-95 border-dashed border-stone-400"
                   : isOver
                   ? "ring-2 ring-champagne border-champagne scale-[1.02] shadow-xl"
                   : service.isActive
                   ? "border-stone-200 shadow-2xs hover:shadow-md"
-                  : "border-stone-300 opacity-60 bg-stone-50"
+                  : "border-stone-300 opacity-75 bg-stone-50"
               }`}
             >
               {/* Drag Handle Top Bar */}
-              <div className="absolute top-3 left-3 z-20 flex items-center space-x-1 bg-brun/85 backdrop-blur-md text-creme text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-md border border-white/20">
+              <div className="absolute top-3 left-3 z-20 flex items-center space-x-1 bg-brun/85 backdrop-blur-md text-creme text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-md border border-white/20">
                 <GripVertical className="w-3.5 h-3.5 text-champagne" />
                 <span>#{index + 1}</span>
               </div>
@@ -614,76 +724,105 @@ export default function AdminServicesView({ initialServices = [] }) {
                   fill
                   className="object-cover object-center pointer-events-none"
                 />
-                <div className="absolute top-3 right-3 bg-black/75 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-md">
+                <div className="absolute top-3 right-3 bg-black/75 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-md">
                   {service.category}
                 </div>
               </div>
 
-              <div className="p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-serif font-bold text-brun text-base">
-                    {service.name}
-                  </h3>
-                  <button
-                    onClick={() => handleToggleActive(service)}
-                    title={service.isActive ? "Masquer du site public" : "Activer sur le site"}
-                    className="text-stone-400 hover:text-brun"
-                  >
-                    {service.isActive ? (
-                      <ToggleRight className="w-6 h-6 text-emerald-600" />
-                    ) : (
-                      <ToggleLeft className="w-6 h-6 text-stone-400" />
-                    )}
-                  </button>
+              <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-serif font-bold text-brun text-base sm:text-lg leading-snug">
+                      {service.name}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(service)}
+                      title={service.isActive ? "Masquer du site public" : "Activer sur le site"}
+                      aria-label={service.isActive ? "Masquer du site public" : "Activer sur le site"}
+                      className="w-11 h-11 -mr-2 -mt-2 rounded-xl flex items-center justify-center text-stone-400 hover:text-brun hover:bg-stone-100 shrink-0 cursor-pointer"
+                    >
+                      {service.isActive ? (
+                        <ToggleRight className="w-7 h-7 text-emerald-600" />
+                      ) : (
+                        <ToggleLeft className="w-7 h-7 text-stone-400" />
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-stone-500 line-clamp-2 font-light">
+                    {service.description}
+                  </p>
                 </div>
 
-                <p className="text-xs text-stone-500 line-clamp-2 font-light">
-                  {service.description}
-                </p>
-
-                <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-serif font-bold text-brun text-base">
+                <div className="pt-3 border-t border-stone-100 space-y-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-serif font-bold text-brun text-lg">
                       {formatPrice(service.price)}
                     </span>
-                    <div className="text-[11px] text-stone-500 font-medium">
+                    <div className="text-xs text-stone-500 font-medium">
                       Acompte : {formatPrice(service.depositAmount ?? 10)}
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-1">
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => handleMoveService(index, "up")}
-                      className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 disabled:opacity-30 disabled:hover:bg-stone-100 transition-colors"
-                      title="Déplacer vers le haut"
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === services.length - 1}
-                      onClick={() => handleMoveService(index, "down")}
-                      className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 disabled:opacity-30 disabled:hover:bg-stone-100 transition-colors"
-                      title="Déplacer vers le bas"
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => openEditModal(service)}
-                      className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
-                      title="Modifier"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(id)}
-                      className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                  {/* Contrôles tactiles iPad : Position directe, Monter/Descendre, Modifier, Supprimer */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center space-x-1.5">
+                      <select
+                        aria-label={`Position de ${service.name}`}
+                        value={index}
+                        onChange={(e) => handleDropService(index, Number(e.target.value))}
+                        className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
+                        title="Choisir la position directement"
+                      >
+                        {services.map((_, posIdx) => (
+                          <option key={posIdx} value={posIdx}>
+                            Pos. #{posIdx + 1}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => handleMoveService(index, "up")}
+                        className="w-11 h-11 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 disabled:opacity-30 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Monter d'une place"
+                        aria-label="Monter"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === services.length - 1}
+                        onClick={() => handleMoveService(index, "down")}
+                        className="w-11 h-11 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 disabled:opacity-30 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Descendre d'une place"
+                        aria-label="Descendre"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(service)}
+                        className="inline-flex items-center space-x-1.5 px-3.5 min-h-[44px] rounded-xl bg-champagne-light/80 hover:bg-champagne text-brun-dark font-semibold text-xs transition-colors cursor-pointer"
+                        title="Modifier"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Modifier</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(id)}
+                        className="w-11 h-11 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors cursor-pointer"
+                        title="Supprimer"
+                        aria-label="Supprimer cette prestation"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -693,25 +832,39 @@ export default function AdminServicesView({ initialServices = [] }) {
       </div>
       )}
 
-      {/* CREATE / EDIT MODAL SANS BUG D'URL ET SANS CHAMP D'HEURES */}
+      {/* CREATE / EDIT MODAL SANS BUG D'URL ET OPTIMISÉ CLAVIER IPAD */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-stone-300 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+        <div
+          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-xl w-full border border-stone-300 shadow-2xl max-h-[88dvh] flex flex-col overflow-hidden overscroll-contain"
+          >
+            {/* Sticky Header */}
+            <div className="px-6 py-4 sm:px-8 sm:py-5 flex items-center justify-between border-b border-stone-100 shrink-0 bg-white">
               <h3 className="font-serif text-xl font-bold text-brun">
                 {editingService ? "Modifier la prestation" : "Nouvelle prestation"}
               </h3>
               <button
+                type="button"
                 onClick={() => setModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600"
+                aria-label="Fermer la fenêtre"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
+            {/* Scrollable Form Body */}
+            <form
+              id="admin-service-form"
+              onSubmit={handleSave}
+              className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-5 text-sm overscroll-contain"
+            >
               <div>
-                <label className="font-semibold text-brun block mb-1">
+                <label className="font-semibold text-brun block mb-1.5">
                   Nom de la prestation *
                 </label>
                 <input
@@ -720,13 +873,13 @@ export default function AdminServicesView({ initialServices = [] }) {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Ex: Knotless Braids Medium"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
                 />
               </div>
 
               {/* Catégorie dynamique avec création de nouvelle catégorie */}
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                   <label className="font-semibold text-brun">
                     Catégorie *
                   </label>
@@ -736,7 +889,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                       setIsCreatingCategory(!isCreatingCategory);
                       setNewCategoryName("");
                     }}
-                    className="text-[11px] text-champagne-dark hover:underline font-semibold"
+                    className="text-xs text-champagne-dark hover:underline font-semibold cursor-pointer px-2 py-1"
                   >
                     {isCreatingCategory
                       ? "Choisir une catégorie existante"
@@ -751,7 +904,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     placeholder="Tapez le nom de la nouvelle catégorie..."
-                    className="w-full bg-stone-50 border border-champagne rounded-xl p-2.5 text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full bg-stone-50 border border-champagne rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                     autoFocus
                   />
                 ) : (
@@ -773,7 +926,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                         }));
                       }
                     }}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-brun"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
                   >
                     {existingCategories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -786,9 +939,9 @@ export default function AdminServicesView({ initialServices = [] }) {
               </div>
 
               {/* Tarifs (Prix et Acompte uniquement, sans champ d'heures) */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-brun block mb-1">
+                  <label className="font-semibold text-brun block mb-1.5">
                     Prix de base (€) *
                   </label>
                   <input
@@ -800,11 +953,11 @@ export default function AdminServicesView({ initialServices = [] }) {
                       setForm((prev) => updateDraftBasePrice(prev, e.target.value))
                     }
                     placeholder="Ex: 35"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm font-semibold text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base font-semibold text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-brun block mb-1">
+                  <label className="font-semibold text-brun block mb-1.5">
                     Montant de l'acompte (€) *
                   </label>
                   <input
@@ -816,19 +969,19 @@ export default function AdminServicesView({ initialServices = [] }) {
                       setForm((prev) => ({ ...prev, depositInput: e.target.value }))
                     }
                     placeholder="Ex: 10"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm font-semibold text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base font-semibold text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                 </div>
               </div>
 
               {/* Longueurs & Options Tarifaires (Court, Mi-long, Long, Extra long...) */}
               <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <span className="font-serif font-bold text-sm text-brun block">
+                    <span className="font-serif font-bold text-base text-brun block">
                       Options de longueurs & tarifs
                     </span>
-                    <span className="text-[11px] text-stone-500 font-light">
+                    <span className="text-xs text-stone-500 font-light">
                       Le tarif affiché sur la fiche (« Dès ... € ») suit automatiquement la longueur la moins chère.
                     </span>
                   </div>
@@ -836,7 +989,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <button
                       type="button"
                       onClick={handleRemoveAllLengths}
-                      className="text-[11px] text-stone-500 hover:text-red-600 font-medium transition-colors shrink-0"
+                      className="text-xs text-stone-600 hover:text-red-600 font-semibold px-3 py-1.5 rounded-lg bg-white border border-stone-200 transition-colors shrink-0 cursor-pointer"
                     >
                       Désactiver (tarif unique)
                     </button>
@@ -844,8 +997,8 @@ export default function AdminServicesView({ initialServices = [] }) {
                 </div>
 
                 {!currentLengthOption ? (
-                  <div className="p-3 bg-white border border-stone-200 rounded-xl text-center space-y-2">
-                    <p className="text-xs text-stone-600">
+                  <div className="p-3.5 bg-white border border-stone-200 rounded-xl text-center space-y-2.5">
+                    <p className="text-xs sm:text-sm text-stone-600">
                       Prestation actuellement en tarif unique (
                       <strong>
                         {parseDecimalInput(form.priceInput) !== null
@@ -857,15 +1010,15 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <button
                       type="button"
                       onClick={handleActivateLengthOptions}
-                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-2xs"
+                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5 text-brun" />
+                      <Plus className="w-4 h-4 text-brun" />
                       <span>Activer les choix de longueurs (Court, Mi-long, Long...)</span>
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {currentLengthOption.choices.map((choice, cIdx) => {
                         const parsedTotal = parseDecimalInput(choice.priceInput);
                         const diff =
@@ -876,10 +1029,10 @@ export default function AdminServicesView({ initialServices = [] }) {
                         return (
                           <div
                             key={cIdx}
-                            className="p-2.5 bg-white border border-stone-200 rounded-xl flex items-center gap-2 text-xs"
+                            className="p-3 bg-white border border-stone-200 rounded-xl flex flex-wrap sm:flex-nowrap items-end gap-2.5 text-sm"
                           >
-                            <div className="flex-1">
-                              <label className="text-[10px] text-stone-400 block font-medium mb-0.5">
+                            <div className="flex-1 min-w-[140px]">
+                              <label className="text-[11px] text-stone-500 block font-medium mb-1">
                                 Intitulé
                               </label>
                               <input
@@ -887,12 +1040,12 @@ export default function AdminServicesView({ initialServices = [] }) {
                                 value={choice.name}
                                 onChange={(e) => handleUpdateChoice(cIdx, "name", e.target.value)}
                                 placeholder="Nom (ex: Mi-long)"
-                                className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-sm font-medium text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-medium text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                               />
                             </div>
 
-                            <div className="w-24">
-                              <label className="text-[10px] text-stone-400 block font-medium mb-0.5 text-right">
+                            <div className="w-28">
+                              <label className="text-[11px] text-stone-500 block font-medium mb-1 text-right">
                                 Prix client
                               </label>
                               <div className="relative">
@@ -902,15 +1055,15 @@ export default function AdminServicesView({ initialServices = [] }) {
                                   value={choice.priceInput}
                                   onChange={(e) => handleUpdateChoice(cIdx, "totalPrice", e.target.value)}
                                   placeholder="0"
-                                  className="w-full bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-sm font-bold text-brun text-right pr-6 focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-base lg:text-sm font-bold text-brun text-right pr-7 focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                                 />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 font-medium text-xs pointer-events-none">
+                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 font-medium text-xs pointer-events-none">
                                   €
                                 </span>
                               </div>
                             </div>
 
-                            <div className="w-14 text-right pt-3 font-mono text-[10px] text-stone-500">
+                            <div className="w-16 text-right pb-2.5 font-mono text-xs text-stone-500 shrink-0">
                               {diff === null
                                 ? "—"
                                 : diff > 0
@@ -918,16 +1071,15 @@ export default function AdminServicesView({ initialServices = [] }) {
                                 : "Base"}
                             </div>
 
-                            <div className="pt-3">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveLengthChoice(cIdx)}
-                                className="text-stone-400 hover:text-red-600 p-1 rounded transition-colors"
-                                title="Supprimer cette longueur"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLengthChoice(cIdx)}
+                              className="w-11 h-11 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                              title="Supprimer cette longueur"
+                              aria-label="Supprimer cette longueur"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         );
                       })}
@@ -936,9 +1088,9 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <button
                       type="button"
                       onClick={handleAddLengthChoice}
-                      className="w-full py-2 border border-dashed border-stone-300 hover:border-champagne rounded-xl text-xs font-semibold text-stone-600 hover:text-brun flex items-center justify-center space-x-1.5 transition-colors bg-white/60"
+                      className="w-full py-2.5 border border-dashed border-stone-300 hover:border-champagne rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-brun flex items-center justify-center space-x-1.5 transition-colors bg-white/60 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-4 h-4" />
                       <span>Ajouter une longueur supplémentaire</span>
                     </button>
                   </div>
@@ -948,9 +1100,9 @@ export default function AdminServicesView({ initialServices = [] }) {
               {/* Visuel, Vidéo & Téléversement Cloudinary */}
               <div className="space-y-3">
                 {/* Bloc téléversement direct depuis appareil */}
-                <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-brun flex items-center space-x-1.5">
+                <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-brun flex items-center space-x-1.5">
                       <Upload className="w-4 h-4 text-champagne-dark" />
                       <span>Ajouter une vidéo ou photo depuis cet appareil</span>
                     </span>
@@ -963,8 +1115,8 @@ export default function AdminServicesView({ initialServices = [] }) {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-stone-500 font-light leading-relaxed">
-                    Téléversez vos fichiers vidéo (MOV, MP4) ou photos directement depuis votre téléphone ou ordinateur. Ils sont hébergés et optimisés automatiquement sur Cloudinary.
+                  <p className="text-xs text-stone-500 font-light leading-relaxed">
+                    Téléversez vos fichiers vidéo (MOV, MP4) ou photos directement depuis votre iPad, téléphone ou ordinateur.
                   </p>
 
                   <input
@@ -980,14 +1132,14 @@ export default function AdminServicesView({ initialServices = [] }) {
                       type="button"
                       disabled={uploadingMedia}
                       onClick={() => serviceFileInputRef.current?.click()}
-                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 shadow-2xs"
+                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                     >
-                      <Upload className="w-3.5 h-3.5 text-brun" />
+                      <Upload className="w-4 h-4 text-brun" />
                       <span>Choisir un fichier sur mon appareil</span>
                     </button>
 
                     {form.videoUrl && (
-                      <span className="inline-flex items-center space-x-1.5 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl font-medium">
+                      <span className="inline-flex items-center space-x-1.5 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl font-medium">
                         <Film className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Vidéo Cloudinary liée</span>
                       </span>
@@ -999,14 +1151,14 @@ export default function AdminServicesView({ initialServices = [] }) {
                 {form.videoUrl && (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="font-semibold text-brun text-xs flex items-center space-x-1">
+                      <label className="font-semibold text-brun text-xs sm:text-sm flex items-center space-x-1">
                         <Film className="w-3.5 h-3.5 text-champagne-dark" />
                         <span>Lien de la vidéo</span>
                       </label>
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, videoUrl: "" })}
-                        className="text-[11px] text-red-600 hover:underline"
+                        className="text-xs text-red-600 hover:underline px-2 py-1 cursor-pointer"
                       >
                         Retirer la vidéo
                       </button>
@@ -1016,23 +1168,23 @@ export default function AdminServicesView({ initialServices = [] }) {
                       value={form.videoUrl}
                       onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
                       placeholder="https://res.cloudinary.com/.../video.mp4"
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 text-brun font-mono text-[11px]"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-sm"
                     />
                   </div>
                 )}
 
                 {/* Champ Photo / Visuel */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-semibold text-brun text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                    <label className="font-semibold text-brun text-xs sm:text-sm">
                       Photo principale / Vignette
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowImagePicker(!showImagePicker)}
-                      className="text-[11px] text-champagne-dark hover:underline font-semibold flex items-center space-x-1"
+                      className="text-xs text-champagne-dark hover:underline font-semibold flex items-center space-x-1 px-2 py-1 cursor-pointer"
                     >
-                      <ImageIcon className="w-3.5 h-3.5" />
+                      <ImageIcon className="w-4 h-4" />
                       <span>
                         {showImagePicker
                           ? "Masquer la sélection"
@@ -1046,24 +1198,25 @@ export default function AdminServicesView({ initialServices = [] }) {
                     value={form.imageUrl}
                     onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
                     placeholder="/images/realisations/... ou https://..."
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun font-mono text-[11px]"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-sm"
                   />
 
                   {/* Sélecteur visuel en 1 clic */}
                   {showImagePicker && (
-                    <div className="mt-2.5 p-3 bg-stone-50 border border-stone-200 rounded-2xl max-h-48 overflow-y-auto space-y-2">
-                      <p className="text-[10px] text-stone-500 font-medium">
-                        Cliquez sur une photo pour l'assigner directement :
+                    <div className="mt-2.5 p-3 bg-stone-50 border border-stone-200 rounded-2xl max-h-56 overflow-y-auto space-y-2">
+                      <p className="text-xs text-stone-500 font-medium">
+                        Touchez une photo pour l'assigner directement :
                       </p>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
                         {AVAILABLE_SALON_IMAGES.map((img) => (
-                          <div
+                          <button
+                            type="button"
                             key={img.path}
                             onClick={() => {
                               setForm({ ...form, imageUrl: img.path });
                               setShowImagePicker(false);
                             }}
-                            className={`relative aspect-[3/4] rounded-lg overflow-hidden border cursor-pointer transition-all hover:scale-105 ${
+                            className={`relative aspect-[3/4] rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
                               form.imageUrl === img.path
                                 ? "ring-2 ring-champagne border-champagne"
                                 : "border-stone-200"
@@ -1076,7 +1229,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                               fill
                               className="object-cover"
                             />
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -1085,7 +1238,7 @@ export default function AdminServicesView({ initialServices = [] }) {
               </div>
 
               <div>
-                <label className="font-semibold text-brun block mb-1">
+                <label className="font-semibold text-brun block mb-1.5">
                   Description détaillée
                 </label>
                 <textarea
@@ -1096,66 +1249,68 @@ export default function AdminServicesView({ initialServices = [] }) {
                     setForm({ ...form, description: e.target.value })
                   }
                   placeholder="Technique, rendu, confort, tenue..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5 pt-2">
-                <label className="flex items-center space-x-2 cursor-pointer">
+              <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                <label className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer min-h-[44px] text-xs sm:text-sm font-medium text-brun">
                   <input
                     type="checkbox"
                     checked={Boolean(form.includesHair)}
                     onChange={(e) =>
                       setForm({ ...form, includesHair: e.target.checked })
                     }
-                    className="rounded border-stone-300 text-brun"
+                    className="w-4 h-4 accent-brun rounded border-stone-300 text-brun"
                   />
                   <span>Mèches incluses (couleurs + tarif étudiant)</span>
                 </label>
 
-                <label className="flex items-center space-x-2 cursor-pointer">
+                <label className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer min-h-[44px] text-xs sm:text-sm font-medium text-brun">
                   <input
                     type="checkbox"
                     checked={form.isPopular}
                     onChange={(e) =>
                       setForm({ ...form, isPopular: e.target.checked })
                     }
-                    className="rounded border-stone-300 text-brun"
+                    className="w-4 h-4 accent-brun rounded border-stone-300 text-brun"
                   />
                   <span>Mettre en avant sur l'accueil</span>
                 </label>
 
-                <label className="flex items-center space-x-2 cursor-pointer">
+                <label className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer min-h-[44px] text-xs sm:text-sm font-medium text-brun">
                   <input
                     type="checkbox"
                     checked={form.isActive}
                     onChange={(e) =>
                       setForm({ ...form, isActive: e.target.checked })
                     }
-                    className="rounded border-stone-300 text-brun"
+                    className="w-4 h-4 accent-brun rounded border-stone-300 text-brun"
                   />
                   <span>Visible sur le site</span>
                 </label>
               </div>
-
-              <div className="pt-4 border-t border-stone-100 flex items-center justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
-                >
-                  <Check className="w-4 h-4 text-champagne" />
-                  <span>{submitting ? "Enregistrement..." : "Enregistrer la prestation"}</span>
-                </button>
-              </div>
             </form>
+
+            {/* Sticky Footer */}
+            <div className="px-6 py-4 sm:px-8 border-t border-stone-100 bg-stone-50/90 flex items-center justify-end gap-3 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-200/70 font-medium transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                form="admin-service-form"
+                disabled={submitting}
+                className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+              >
+                <Check className="w-4 h-4 text-champagne" />
+                <span>{submitting ? "Enregistrement..." : "Enregistrer la prestation"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

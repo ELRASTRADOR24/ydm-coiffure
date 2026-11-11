@@ -238,8 +238,8 @@ export default function AdminAvailabilityView({
                 className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs"
               >
                 {/* Day name & Open toggle */}
-                <div className="w-44 flex items-center space-x-3">
-                  <label className="relative inline-flex items-center cursor-pointer">
+                <div className="w-full sm:w-48 flex items-center gap-3 shrink-0">
+                  <label className="min-h-[44px] inline-flex items-center cursor-pointer shrink-0">
                     <input
                       type="checkbox"
                       checked={day.isOpen}
@@ -248,10 +248,10 @@ export default function AdminAvailabilityView({
                       }
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    <div className="relative w-12 h-7 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-[22px] after:w-[22px] after:transition-all peer-checked:bg-emerald-600" />
                   </label>
                   <span
-                    className={`font-serif font-bold text-sm ${
+                    className={`font-serif font-bold text-base lg:text-sm ${
                       day.isOpen ? "text-brun" : "text-stone-400 line-through"
                     }`}
                   >
@@ -261,16 +261,16 @@ export default function AdminAvailabilityView({
 
                 {/* Hours inputs (if open) */}
                 {day.isOpen ? (
-                  <div className="flex flex-wrap items-center gap-4 flex-1">
-                    <div className="flex items-center space-x-1.5">
-                      <span className="text-stone-500">Heures :</span>
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-stone-500 font-medium">Heures :</span>
                       <input
                         type="time"
                         value={day.startTime ?? ""}
                         onChange={(e) =>
                           handleDayChange(day.dayOfWeek, "startTime", e.target.value)
                         }
-                        className="bg-stone-50 border border-stone-200 rounded-lg p-1.5 font-medium"
+                        className="min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-medium text-brun"
                       />
                       <span>à</span>
                       <input
@@ -279,13 +279,13 @@ export default function AdminAvailabilityView({
                         onChange={(e) =>
                           handleDayChange(day.dayOfWeek, "endTime", e.target.value)
                         }
-                        className="bg-stone-50 border border-stone-200 rounded-lg p-1.5 font-medium"
+                        className="min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-medium text-brun"
                       />
                     </div>
 
                     {/* Battement */}
-                    <div className="flex items-center space-x-1.5">
-                      <span className="text-stone-500">Battement :</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-stone-500 font-medium">Battement :</span>
                       <select
                         value={day.bufferTimeMinutes ?? 15}
                         onChange={(e) =>
@@ -295,7 +295,7 @@ export default function AdminAvailabilityView({
                             Number(e.target.value)
                           )
                         }
-                        className="bg-stone-50 border border-stone-200 rounded-lg p-1.5 text-stone-700"
+                        className="min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-stone-700"
                       >
                         <option value={0}>0 min</option>
                         <option value={15}>15 min</option>
@@ -305,7 +305,7 @@ export default function AdminAvailabilityView({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 text-stone-400 italic">
+                  <div className="flex-1 text-stone-400 italic py-2">
                     Journée de repos (aucun créneau réservable)
                   </div>
                 )}
@@ -313,11 +313,12 @@ export default function AdminAvailabilityView({
                 {/* Save button per day */}
                 <div>
                   <button
+                    type="button"
                     disabled={isSaving}
                     onClick={() => handleSaveDay(day)}
-                    className="inline-flex items-center space-x-1 bg-stone-100 hover:bg-brun hover:text-creme text-stone-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                    className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-stone-100 hover:bg-brun hover:text-creme text-stone-700 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    <Save className="w-3.5 h-3.5" />
+                    <Save className="w-4 h-4 shrink-0" />
                     <span>{isSaving ? "Sauvegarde..." : "Enregistrer"}</span>
                   </button>
                 </div>
@@ -341,7 +342,7 @@ export default function AdminAvailabilityView({
           <button
             type="button"
             onClick={() => setUnavMode("single")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               unavMode === "single"
                 ? "bg-brun text-creme shadow-xs"
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -352,7 +353,7 @@ export default function AdminAvailabilityView({
           <button
             type="button"
             onClick={() => setUnavMode("range")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               unavMode === "range"
                 ? "bg-brun text-creme shadow-xs"
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -363,7 +364,7 @@ export default function AdminAvailabilityView({
           <button
             type="button"
             onClick={() => setUnavMode("hours")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               unavMode === "hours"
                 ? "bg-brun text-creme shadow-xs"
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -376,41 +377,41 @@ export default function AdminAvailabilityView({
         {/* Add Unavailability Form */}
         <form
           onSubmit={handleAddUnavailability}
-          className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3 text-xs"
+          className="bg-stone-50 p-4 sm:p-5 rounded-2xl border border-stone-200 space-y-4 text-xs"
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             {unavMode === "range" ? (
               <>
                 <div>
-                  <label className="font-semibold text-brun block mb-1">Date de début *</label>
+                  <label className="font-semibold text-brun block mb-1.5">Date de début *</label>
                   <input
                     type="date"
                     required
                     value={newUnav.startDate}
                     onChange={(e) => setNewUnav({ ...newUnav, startDate: e.target.value })}
-                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                    className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-brun block mb-1">Date de fin *</label>
+                  <label className="font-semibold text-brun block mb-1.5">Date de fin *</label>
                   <input
                     type="date"
                     required
                     value={newUnav.endDate}
                     onChange={(e) => setNewUnav({ ...newUnav, endDate: e.target.value })}
-                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                    className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                   />
                 </div>
               </>
             ) : (
               <div>
-                <label className="font-semibold text-brun block mb-1">Date concernée *</label>
+                <label className="font-semibold text-brun block mb-1.5">Date concernée *</label>
                 <input
                   type="date"
                   required
                   value={newUnav.date}
                   onChange={(e) => setNewUnav({ ...newUnav, date: e.target.value })}
-                  className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                 />
               </div>
             )}
@@ -418,36 +419,36 @@ export default function AdminAvailabilityView({
             {unavMode === "hours" && (
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-brun block mb-1">De *</label>
+                  <label className="font-semibold text-brun block mb-1.5">De *</label>
                   <input
                     type="time"
                     required
                     value={newUnav.startTime}
                     onChange={(e) => setNewUnav({ ...newUnav, startTime: e.target.value })}
-                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                    className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-brun block mb-1">À *</label>
+                  <label className="font-semibold text-brun block mb-1.5">À *</label>
                   <input
                     type="time"
                     required
                     value={newUnav.endTime}
                     onChange={(e) => setNewUnav({ ...newUnav, endTime: e.target.value })}
-                    className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                    className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="font-semibold text-brun block mb-1">Motif de fermeture</label>
+              <label className="font-semibold text-brun block mb-1.5">Motif de fermeture</label>
               <input
                 type="text"
                 value={newUnav.reason}
                 onChange={(e) => setNewUnav({ ...newUnav, reason: e.target.value })}
                 placeholder="Ex : Formation, Vacances, Déplacement..."
-                className="w-full bg-white border border-stone-200 rounded-xl p-2 text-brun"
+                className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
               />
             </div>
           </div>
@@ -456,9 +457,9 @@ export default function AdminAvailabilityView({
             <button
               type="submit"
               disabled={addingUnav}
-              className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-6 py-2.5 rounded-xl font-semibold shadow-xs transition-colors disabled:opacity-50"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4 shrink-0" />
               <span>
                 {addingUnav
                   ? "Enregistrement..."
@@ -480,28 +481,30 @@ export default function AdminAvailabilityView({
               return (
                 <div
                   key={id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs"
+                  className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-stone-50 border border-stone-200 text-xs sm:text-sm"
                 >
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="w-4 h-4 text-champagne-dark" />
-                    <div>
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                    <Calendar className="w-4 h-4 text-champagne-dark shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
                       <span className="font-bold text-brun">{unav.date}</span>
-                      <span className="text-stone-500 ml-2">
+                      <span className="text-stone-600 ml-2">
                         {unav.isAllDay
                           ? "(Journée entière bloquée)"
                           : `(De ${unav.startTime} à ${unav.endTime})`}
                       </span>
-                      <span className="text-stone-400 italic ml-2">
+                      <span className="text-stone-500 italic ml-2 break-words">
                         — {unav.reason}
                       </span>
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => handleDeleteUnavailability(id)}
-                    className="text-stone-400 hover:text-red-600 p-1 transition-colors"
+                    aria-label="Supprimer le blocage"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-200 text-stone-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
                     title="Supprimer le blocage"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               );

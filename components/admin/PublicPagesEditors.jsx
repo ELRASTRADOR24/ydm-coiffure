@@ -671,7 +671,7 @@ export function ServicesEditorTab({
                   type="button"
                   disabled={idx === 0}
                   onClick={() => moveBannerItem(idx, "up")}
-                  className="p-2 rounded-lg bg-white border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
+                  className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
                   title="Monter"
                 >
                   <ArrowUp className="w-4 h-4" />
@@ -680,7 +680,7 @@ export function ServicesEditorTab({
                   type="button"
                   disabled={idx === bannerItems.length - 1}
                   onClick={() => moveBannerItem(idx, "down")}
-                  className="p-2 rounded-lg bg-white border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
+                  className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
                   title="Descendre"
                 >
                   <ArrowDown className="w-4 h-4" />
@@ -1181,7 +1181,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveParagraph(idx, "up")}
-                    className="p-1.5 rounded-lg bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
                     title="Monter"
                   >
                     <ArrowUp className="w-4 h-4" />
@@ -1190,7 +1190,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
                     type="button"
                     disabled={idx === paragraphs.length - 1}
                     onClick={() => moveParagraph(idx, "down")}
-                    className="p-1.5 rounded-lg bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
                     title="Descendre"
                   >
                     <ArrowDown className="w-4 h-4" />
@@ -1365,7 +1365,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveCard(idx, "up")}
-                    className="p-1.5 rounded-lg bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>
@@ -1373,7 +1373,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
                     type="button"
                     disabled={idx === cards.length - 1}
                     onClick={() => moveCard(idx, "down")}
-                    className="p-1.5 rounded-lg bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
                   </button>
@@ -1838,7 +1838,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveRule(idx, "up")}
-                    className="p-1.5 rounded-lg bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>
@@ -1846,7 +1846,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
                     type="button"
                     disabled={idx === rulesList.length - 1}
                     onClick={() => moveRule(idx, "down")}
-                    className="p-1.5 rounded-lg bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
                   </button>

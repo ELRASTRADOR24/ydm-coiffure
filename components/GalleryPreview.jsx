@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ZoomIn, ArrowRight, Play, Film } from "lucide-react";
+import { ZoomIn, ArrowRight, Play, Film, Image as ImageIcon } from "lucide-react";
 import LightboxModal from "./LightboxModal";
+import { resolveGalleryPosterUrl, canUseNextImageUrl } from "@/lib/uploadMedia";
 
 const DEFAULT_PREVIEW_ITEMS = [
   {
@@ -79,21 +80,46 @@ export default function GalleryPreview({
     <>
       {galleryItems.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-          {galleryItems.map((item, idx) => (
-            <div
-              key={item.id || item._id || idx}
-              onClick={() => setActiveItem(item)}
-              className="group relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer bg-stone-900 border border-beige"
-            >
-              {item.image && (
-                <Image
-                  src={item.image}
-                  alt={item.title || "Réalisation"}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 33vw"
-                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                />
-              )}
+          {galleryItems.map((item, idx) => {
+            const posterSrc = resolveGalleryPosterUrl(item);
+            const videoSrc = item.videoUrl || item.video || "";
+            return (
+              <div
+                key={item.id || item._id || idx}
+                onClick={() => setActiveItem(item)}
+                className="group relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer bg-stone-900 border border-beige"
+              >
+                {posterSrc ? (
+                  canUseNextImageUrl(posterSrc) ? (
+                    <Image
+                      src={posterSrc}
+                      alt={item.title || "Réalisation"}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                      className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={posterSrc}
+                      alt={item.title || "Réalisation"}
+                      loading="lazy"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )
+                ) : videoSrc ? (
+                  <video
+                    src={`${videoSrc}#t=0.1`}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full object-cover object-center pointer-events-none"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-500">
+                    <ImageIcon className="w-8 h-8" />
+                  </div>
+                )}
               {item.type === "video" && (
                 <div className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-brun/85 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/40 shadow-md">
                   <Play className="w-4 h-4 fill-champagne ml-0.5" />
@@ -120,8 +146,9 @@ export default function GalleryPreview({
                   )}
                 </div>
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 

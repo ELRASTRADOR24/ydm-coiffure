@@ -328,7 +328,7 @@ export default function CustomVideoPlayer({
             <button
               type="button"
               onClick={togglePlay}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-95 border border-white/20 shrink-0"
+              className="w-10 h-10 sm:w-11 sm:h-11 xl:w-9 xl:h-9 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-95 border border-white/20 shrink-0"
               aria-label={isPlaying ? "Pause" : "Lecture"}
             >
               {isPlaying ? (
@@ -342,7 +342,7 @@ export default function CustomVideoPlayer({
             <button
               type="button"
               onClick={toggleMute}
-              className={`px-2.5 py-1.5 flex items-center space-x-1.5 rounded-xl border transition-all active:scale-95 shadow-sm whitespace-nowrap shrink-0 ${
+              className={`min-h-[40px] sm:min-h-[44px] xl:min-h-[36px] px-2.5 sm:px-3 py-1.5 flex items-center space-x-1.5 rounded-xl border transition-all active:scale-95 shadow-sm whitespace-nowrap shrink-0 ${
                 isMuted
                   ? "text-white bg-white/15 hover:bg-white/25 border-champagne/60"
                   : "text-champagne bg-champagne/25 hover:bg-champagne/35 border-champagne/60 font-semibold"
@@ -368,7 +368,7 @@ export default function CustomVideoPlayer({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/15 shrink-0"
+            className="w-10 h-10 sm:w-11 sm:h-11 xl:w-9 xl:h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/15 shrink-0"
             aria-label="Plein écran"
             title="Plein écran"
           >

@@ -17,7 +17,7 @@ export const metadata = {
   description:
     "YDM Coiffure (@ydm_coiffure) à La Roche-sur-Yon. Salon de tresses et coiffures protectrices sur-mesure : Knotless Braids, Fulani, Boho, vanilles et nattes collées. Prise de rendez-vous simple et sans paiement en ligne sur le site, validation sous 24h.",
   alternates: {
-    canonical: "https://ydmcoiffure.com",
+    canonical: "https://www.ydmcoiffure.com",
   },
 };
 

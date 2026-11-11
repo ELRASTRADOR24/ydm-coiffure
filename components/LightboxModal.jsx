@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { X, Calendar } from "lucide-react";
 import CustomVideoPlayer from "./CustomVideoPlayer";
+import { canUseNextImageUrl, resolveGalleryPosterUrl } from "@/lib/uploadMedia";
 
 export default function LightboxModal({
   item,
@@ -16,6 +17,7 @@ export default function LightboxModal({
   onClose,
 }) {
   const activeImage = image || item?.image;
+  const videoPoster = resolveGalleryPosterUrl(item) || activeImage || undefined;
   const activeVideo = video || item?.videoUrl || item?.video;
   const activeTitle = title || item?.title;
   const activeCategory = category || item?.category;
@@ -69,7 +71,7 @@ export default function LightboxModal({
           {activeVideo ? (
             <CustomVideoPlayer
               src={activeVideo}
-              poster={activeImage}
+              poster={videoPoster}
               title={activeTitle}
               autoPlay={true}
               hideTitleOverlay={true}
@@ -79,14 +81,23 @@ export default function LightboxModal({
             />
           ) : (
             <div className="relative w-full h-[55dvh] sm:h-[65vh]">
-              <Image
-                src={activeImage}
-                alt={activeTitle || "Réalisation YDM Coiffure"}
-                fill
-                className="object-contain object-center"
-                sizes="(max-width: 1200px) 100vw, 1200px"
-                priority
-              />
+              {canUseNextImageUrl(activeImage) ? (
+                <Image
+                  src={activeImage}
+                  alt={activeTitle || "Réalisation YDM Coiffure"}
+                  fill
+                  className="object-contain object-center"
+                  sizes="(max-width: 1200px) 100vw, 1200px"
+                  priority
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={activeImage}
+                  alt={activeTitle || "Réalisation YDM Coiffure"}
+                  className="w-full h-full object-contain object-center"
+                />
+              )}
             </div>
           )}
         </div>

@@ -58,3 +58,57 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: #A88B7B;
 }
+
+/* Modal top-layer scroll containment */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Ergonomie iPad / Tablette & Tactile dans l'Administration */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html:has(.admin-shell) {
+  scroll-padding-top: 5.5rem;
+}
+
+.admin-shell :where(button, a, input, select, textarea, label, [role="button"]) {
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse), (max-width: 1279px) {
+  .admin-shell :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"]),
+    select,
+    textarea,
+    [contenteditable="true"]
+  ) {
+    font-size: max(1rem, 16px);
+  }
+
+  .admin-shell :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"]),
+    select
+  ) {
+    min-block-size: 44px;
+  }
+
+  .admin-shell :where(button:not(.compact-chip), [role="button"]:not(.compact-chip)) {
+    min-block-size: 44px;
+  }
+
+  .admin-shell label:has(input[type="checkbox"], input[type="radio"]) {
+    min-block-size: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

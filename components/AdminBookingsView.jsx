@@ -4,18 +4,18 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
-  Filter,
   Check,
   X,
-  CreditCard,
   Ban,
   Clock,
   Sparkles,
-  AlertCircle,
-  CheckCircle2,
+  Phone,
+  Calendar,
+  Copy,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { matchesBookingStatusFilter } from "@/lib/adminHelpers";
+import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 
 export default function AdminBookingsView({ initialBookings = [] }) {
   const router = useRouter();
@@ -33,6 +33,17 @@ export default function AdminBookingsView({ initialBookings = [] }) {
   useEffect(() => {
     setBookings(initialBookings);
   }, [initialBookings]);
+
+  useEffect(() => {
+    if (!rejectBooking) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setRejectBooking(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [rejectBooking]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -201,7 +212,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs space-y-4">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200 shadow-2xs space-y-4">
         {/* Status Pills */}
         <div className="flex flex-wrap items-center gap-2">
           {[
@@ -215,8 +226,9 @@ export default function AdminBookingsView({ initialBookings = [] }) {
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                className={`min-h-[44px] text-xs sm:text-sm px-4 py-2 rounded-full font-medium transition-all cursor-pointer ${
                   isActive
                     ? "bg-brun text-creme shadow-xs"
                     : "bg-stone-100 text-stone-600 hover:bg-stone-200"
@@ -229,29 +241,40 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         </div>
 
         {/* Search & Date Input */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 w-full">
             <input
               type="text"
               placeholder="Rechercher par nom, téléphone ou référence (ex: YDM-2026-9482)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-9 pr-4 py-2 text-xs text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
+              className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-10 py-2.5 text-base lg:text-sm text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
             />
-            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Effacer la recherche"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg text-stone-400 hover:text-brun cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          <div className="w-full sm:w-auto flex items-center space-x-2">
+          <div className="w-full sm:w-auto flex items-center gap-2">
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+              className="flex-1 sm:flex-none min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
             />
             {dateFilter && (
               <button
+                type="button"
                 onClick={() => setDateFilter("")}
-                className="text-xs text-stone-500 hover:underline"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs sm:text-sm font-medium text-stone-700 cursor-pointer shrink-0"
               >
                 Effacer date
               </button>
@@ -260,9 +283,186 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         </div>
       </div>
 
-      {/* Bookings Table / List */}
+      {/* Bookings Cards (< lg / iPad Portrait) + Table (>= lg) */}
       <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto">
+        {/* Version Cartes Tactiles sur Tablette Portrait / Mobile */}
+        <div className="lg:hidden divide-y divide-stone-100">
+          {filteredBookings.length > 0 ? (
+            filteredBookings.map((b) => {
+              const bId = b.id || b._id;
+              const badge = getStatusBadge(b.status);
+              const isLoading = actionLoading === bId;
+
+              return (
+                <div key={bId} className="p-4 sm:p-5 space-y-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-mono font-bold text-champagne-dark uppercase tracking-wider block">
+                        {b.bookingReference}
+                      </span>
+                      <h3 className="font-serif text-lg font-bold text-brun truncate">
+                        {b.customer.firstName} {b.customer.lastName}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600 mt-1">
+                        {b.customer.phone && (
+                          <a
+                            href={`tel:${b.customer.phone}`}
+                            className="inline-flex items-center gap-1 underline decoration-stone-300 hover:text-brun"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-champagne-dark shrink-0" />
+                            <span>{b.customer.phone}</span>
+                          </a>
+                        )}
+                        {b.customer.instagram && (
+                          <span className="font-mono text-champagne-dark font-medium">
+                            {b.customer.instagram}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0 space-y-1">
+                      <span
+                        className={`inline-block px-2.5 py-1 rounded-full text-xs ${badge.color}`}
+                      >
+                        {badge.label}
+                      </span>
+                      <div className="font-serif font-bold text-sm text-brun">
+                        {formatPrice(b.totalPrice)}
+                      </div>
+                      <div className="text-[11px] text-champagne-dark font-medium">
+                        Acompte : {formatPrice(b.depositAmount)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {b.depositDeclared && b.status === "PENDING_PAYMENT" && (
+                    <div className="text-xs text-emerald-800 font-bold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 inline-block">
+                      Acompte reçu déclaré ({b.depositDeclaredMethod || "Virement"})
+                    </div>
+                  )}
+
+                  <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-bold text-brun text-sm">
+                        {b.service.name}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-stone-500 font-medium">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{formatDuration(b.totalDuration)}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-stone-700 font-medium">
+                      <Calendar className="w-3.5 h-3.5 text-champagne-dark shrink-0" />
+                      <span>
+                        {formatDateFrench(b.date)} &bull; {b.startTime} - {b.endTime}
+                      </span>
+                    </div>
+
+                    {b.selectedOptions && b.selectedOptions.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {b.selectedOptions.map((opt, optIdx) => (
+                          <span
+                            key={optIdx}
+                            className={`text-[11px] px-2 py-0.5 rounded-lg ${
+                              opt.name === "Couleur des mèches"
+                                ? "font-semibold text-champagne-dark bg-champagne-light/70"
+                                : "text-stone-600 bg-white border border-stone-200"
+                            }`}
+                          >
+                            {opt.name} : {opt.choice}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {["PENDING_APPROVAL", "PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {b.status === "PENDING_APPROVAL" && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handleApprove(bId)}
+                            className="flex-1 min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Valider la demande</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => setRejectBooking(b)}
+                            className="min-h-[44px] bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>Refuser</span>
+                          </button>
+                        </>
+                      )}
+
+                      {b.status === "PENDING_PAYMENT" && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handleMarkPaid(bId)}
+                            className="flex-1 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                          >
+                            Valider acompte reçu ({formatPrice(b.depositAmount ?? 10)})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const liveUrl = normalizeBookingPaymentUrl(
+                                b.stripePaymentUrl,
+                                b.bookingReference,
+                                null,
+                                typeof window !== "undefined" ? window.location.origin : ""
+                              );
+                              try {
+                                await navigator.clipboard.writeText(liveUrl);
+                                showToast("Lien d'acompte en ligne copié !");
+                              } catch (_) {
+                                showToast(liveUrl);
+                              }
+                            }}
+                            title="Copier le lien d'acompte en ligne"
+                            className="min-h-[44px] px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-brun text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-champagne-dark" />
+                            <span>Copier lien</span>
+                          </button>
+                        </>
+                      )}
+
+                      {["CONFIRMED", "PENDING_PAYMENT"].includes(b.status) && (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => handleCancel(bId)}
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-200 text-stone-600 hover:text-red-700 hover:border-red-200 hover:bg-red-50 text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <Ban className="w-4 h-4" />
+                          <span>Annuler</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-12 px-4 text-center text-sm text-stone-500 font-light">
+              Aucune réservation ne correspond à vos critères de recherche.
+            </div>
+          )}
+        </div>
+
+        {/* Version Tableau sur Grand Écran / iPad Paysage */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 font-semibold uppercase tracking-wider">
               <tr>
@@ -296,9 +496,14 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                             {b.customer.instagram}
                           </div>
                         )}
-                        <div className="text-[11px] text-stone-500">
-                          {b.customer.phone}
-                        </div>
+                        {b.customer.phone && (
+                          <a
+                            href={`tel:${b.customer.phone}`}
+                            className="text-[11px] text-stone-500 hover:text-brun underline decoration-stone-300"
+                          >
+                            {b.customer.phone}
+                          </a>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-medium text-brun">{b.service.name}</div>
@@ -349,14 +554,15 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end space-x-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
                           {/* Approve (if PENDING_APPROVAL) */}
                           {b.status === "PENDING_APPROVAL" && (
                             <button
+                              type="button"
                               disabled={isLoading}
                               onClick={() => handleApprove(bId)}
                               title="Valider et envoyer SMS/email d'acompte"
-                              className="bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors inline-flex items-center space-x-1"
+                              className="min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-xl text-[11px] font-semibold transition-colors inline-flex items-center space-x-1 cursor-pointer"
                             >
                               <Check className="w-3.5 h-3.5" />
                               <span>Valider</span>
@@ -366,37 +572,65 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                           {/* Reject (if PENDING_APPROVAL) */}
                           {b.status === "PENDING_APPROVAL" && (
                             <button
+                              type="button"
                               disabled={isLoading}
                               onClick={() => setRejectBooking(b)}
                               title="Refuser et notifier la cliente par SMS/email"
-                              className="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors"
+                              className="min-h-[44px] bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-xl text-[11px] font-semibold transition-colors inline-flex items-center space-x-1 cursor-pointer"
                             >
-                              <X className="w-3.5 h-3.5 inline mr-0.5" />
+                              <X className="w-3.5 h-3.5" />
                               <span>Refuser</span>
                             </button>
                           )}
 
                           {/* Mark Paid (if PENDING_PAYMENT) */}
                           {b.status === "PENDING_PAYMENT" && (
-                            <button
-                              disabled={isLoading}
-                              onClick={() => handleMarkPaid(bId)}
-                              title={`Confirmer avoir bien reçu les ${formatPrice(b.depositAmount ?? 10)} d'acompte (Wero, Revolut, PayPal)`}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors shadow-2xs"
-                            >
-                              Valider acompte reçu ({formatPrice(b.depositAmount ?? 10)})
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const liveUrl = normalizeBookingPaymentUrl(
+                                    b.stripePaymentUrl,
+                                    b.bookingReference,
+                                    null,
+                                    typeof window !== "undefined" ? window.location.origin : ""
+                                  );
+                                  try {
+                                    await navigator.clipboard.writeText(liveUrl);
+                                    showToast("Lien d'acompte en ligne copié !");
+                                  } catch (_) {
+                                    showToast(liveUrl);
+                                  }
+                                }}
+                                title="Copier le lien d'acompte en ligne"
+                                className="min-h-[44px] px-2.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-brun text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-champagne-dark" />
+                                <span>Lien</span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isLoading}
+                                onClick={() => handleMarkPaid(bId)}
+                                title={`Confirmer avoir bien reçu les ${formatPrice(b.depositAmount ?? 10)} d'acompte (Wero, Revolut, PayPal)`}
+                                className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-[11px] font-semibold transition-colors shadow-2xs cursor-pointer"
+                              >
+                                Valider acompte reçu ({formatPrice(b.depositAmount ?? 10)})
+                              </button>
+                            </>
                           )}
 
                           {/* Cancel (if CONFIRMED or PENDING_PAYMENT) */}
                           {["CONFIRMED", "PENDING_PAYMENT"].includes(b.status) && (
                             <button
+                              type="button"
                               disabled={isLoading}
                               onClick={() => handleCancel(bId)}
                               title="Annuler le rendez-vous"
-                              className="text-stone-400 hover:text-red-600 p-1.5 rounded-lg transition-colors"
+                              aria-label="Annuler le rendez-vous"
+                              className="w-11 h-11 inline-flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                             >
-                              <Ban className="w-3.5 h-3.5" />
+                              <Ban className="w-4 h-4" />
                             </button>
                           )}
                         </div>
@@ -418,32 +652,56 @@ export default function AdminBookingsView({ initialBookings = [] }) {
 
       {/* Reject Modal */}
       {rejectBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-stone-300 shadow-2xl space-y-4">
-            <h3 className="font-serif text-xl font-bold text-brun">
-              Refuser la réservation {rejectBooking.bookingReference}
-            </h3>
-            <p className="text-xs text-stone-500 font-light">
-              La cliente recevra un e-mail d'information et le créneau sera immédiatement libéré.
-            </p>
-            <textarea
-              rows={3}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Motif (ex: indisponibilité de dernière minute)..."
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-brun focus:outline-none"
-            />
-            <div className="flex justify-end space-x-3 pt-2">
+        <div
+          onClick={() => setRejectBooking(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full max-h-[88dvh] flex flex-col overflow-hidden border border-stone-300 shadow-2xl"
+          >
+            <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
+              <h3 className="font-serif text-xl font-bold text-brun">
+                Refuser {rejectBooking.bookingReference}
+              </h3>
               <button
+                type="button"
                 onClick={() => setRejectBooking(null)}
-                className="px-4 py-2 rounded-xl text-xs text-stone-600 hover:bg-stone-100"
+                aria-label="Fermer"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 inline-flex items-center justify-center text-brun cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-4">
+              <p className="text-sm text-stone-600 font-light">
+                La cliente recevra un e-mail d&apos;information et le créneau sera immédiatement libéré.
+              </p>
+              <textarea
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Motif (ex: indisponibilité de dernière minute)..."
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+              />
+            </div>
+
+            <div className="px-6 py-4 border-t border-stone-200 bg-stone-50 flex flex-wrap justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setRejectBooking(null)}
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-200 cursor-pointer"
               >
                 Annuler
               </button>
               <button
+                type="button"
                 onClick={handleConfirmReject}
                 disabled={actionLoading === (rejectBooking.id || rejectBooking._id)}
-                className="bg-red-700 hover:bg-red-800 text-white px-5 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+                className="min-h-[44px] bg-red-700 hover:bg-red-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 cursor-pointer"
               >
                 {actionLoading === (rejectBooking.id || rejectBooking._id)
                   ? "Enregistrement..."

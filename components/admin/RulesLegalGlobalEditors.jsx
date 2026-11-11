@@ -629,7 +629,7 @@ export function GlobalEditorTab({
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveCondition(idx, "up")}
-                    className="p-1.5 rounded-lg bg-stone-50 border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-stone-50 border border-stone-300 disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>
@@ -637,7 +637,7 @@ export function GlobalEditorTab({
                     type="button"
                     disabled={idx === condItems.length - 1}
                     onClick={() => moveCondition(idx, "down")}
-                    className="p-1.5 rounded-lg bg-stone-50 border border-stone-300 disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-stone-50 border border-stone-300 disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
                   </button>
@@ -651,7 +651,7 @@ export function GlobalEditorTab({
                     );
                     updateFooter({ conditionsItems: next });
                   }}
-                  className="flex-1 bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-brun"
+                  className="flex-1 min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-base lg:text-sm text-brun"
                 />
                 <div className="flex items-center gap-2 shrink-0">
                   <ToggleVisibilityButton

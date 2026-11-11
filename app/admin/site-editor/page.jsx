@@ -1,4 +1,4 @@
-import { getSettings } from "@/lib/store";
+import { getSettings, getServices } from "@/lib/store";
 import AdminSiteEditorView from "@/components/AdminSiteEditorView";
 
 export const dynamic = "force-dynamic";
@@ -10,14 +10,16 @@ export const metadata = {
 };
 
 export default async function AdminSiteEditorPage({ searchParams }) {
-  const [settings, params] = await Promise.all([
+  const [settings, services, params] = await Promise.all([
     getSettings(),
+    getServices(),
     searchParams || Promise.resolve({}),
   ]);
 
   return (
     <AdminSiteEditorView
       initialSettings={settings}
+      services={services}
       initialTab={params?.tab || "pages"}
     />
   );

@@ -25,6 +25,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  X,
 } from "lucide-react";
 import {
   DEFAULT_EMAIL_LOGO_URL,
@@ -52,14 +53,14 @@ function ColorControl({ label, value, onChange, fallback = "#FFFFFF" }) {
           type="color"
           value={displayColor.length === 4 ? fallback : displayColor}
           onChange={(e) => onChange(e.target.value)}
-          className="w-9 h-9 rounded-lg border border-stone-300 cursor-pointer shrink-0 bg-white p-0.5"
+          className="w-11 h-11 rounded-xl border border-stone-300 cursor-pointer shrink-0 bg-white p-0.5"
         />
         <input
           type="text"
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={fallback}
-          className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-brun"
+          className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-xs font-mono text-brun"
         />
       </div>
     </div>
@@ -84,6 +85,7 @@ export default function EmailEditorTab({
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("approved");
   const [subPanel, setSubPanel] = useState("content"); // "content" | "style" | "headerFooter"
   const [previewDevice, setPreviewDevice] = useState("desktop"); // "desktop" | "mobile"
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBlockIdx, setUploadingBlockIdx] = useState(null);
   const [testEmailAddress, setTestEmailAddress] = useState(
@@ -96,6 +98,17 @@ export default function EmailEditorTab({
       setTestEmailAddress(salonSettings.email);
     }
   }, [salonSettings?.email, testEmailAddress]);
+
+  useEffect(() => {
+    if (!showPreviewModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setShowPreviewModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showPreviewModal]);
 
   const logoFileRef = useRef(null);
 
@@ -400,8 +413,16 @@ export default function EmailEditorTab({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() => setShowPreviewModal(true)}
+              className="xl:hidden min-h-[44px] inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-champagne hover:bg-champagne-light text-brun-dark border border-champagne-dark text-xs sm:text-sm font-bold cursor-pointer shadow-2xs"
+            >
+              <Eye className="w-4 h-4 shrink-0" />
+              <span>Aperçu Gmail en direct</span>
+            </button>
+            <button
+              type="button"
               onClick={handleResetActiveTemplateOnly}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs sm:text-sm font-semibold cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs sm:text-sm font-semibold cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Rétablir ce modèle</span>
@@ -410,7 +431,7 @@ export default function EmailEditorTab({
               <button
                 type="button"
                 onClick={onResetEmails}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs sm:text-sm font-semibold cursor-pointer"
+                className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs sm:text-sm font-semibold cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Tout réinitialiser</span>
@@ -424,7 +445,7 @@ export default function EmailEditorTab({
           <span className="text-xs font-bold uppercase tracking-wider text-stone-500 block">
             1. Choisissez l&apos;e-mail à modifier :
           </span>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
             {EMAIL_TEMPLATE_META.map((meta) => {
               const active = selectedTemplateKey === meta.key;
               return (
@@ -432,7 +453,7 @@ export default function EmailEditorTab({
                   key={meta.key}
                   type="button"
                   onClick={() => setSelectedTemplateKey(meta.key)}
-                  className={`px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold border text-left transition-all cursor-pointer ${
+                  className={`min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border text-left transition-all cursor-pointer ${
                     active
                       ? "bg-brun text-creme border-brun shadow-sm"
                       : "bg-stone-50 text-brun border-stone-200 hover:bg-champagne-light/40 hover:border-champagne"
@@ -459,7 +480,7 @@ export default function EmailEditorTab({
                 type="button"
                 onClick={() => applyPreset(preset)}
                 title={preset.description}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-xs font-semibold text-brun transition-colors cursor-pointer"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-xs font-semibold text-brun transition-colors cursor-pointer"
               >
                 {preset.label}
               </button>
@@ -468,12 +489,12 @@ export default function EmailEditorTab({
         </div>
 
         {/* Navigation interne Studio + Test Email */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setSubPanel("content")}
-              className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
+              className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
                 subPanel === "content"
                   ? "bg-champagne text-brun-dark border-champagne-dark shadow-2xs"
                   : "bg-white text-brun border-stone-300 hover:bg-stone-50"
@@ -486,7 +507,7 @@ export default function EmailEditorTab({
             <button
               type="button"
               onClick={() => setSubPanel("style")}
-              className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
+              className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
                 subPanel === "style"
                   ? "bg-champagne text-brun-dark border-champagne-dark shadow-2xs"
                   : "bg-white text-brun border-stone-300 hover:bg-stone-50"
@@ -499,7 +520,7 @@ export default function EmailEditorTab({
             <button
               type="button"
               onClick={() => setSubPanel("headerFooter")}
-              className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
+              className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
                 subPanel === "headerFooter"
                   ? "bg-champagne text-brun-dark border-champagne-dark shadow-2xs"
                   : "bg-white text-brun border-stone-300 hover:bg-stone-50"
@@ -516,13 +537,13 @@ export default function EmailEditorTab({
               value={testEmailAddress}
               onChange={(e) => setTestEmailAddress(e.target.value)}
               placeholder="Adresse pour tester (optionnel)"
-              className="bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-brun w-52"
+              className="flex-1 sm:flex-none min-w-[200px] min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-base lg:text-sm text-brun sm:w-56"
             />
             <button
               type="button"
               disabled={sendingTest}
               onClick={handleSendTestEmail}
-              className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors disabled:opacity-50 cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors disabled:opacity-50 cursor-pointer"
             >
               {sendingTest ? (
                 <Loader2 className="w-4 h-4 animate-spin text-champagne" />
@@ -560,7 +581,7 @@ export default function EmailEditorTab({
                       onChange={(e) =>
                         updateActiveTemplate({ subject: e.target.value })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-brun"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
                     />
                   </div>
                   <div>
@@ -573,7 +594,7 @@ export default function EmailEditorTab({
                       onChange={(e) =>
                         updateActiveTemplate({ preheader: e.target.value })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm text-brun"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
                     />
                   </div>
                 </div>
@@ -610,7 +631,7 @@ export default function EmailEditorTab({
                             type="button"
                             disabled={bIdx === 0}
                             onClick={() => moveBlock(bIdx, "up")}
-                            className="p-1.5 rounded-lg bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-30 cursor-pointer"
+                            className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-30 cursor-pointer"
                             title="Monter ce bloc"
                           >
                             <ArrowUp className="w-4 h-4" />
@@ -619,7 +640,7 @@ export default function EmailEditorTab({
                             type="button"
                             disabled={bIdx === (activeTemplate.blocks?.length || 1) - 1}
                             onClick={() => moveBlock(bIdx, "down")}
-                            className="p-1.5 rounded-lg bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-30 cursor-pointer"
+                            className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-30 cursor-pointer"
                             title="Descendre ce bloc"
                           >
                             <ArrowDown className="w-4 h-4" />
@@ -635,7 +656,7 @@ export default function EmailEditorTab({
                                   boxed: block.boxed === false,
                                 })
                               }
-                              className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-colors ${
+                              className={`min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-colors ${
                                 block.boxed !== false
                                   ? "bg-champagne-light/80 text-brun border-champagne-dark"
                                   : "bg-stone-100 text-stone-700 border-stone-300 hover:bg-stone-200"
@@ -659,10 +680,10 @@ export default function EmailEditorTab({
                           <button
                             type="button"
                             onClick={() => removeBlock(bIdx)}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold cursor-pointer"
+                            className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold cursor-pointer"
                             title="Supprimer ce bloc"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -808,7 +829,7 @@ export default function EmailEditorTab({
                                       updateBlock(bIdx, { rows });
                                     }}
                                     placeholder="Libellé (ex: Coiffure)"
-                                    className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-brun"
+                                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                                   />
                                 </div>
                                 <div className="sm:col-span-5">
@@ -821,7 +842,7 @@ export default function EmailEditorTab({
                                       updateBlock(bIdx, { rows });
                                     }}
                                     placeholder="Valeur (ex: {coiffure})"
-                                    className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-brun"
+                                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
                                   />
                                 </div>
                                 <div className="sm:col-span-3 flex items-center justify-end gap-1.5">
@@ -833,7 +854,7 @@ export default function EmailEditorTab({
                                       updateBlock(bIdx, { rows });
                                     }}
                                     title="Mettre en valeur"
-                                    className={`px-2 py-1 rounded-lg text-xs font-bold border cursor-pointer ${
+                                    className={`min-h-[44px] px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer ${
                                       row.highlight
                                         ? "bg-champagne text-brun-dark border-champagne-dark"
                                         : "bg-white text-stone-600 border-stone-300"
@@ -851,13 +872,13 @@ export default function EmailEditorTab({
                                       };
                                       updateBlock(bIdx, { rows });
                                     }}
-                                    className="p-1.5 rounded-lg bg-white border border-stone-300 text-brun cursor-pointer"
+                                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white border border-stone-300 text-brun cursor-pointer"
                                     title="Afficher / Masquer cette ligne"
                                   >
                                     {row.visible !== false ? (
-                                      <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                                      <Eye className="w-4 h-4 text-emerald-700" />
                                     ) : (
-                                      <EyeOff className="w-3.5 h-3.5 text-stone-500" />
+                                      <EyeOff className="w-4 h-4 text-stone-500" />
                                     )}
                                   </button>
                                   <button
@@ -868,10 +889,10 @@ export default function EmailEditorTab({
                                       );
                                       updateBlock(bIdx, { rows });
                                     }}
-                                    className="p-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 cursor-pointer"
+                                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-700 cursor-pointer"
                                     title="Supprimer cette ligne"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </div>
                               </div>
@@ -1799,7 +1820,7 @@ export default function EmailEditorTab({
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("desktop")}
-                  className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                  className={`min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
                     previewDevice === "desktop"
                       ? "bg-brun text-creme"
                       : "text-stone-600 hover:bg-stone-100"
@@ -1811,7 +1832,7 @@ export default function EmailEditorTab({
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("mobile")}
-                  className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                  className={`min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
                     previewDevice === "mobile"
                       ? "bg-brun text-creme"
                       : "text-stone-600 hover:bg-stone-100"
@@ -1854,6 +1875,95 @@ export default function EmailEditorTab({
           </div>
         </div>
       </div>
+
+      {/* Modal Aperçu Gmail en Direct pour iPad / Tablette (< xl) */}
+      {showPreviewModal && (
+        <div
+          onClick={() => setShowPreviewModal(false)}
+          className="xl:hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-3xl w-full max-h-[90dvh] flex flex-col overflow-hidden border border-stone-300 shadow-2xl"
+          >
+            <div className="px-4 sm:px-6 py-3.5 bg-stone-100 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center space-x-2 min-w-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-sm font-bold text-brun truncate">
+                  Aperçu Gmail en direct
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-stone-200">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("desktop")}
+                    className={`min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                      previewDevice === "desktop"
+                        ? "bg-brun text-creme"
+                        : "text-stone-600 hover:bg-stone-100"
+                    }`}
+                  >
+                    <Monitor className="w-3.5 h-3.5" />
+                    <span>Ordi</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("mobile")}
+                    className={`min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                      previewDevice === "mobile"
+                        ? "bg-brun text-creme"
+                        : "text-stone-600 hover:bg-stone-100"
+                    }`}
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>Mobile</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(false)}
+                  aria-label="Fermer l'aperçu"
+                  className="w-11 h-11 rounded-full bg-white hover:bg-stone-200 border border-stone-300 inline-flex items-center justify-center text-brun cursor-pointer shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="px-4 sm:px-6 py-3 border-b border-stone-200 bg-white space-y-1 text-xs shrink-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-bold text-brun truncate">
+                  {previewRendered.subject}
+                </span>
+                <span className="text-[11px] text-stone-400 shrink-0">À l&apos;instant</span>
+              </div>
+              <p className="text-[11px] text-stone-500 truncate">
+                De : <strong>YDM Coiffure</strong> &bull; Aperçu : {previewRendered.preheader}
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain bg-stone-200/70 p-3 sm:p-4 flex justify-center">
+              <div
+                className={`bg-white rounded-xl overflow-hidden shadow-inner border border-stone-300 transition-all ${
+                  previewDevice === "mobile" ? "w-[360px] max-w-full" : "w-full"
+                }`}
+              >
+                <iframe
+                  title="Aperçu mobile et tablette de la carte e-mail Gmail"
+                  srcDoc={previewRendered.html}
+                  className="w-full h-[560px] sm:h-[640px] border-0 bg-transparent"
+                  sandbox="allow-same-origin"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

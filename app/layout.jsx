@@ -9,8 +9,14 @@ import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 
 export const dynamic = "force-dynamic";
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata = {
-  metadataBase: new URL("https://ydmcoiffure.com"),
+  metadataBase: new URL("https://www.ydmcoiffure.com"),
   title: {
     default: "YDM Coiffure (@ydm_coiffure) | Coiffeuse Afro à La Roche-sur-Yon",
     template: "%s | YDM Coiffure",
@@ -36,17 +42,17 @@ export const metadata = {
     "coiffure protectrice",
     "reservation tresse afro",
   ],
-  authors: [{ name: "YDM Coiffure", url: "https://ydmcoiffure.com" }],
+  authors: [{ name: "YDM Coiffure", url: "https://www.ydmcoiffure.com" }],
   creator: "YDM Coiffure",
   publisher: "YDM Coiffure",
   alternates: {
-    canonical: "https://ydmcoiffure.com",
+    canonical: "https://www.ydmcoiffure.com",
   },
   openGraph: {
     title: "YDM Coiffure (@ydm_coiffure) | Coiffeuse Afro à La Roche-sur-Yon",
     description:
       "Tresses protectrices et coiffures afro haut de gamme à La Roche-sur-Yon : Knotless, Fulani, Boho Braids, vanilles et nattes collées. Prise de rendez-vous simple en ligne.",
-    url: "https://ydmcoiffure.com",
+    url: "https://www.ydmcoiffure.com",
     siteName: "YDM Coiffure",
     locale: "fr_FR",
     type: "website",
@@ -88,12 +94,12 @@ const jsonLdData = {
   "@graph": [
     {
       "@type": "HairSalon",
-      "@id": "https://ydmcoiffure.com/#salon",
+      "@id": "https://www.ydmcoiffure.com/#salon",
       name: "YDM Coiffure",
       alternateName: ["@ydm_coiffure", "YDM Coiffure La Roche-sur-Yon"],
-      url: "https://ydmcoiffure.com",
-      logo: "https://ydmcoiffure.com/logo.png",
-      image: "https://ydmcoiffure.com/logo.png",
+      url: "https://www.ydmcoiffure.com",
+      logo: "https://www.ydmcoiffure.com/logo.png",
+      image: "https://www.ydmcoiffure.com/logo.png",
       description:
         "Coiffeuse afro à La Roche-sur-Yon spécialisée dans les tresses protectrices : Knotless, Fulani, Boho Braids, vanilles, passion twists et nattes collées. Prise de rendez-vous en ligne avec validation personnalisée.",
       telephone: "+33600000000",
@@ -132,13 +138,13 @@ const jsonLdData = {
     },
     {
       "@type": "WebSite",
-      "@id": "https://ydmcoiffure.com/#website",
-      url: "https://ydmcoiffure.com",
+      "@id": "https://www.ydmcoiffure.com/#website",
+      url: "https://www.ydmcoiffure.com",
       name: "YDM Coiffure",
       description:
         "Plateforme officielle de réservation en ligne pour YDM Coiffure (@ydm_coiffure) à La Roche-sur-Yon.",
       publisher: {
-        "@id": "https://ydmcoiffure.com/#salon",
+        "@id": "https://www.ydmcoiffure.com/#salon",
       },
       inLanguage: "fr-FR",
     },

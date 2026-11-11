@@ -195,10 +195,10 @@ export async function POST(request) {
     // 6. Envoi des notifications transactionnelles (Emails & SMS) asynchrones
     try {
       await Promise.allSettled([
-        sendBookingRequestedCustomerEmail(newBooking, settings),
-        sendNewBookingAdminNotification(newBooking, settings),
+        sendBookingRequestedCustomerEmail(newBooking, settings, { request }),
+        sendNewBookingAdminNotification(newBooking, settings, { request }),
         sendBookingRequestedSms(newBooking),
-        sendNewBookingAdminSms(newBooking, settings?.phone),
+        sendNewBookingAdminSms(newBooking, settings?.phone, { request }),
       ]);
     } catch (e) {
       console.warn("Erreur envoi notification e-mail / SMS:", e.message);

@@ -32,7 +32,7 @@ export async function POST(request, { params }) {
     const settings = await getSettings();
     try {
       await Promise.allSettled([
-        sendBookingRejectedEmail(updated || booking, reason, settings),
+        sendBookingRejectedEmail(updated || booking, reason, settings, { request }),
         sendBookingRejectedSms(updated || booking, reason),
       ]);
     } catch (e) {

@@ -1,5 +1,5 @@
 export default function robots() {
-  const baseUrl = "https://ydmcoiffure.com";
+  const baseUrl = "https://www.ydmcoiffure.com";
 
   return {
     rules: [

@@ -74,6 +74,7 @@ const TABS = [
 
 export default function AdminSiteEditorView({
   initialSettings = {},
+  services = [],
   initialTab = "pages",
 }) {
   const router = useRouter();
@@ -287,7 +288,7 @@ export default function AdminSiteEditorView({
   };
 
   return (
-    <div className="space-y-6 max-w-6xl pb-28">
+    <div className="space-y-6 max-w-6xl pb-10">
       {/* Notification toast */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3.5 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2.5 text-sm font-semibold animate-fadeIn">
@@ -356,7 +357,7 @@ export default function AdminSiteEditorView({
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center space-x-2 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
           >
             <span>Voir le site</span>
             <ExternalLink className="w-4 h-4" />
@@ -366,7 +367,7 @@ export default function AdminSiteEditorView({
             type="button"
             disabled={saving}
             onClick={handleSaveAll}
-            className={`inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-md cursor-pointer ${
+            className={`min-h-[44px] inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-md cursor-pointer ${
               hasUnsavedChanges
                 ? "bg-champagne-dark hover:bg-brun text-white ring-4 ring-champagne/40"
                 : "bg-brun hover:bg-brun-dark text-creme"
@@ -388,9 +389,70 @@ export default function AdminSiteEditorView({
         </div>
       </div>
 
-      {/* Menu des onglets grand format très lisible */}
-      <div className="bg-white rounded-2xl p-3 border-2 border-stone-200 shadow-2xs">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+      {/* Menu des onglets : Navigation tactile rapide sur tablette (< xl) + Grille complète sur desktop (>= xl) */}
+      <div className="bg-white rounded-2xl p-3 border-2 border-stone-200 shadow-2xs space-y-2.5">
+        <div className="xl:hidden space-y-2.5">
+          <div>
+            <label htmlFor="site-editor-section-select" className="sr-only">
+              Section du site à modifier
+            </label>
+            <select
+              id="site-editor-section-select"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base font-semibold text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+            >
+              {TABS.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div
+            role="tablist"
+            aria-label="Sections du site"
+            className="flex overflow-x-auto no-scrollbar snap-x gap-2 pb-1"
+          >
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const isMaintTab = tab.id === "maintenance";
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-none snap-start min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                    isActive
+                      ? isMaintTab && maintenance.enabled
+                        ? "bg-red-600 text-white border-red-700 shadow-sm"
+                        : "bg-brun text-creme border-brun shadow-sm"
+                      : isMaintTab && maintenance.enabled
+                      ? "bg-red-50 text-red-800 border-red-300 hover:bg-red-100"
+                      : "bg-stone-50 text-brun border-stone-200 hover:bg-champagne-light/50 hover:border-champagne"
+                  }`}
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive
+                        ? "text-champagne"
+                        : isMaintTab && maintenance.enabled
+                        ? "text-red-600"
+                        : "text-champagne-dark"
+                    }`}
+                  />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="hidden xl:grid xl:grid-cols-5 gap-2">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -400,7 +462,7 @@ export default function AdminSiteEditorView({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2.5 px-3.5 py-3 rounded-xl text-left text-sm font-semibold transition-all cursor-pointer border ${
+                className={`min-h-[44px] flex items-center space-x-2.5 px-3.5 py-3 rounded-xl text-left text-sm font-semibold transition-all cursor-pointer border ${
                   isActive
                     ? isMaintTab && maintenance.enabled
                       ? "bg-red-600 text-white border-red-700 shadow-sm"
@@ -528,6 +590,10 @@ export default function AdminSiteEditorView({
           }}
           markChanged={markChanged}
           showToast={showToast}
+          availableServices={services}
+          onSaveNow={handleSaveAll}
+          hasUnsavedChanges={hasUnsavedChanges}
+          savingNow={saving}
           onResetPage={() =>
             confirmResetSection("En-tête & Bas de page Galerie", () =>
               updateSiteContentSection(
@@ -713,10 +779,10 @@ export default function AdminSiteEditorView({
         />
       )}
 
-      {/* Barre flottante en bas dès qu'il y a des modifications non enregistrées */}
+      {/* Barre flottante sticky en bas dès qu'il y a des modifications non enregistrées */}
       {hasUnsavedChanges && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-72 z-40">
-          <div className="max-w-5xl mx-auto bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]">
+          <div className="bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-sm sm:text-base font-semibold">
               Vous avez des modifications non publiées sur le site.
             </span>
@@ -724,7 +790,7 @@ export default function AdminSiteEditorView({
               type="button"
               disabled={saving}
               onClick={handleSaveAll}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

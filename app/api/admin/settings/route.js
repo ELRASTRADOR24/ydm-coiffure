@@ -36,6 +36,7 @@ export async function PUT(request) {
     revalidatePath("/politique-confidentialite");
     revalidatePath("/reserver");
     revalidatePath("/admin");
+    revalidatePath("/admin/gallery");
     revalidatePath("/admin/settings");
     revalidatePath("/admin/site-editor");
     revalidatePath("/admin/emails");

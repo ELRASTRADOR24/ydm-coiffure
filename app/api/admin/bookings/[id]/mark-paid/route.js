@@ -35,7 +35,7 @@ export async function POST(request, { params }) {
     const settings = await getSettings();
     try {
       await Promise.allSettled([
-        sendBookingConfirmedEmail(updated || booking, settings),
+        sendBookingConfirmedEmail(updated || booking, settings, { request }),
         sendBookingConfirmedSms(updated || booking),
       ]);
     } catch (e) {

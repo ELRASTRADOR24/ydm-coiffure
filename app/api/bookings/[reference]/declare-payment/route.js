@@ -83,7 +83,8 @@ export async function POST(request, { params }) {
         await sendDepositDeclaredAdminSms(
           updated || booking,
           method,
-          settings?.phone
+          settings?.phone,
+          { request }
         );
       } catch (e) {
         console.warn("Erreur envoi SMS admin déclaration:", e.message);

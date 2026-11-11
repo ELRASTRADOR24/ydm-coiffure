@@ -76,7 +76,7 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl pb-28">
+    <div className="space-y-6 max-w-7xl pb-10">
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3.5 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2.5 text-sm font-semibold animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -97,7 +97,7 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <Link
             href="/admin/site-editor"
-            className="inline-flex items-center space-x-2 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
           >
             <span>Éditeur du site</span>
             <ArrowRight className="w-4 h-4" />
@@ -107,7 +107,7 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className={`inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-md cursor-pointer ${
+            className={`min-h-[44px] inline-flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-md cursor-pointer ${
               hasUnsavedChanges
                 ? "bg-champagne-dark hover:bg-brun text-white ring-4 ring-champagne/40"
                 : "bg-brun hover:bg-brun-dark text-creme"
@@ -138,8 +138,8 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
       />
 
       {hasUnsavedChanges && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-72 z-40">
-          <div className="max-w-5xl mx-auto bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]">
+          <div className="bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-sm sm:text-base font-semibold">
               Modifications sur vos cartes e-mail prêtes à être enregistrées.
             </span>
@@ -147,7 +147,7 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
               type="button"
               disabled={saving}
               onClick={handleSave}
-              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

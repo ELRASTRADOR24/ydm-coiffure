@@ -13,6 +13,7 @@ import {
   isSpecificSlotAvailable,
   calculateAvailableSlots,
 } from "../lib/availabilityEngine.js";
+import { buildBookingStatusUrl } from "../lib/appUrl.js";
 
 test("End-to-End Booking Lifecycle Workflow", async () => {
   const services = await getServices(true);
@@ -95,9 +96,12 @@ test("End-to-End Booking Lifecycle Workflow", async () => {
   const approved = await updateBooking(bookingId, {
     status: "PENDING_PAYMENT",
     holdExpiresAt: new Date(Date.now() + holdHours * 3600 * 1000).toISOString(),
-    stripePaymentUrl: `http://localhost:3000/reserver/statut/${booking.bookingReference}`,
+    stripePaymentUrl: buildBookingStatusUrl(booking.bookingReference),
   });
   assert.equal(approved.status, "PENDING_PAYMENT");
+  assert.ok(
+    approved.stripePaymentUrl.startsWith("https://www.ydmcoiffure.com/reserver/statut/")
+  );
 
   // 5. Direct deposit confirmed by braider (Wero / Revolut / PayPal) -> CONFIRMED
   const confirmed = await updateBooking(bookingId, {

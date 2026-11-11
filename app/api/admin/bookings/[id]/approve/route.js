@@ -42,7 +42,10 @@ export async function POST(request, { params }) {
     const holdExpiresAt = new Date(Date.now() + holdHours * 60 * 60 * 1000);
 
     // Génération du lien direct de suivi & règlement d'acompte (Wero, Revolut, PayPal)
-    const checkoutSession = await createDepositCheckoutSession({ booking });
+    const checkoutSession = await createDepositCheckoutSession({
+      booking,
+      request,
+    });
 
     // Mise à jour de la réservation
     const updated = await updateBooking(id, {
@@ -59,12 +62,14 @@ export async function POST(request, { params }) {
           updated || booking,
           checkoutSession.url,
           holdHours,
-          settings
+          settings,
+          { request }
         ),
         sendBookingApprovedPaymentSms(
           updated || booking,
           checkoutSession.url,
-          holdHours
+          holdHours,
+          { request }
         ),
       ]);
     } catch (e) {

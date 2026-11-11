@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { getSettings } from "@/lib/store";
+import { resolvePublicAppUrl } from "@/lib/appUrl";
 import { sendEmail, getAdminNotificationEmail } from "@/lib/email";
 import {
   getResolvedEmailSettings,
@@ -23,7 +24,12 @@ export async function POST(request) {
       ? getResolvedEmailSettings({ emailSettings })
       : getResolvedEmailSettings(currentSettings);
 
-    const sampleVars = buildSamplePreviewVariables(currentSettings);
+    const appUrl = resolvePublicAppUrl(request);
+    const sampleVars = buildSamplePreviewVariables(
+      currentSettings,
+      appUrl,
+      request
+    );
     const rendered = renderEmailFromTemplate({
       templateKey,
       emailSettings: resolvedEmailSettings,

@@ -5,6 +5,11 @@ import Image from "next/image";
 import { ZoomIn, Play, Film, Image as ImageIcon } from "lucide-react";
 import LightboxModal from "./LightboxModal";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
+import {
+  resolveGalleryPosterUrl,
+  canUseNextImageUrl,
+  extractGalleryFilterCategories,
+} from "@/lib/uploadMedia";
 
 export default function GalleryGrid({ initialItems, galleryTouched = false }) {
   const [rawItems, setRawItems] = useState(
@@ -31,25 +36,13 @@ export default function GalleryGrid({ initialItems, galleryTouched = false }) {
 
   const mediaItems = rawItems.filter((item) => item && item.visible !== false);
 
-  const categories = [
-    { key: "ALL", label: "Toutes" },
-    { key: "VIDEO", label: "Vidéos", isType: true },
-    { key: "PHOTO", label: "Photos", isType: true },
-    { key: "Knotless", label: "Knotless" },
-    { key: "French Curls", label: "French Curls" },
-    { key: "Fulani", label: "Fulani" },
-    { key: "Boho Braids", label: "Boho Braids" },
-    { key: "Vanilles", label: "Vanilles" },
-    { key: "Nattes collées", label: "Nattes collées" },
-    { key: "Cornrows", label: "Cornrows" },
-    { key: "Soft Locs", label: "Soft Locs" },
-  ];
+  const categories = extractGalleryFilterCategories(mediaItems);
 
   const filteredMedia = mediaItems.filter((item) => {
     if (selectedFilter === "ALL") return true;
     if (selectedFilter === "VIDEO") return item.type === "video";
-    if (selectedFilter === "PHOTO") return item.type === "photo";
-    return item.category === selectedFilter;
+    if (selectedFilter === "PHOTO") return item.type !== "video";
+    return (item.category || "").trim() === selectedFilter;
   });
 
   return (
@@ -58,21 +51,12 @@ export default function GalleryGrid({ initialItems, galleryTouched = false }) {
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mb-10 max-w-4xl mx-auto">
         {categories.map((cat) => {
           const isSelected = selectedFilter === cat.key;
-          let count = 0;
-          if (cat.key === "ALL") count = mediaItems.length;
-          else if (cat.key === "VIDEO")
-            count = mediaItems.filter((m) => m.type === "video").length;
-          else if (cat.key === "PHOTO")
-            count = mediaItems.filter((m) => m.type === "photo").length;
-          else count = mediaItems.filter((m) => m.category === cat.key).length;
-
-          if (count === 0) return null;
 
           return (
             <button
               key={cat.key}
               onClick={() => setSelectedFilter(cat.key)}
-              className={`inline-flex items-center space-x-1.5 text-xs sm:text-sm px-3.5 py-2 rounded-xl font-medium uppercase tracking-wider transition-all duration-200 ${
+              className={`min-h-[44px] inline-flex items-center space-x-1.5 text-xs sm:text-sm px-3.5 py-2 rounded-xl font-medium uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                 isSelected
                   ? "bg-brun text-creme shadow-sm font-semibold scale-102"
                   : "bg-white text-stone-600 hover:text-brun hover:border-champagne/60 border border-beige"
@@ -90,7 +74,7 @@ export default function GalleryGrid({ initialItems, galleryTouched = false }) {
                   isSelected ? "bg-champagne text-brun" : "bg-beige text-stone-600"
                 }`}
               >
-                {count}
+                {cat.count}
               </span>
             </button>
           );
@@ -100,6 +84,8 @@ export default function GalleryGrid({ initialItems, galleryTouched = false }) {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
         {filteredMedia.map((item) => {
+          const posterSrc = resolveGalleryPosterUrl(item);
+          const videoSrc = item.videoUrl || item.video || "";
           return (
             <div
               key={item.id || item._id}
@@ -107,13 +93,37 @@ export default function GalleryGrid({ initialItems, galleryTouched = false }) {
               className="group relative cursor-pointer overflow-hidden rounded-3xl bg-beige-light border border-beige shadow-xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
             >
               <div className="relative w-full aspect-[3/4] overflow-hidden bg-stone-900">
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                />
+                {posterSrc ? (
+                  canUseNextImageUrl(posterSrc) ? (
+                    <Image
+                      src={posterSrc}
+                      alt={item.title || "Réalisation YDM Coiffure"}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={posterSrc}
+                      alt={item.title || "Réalisation YDM Coiffure"}
+                      loading="lazy"
+                      className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  )
+                ) : videoSrc ? (
+                  <video
+                    src={`${videoSrc}#t=0.1`}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full object-cover object-center pointer-events-none"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-500">
+                    <ImageIcon className="w-10 h-10" />
+                  </div>
+                )}
 
                 {item.type === "video" && (
                   <div className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-brun/85 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/40 shadow-md group-hover:scale-110 transition-transform">

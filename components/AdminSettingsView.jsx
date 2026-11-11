@@ -63,6 +63,7 @@ export default function AdminSettingsView({ initialSettings }) {
     paymentHoldHours: String(initialSettings?.paymentHoldHours ?? 2),
   });
   const [submitting, setSubmitting] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function AdminSettingsView({ initialSettings }) {
         maxDaysInAdvance: String(initialSettings.maxDaysInAdvance ?? 60),
         paymentHoldHours: String(initialSettings.paymentHoldHours ?? 2),
       });
+      setHasUnsavedChanges(false);
     }
   }, [initialSettings]);
 
@@ -168,6 +170,7 @@ export default function AdminSettingsView({ initialSettings }) {
           paymentHoldHours: String(data.settings.paymentHoldHours ?? Math.round(holdHours)),
         });
         router.refresh();
+        setHasUnsavedChanges(false);
         showToast("Paramètres du salon enregistrés avec succès !");
       } else {
         showToast(data.error || "Impossible d'enregistrer les paramètres. Merci de vérifier la saisie.");
@@ -180,7 +183,7 @@ export default function AdminSettingsView({ initialSettings }) {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8 max-w-4xl pb-24">
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
           <Sparkles className="w-4 h-4 text-champagne" />
@@ -214,14 +217,14 @@ export default function AdminSettingsView({ initialSettings }) {
         <div className="flex flex-wrap gap-2.5 shrink-0">
           <Link
             href="/admin/emails"
-            className="inline-flex items-center space-x-2 bg-white hover:bg-champagne-light text-brun border-2 border-stone-300 hover:border-champagne px-4 py-3 rounded-xl text-sm font-bold shrink-0 transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-white hover:bg-champagne-light text-brun border-2 border-stone-300 hover:border-champagne px-4 py-3 rounded-xl text-sm font-bold shrink-0 transition-colors"
           >
             <Mail className="w-4 h-4 text-champagne-dark" />
             <span>Modifier les cartes Mail</span>
           </Link>
           <Link
             href="/admin/site-editor"
-            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-3 rounded-xl text-sm font-bold shrink-0 transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-3 rounded-xl text-sm font-bold shrink-0 transition-colors"
           >
             <span>Ouvrir l&apos;éditeur du site</span>
             <ArrowRight className="w-4 h-4 text-champagne" />
@@ -229,16 +232,21 @@ export default function AdminSettingsView({ initialSettings }) {
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-8">
+      <form
+        id="admin-settings-form"
+        onChange={() => setHasUnsavedChanges(true)}
+        onSubmit={handleSave}
+        className="space-y-8"
+      >
         {/* SECTION 1: PUBLIC IDENTITY */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-5">
           <h2 className="font-serif text-xl font-bold text-brun">
             Profil & Coordonnées Publiques
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Nom du Salon
               </label>
               <input
@@ -247,12 +255,12 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, salonName: e.target.value })
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Nom de la Coiffeuse
               </label>
               <input
@@ -261,26 +269,26 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, braiderName: e.target.value })
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Téléphone professionnel
               </label>
               <input
-                type="text"
+                type="tel"
                 value={settings.phone || ""}
                 onChange={(e) =>
                   setSettings({ ...settings, phone: e.target.value })
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 E-mail de contact
               </label>
               <input
@@ -289,13 +297,13 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, email: e.target.value })
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
               />
             </div>
           </div>
 
-          <div className="text-xs">
-            <label className="font-semibold text-brun block mb-1">
+          <div className="text-xs sm:text-sm">
+            <label className="font-semibold text-brun block mb-1.5">
               Description / Bio de présentation
             </label>
             <textarea
@@ -304,7 +312,7 @@ export default function AdminSettingsView({ initialSettings }) {
               onChange={(e) =>
                 setSettings({ ...settings, bio: e.target.value })
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-sm text-brun"
             />
           </div>
         </div>
@@ -325,12 +333,12 @@ export default function AdminSettingsView({ initialSettings }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 text-xs sm:text-sm">
             {/* Wero */}
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-brun text-sm">Wero / Paylib</span>
-                <label className="inline-flex items-center space-x-1.5 cursor-pointer text-[11px] font-semibold text-stone-700">
+                <label className="min-h-[44px] px-3 py-1.5 rounded-xl bg-white border border-stone-200 inline-flex items-center space-x-2 cursor-pointer text-xs font-semibold text-stone-700">
                   <input
                     type="checkbox"
                     checked={Boolean(paymentAccounts.weroEnabled)}
@@ -340,13 +348,13 @@ export default function AdminSettingsView({ initialSettings }) {
                         weroEnabled: e.target.checked,
                       }))
                     }
-                    className="rounded border-stone-300 text-emerald-700 focus:ring-champagne"
+                    className="w-4 h-4 rounded border-stone-300 text-emerald-700 focus:ring-champagne"
                   />
                   <span>Actif</span>
                 </label>
               </div>
               <div>
-                <label className="font-semibold text-brun block mb-1">
+                <label className="font-semibold text-brun block mb-1.5 text-xs">
                   Numéro de téléphone Wero
                 </label>
                 <input
@@ -360,9 +368,9 @@ export default function AdminSettingsView({ initialSettings }) {
                     }))
                   }
                   placeholder="07 67 66 38 69"
-                  className="w-full bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                 />
-                <span className="text-[11px] text-stone-500 block mt-1">
+                <span className="text-[11px] text-stone-500 block mt-1.5">
                   Copié par les clientes :{" "}
                   <strong className="font-mono">
                     {previewPaymentAccounts.weroDigits || "—"}
@@ -373,9 +381,9 @@ export default function AdminSettingsView({ initialSettings }) {
 
             {/* Revolut */}
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-brun text-sm">Revolut</span>
-                <label className="inline-flex items-center space-x-1.5 cursor-pointer text-[11px] font-semibold text-stone-700">
+                <label className="min-h-[44px] px-3 py-1.5 rounded-xl bg-white border border-stone-200 inline-flex items-center space-x-2 cursor-pointer text-xs font-semibold text-stone-700">
                   <input
                     type="checkbox"
                     checked={Boolean(paymentAccounts.revolutEnabled)}
@@ -385,13 +393,13 @@ export default function AdminSettingsView({ initialSettings }) {
                         revolutEnabled: e.target.checked,
                       }))
                     }
-                    className="rounded border-stone-300 text-emerald-700 focus:ring-champagne"
+                    className="w-4 h-4 rounded border-stone-300 text-emerald-700 focus:ring-champagne"
                   />
                   <span>Actif</span>
                 </label>
               </div>
               <div>
-                <label className="font-semibold text-brun block mb-1">
+                <label className="font-semibold text-brun block mb-1.5 text-xs">
                   Revtag ou lien revolut.me
                 </label>
                 <input
@@ -405,9 +413,9 @@ export default function AdminSettingsView({ initialSettings }) {
                     }))
                   }
                   placeholder="@ydmcoiffure"
-                  className="w-full bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                 />
-                <span className="text-[11px] text-stone-500 block mt-1 break-all">
+                <span className="text-[11px] text-stone-500 block mt-1.5 break-all">
                   Lien affiché :{" "}
                   <strong className="font-mono">
                     {previewPaymentAccounts.revolutUrl || "—"}
@@ -417,10 +425,10 @@ export default function AdminSettingsView({ initialSettings }) {
             </div>
 
             {/* PayPal */}
-            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3 md:col-span-2 xl:col-span-1">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-brun text-sm">PayPal</span>
-                <label className="inline-flex items-center space-x-1.5 cursor-pointer text-[11px] font-semibold text-stone-700">
+                <label className="min-h-[44px] px-3 py-1.5 rounded-xl bg-white border border-stone-200 inline-flex items-center space-x-2 cursor-pointer text-xs font-semibold text-stone-700">
                   <input
                     type="checkbox"
                     checked={Boolean(paymentAccounts.paypalEnabled)}
@@ -430,13 +438,13 @@ export default function AdminSettingsView({ initialSettings }) {
                         paypalEnabled: e.target.checked,
                       }))
                     }
-                    className="rounded border-stone-300 text-emerald-700 focus:ring-champagne"
+                    className="w-4 h-4 rounded border-stone-300 text-emerald-700 focus:ring-champagne"
                   />
                   <span>Actif</span>
                 </label>
               </div>
               <div>
-                <label className="font-semibold text-brun block mb-1">
+                <label className="font-semibold text-brun block mb-1.5 text-xs">
                   Identifiant ou lien paypal.me
                 </label>
                 <input
@@ -450,9 +458,9 @@ export default function AdminSettingsView({ initialSettings }) {
                     }))
                   }
                   placeholder="ydmcoiffure"
-                  className="w-full bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                 />
-                <span className="text-[11px] text-stone-500 block mt-1 break-all">
+                <span className="text-[11px] text-stone-500 block mt-1.5 break-all">
                   Lien affiché :{" "}
                   <strong className="font-mono">
                     {previewPaymentAccounts.paypalBaseUrl
@@ -468,22 +476,22 @@ export default function AdminSettingsView({ initialSettings }) {
         {/* SECTION 2: CONFIDENTIAL ADDRESS */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-champagne shadow-2xs space-y-5">
           <div className="flex items-center space-x-2 text-brun">
-            <MapPin className="w-5 h-5 text-champagne-dark" />
+            <MapPin className="w-5 h-5 text-champagne-dark shrink-0" />
             <h2 className="font-serif text-xl font-bold">
               Adresse Personnelle Confidentielle
             </h2>
           </div>
 
-          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 flex items-start space-x-2">
+          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs sm:text-sm text-amber-900 flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <span>
-              <strong>Sécurité & Confidentialité :</strong> Ces informations ne sont JAMAIS affichées publiquement sur le site. Elles sont transmises uniquement dans l'e-mail de confirmation après réception effective du paiement de l'acompte.
+              <strong>Sécurité & Confidentialité :</strong> Ces informations ne sont JAMAIS affichées publiquement sur le site. Elles sont transmises uniquement dans l&apos;e-mail de confirmation après réception effective du paiement de l&apos;acompte.
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm">
             <div className="sm:col-span-2">
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Rue & Numéro
               </label>
               <input
@@ -498,12 +506,12 @@ export default function AdminSettingsView({ initialSettings }) {
                     },
                   })
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Code Postal & Ville
               </label>
               <input
@@ -511,14 +519,14 @@ export default function AdminSettingsView({ initialSettings }) {
                 value={postalCityInput}
                 onChange={(e) => setPostalCityInput(e.target.value)}
                 placeholder="85000 La Roche-sur-Yon"
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
               />
             </div>
           </div>
 
-          <div className="text-xs">
-            <label className="font-semibold text-brun block mb-1">
-              Instructions détaillées d'accès (Interphone, étage, digicode...)
+          <div className="text-xs sm:text-sm">
+            <label className="font-semibold text-brun block mb-1.5">
+              Instructions détaillées d&apos;accès (Interphone, étage, digicode...)
             </label>
             <textarea
               rows={2}
@@ -532,20 +540,20 @@ export default function AdminSettingsView({ initialSettings }) {
                   },
                 })
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-sm text-brun"
             />
           </div>
         </div>
 
         {/* SECTION 3: BOOKING RULES */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-5 text-xs">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-5 text-xs sm:text-sm">
           <h2 className="font-serif text-xl font-bold text-brun">
             Règles de Réservation & Délais
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Délai minimum avant rdv (heures)
               </label>
               <input
@@ -558,15 +566,15 @@ export default function AdminSettingsView({ initialSettings }) {
                     minNoticeHours: e.target.value.replace(/[^\d]/g, ""),
                   }))
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
               />
-              <span className="text-[10px] text-stone-400">
+              <span className="text-[11px] text-stone-400 block mt-1">
                 Pas de réservation à moins de X heures
               </span>
             </div>
 
             <div>
-              <label className="font-semibold text-brun block mb-1">
+              <label className="font-semibold text-brun block mb-1.5">
                 Horizon de réservation (jours)
               </label>
               <input
@@ -579,16 +587,16 @@ export default function AdminSettingsView({ initialSettings }) {
                     maxDaysInAdvance: e.target.value.replace(/[^\d]/g, ""),
                   }))
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
               />
-              <span className="text-[10px] text-stone-400">
+              <span className="text-[11px] text-stone-400 block mt-1">
                 Planning ouvert sur X jours dans le futur
               </span>
             </div>
 
             <div>
-              <label className="font-semibold text-brun block mb-1">
-                Délai de paiement d'acompte (heures)
+              <label className="font-semibold text-brun block mb-1.5">
+                Délai de paiement d&apos;acompte (heures)
               </label>
               <input
                 type="text"
@@ -600,17 +608,17 @@ export default function AdminSettingsView({ initialSettings }) {
                     paymentHoldHours: e.target.value.replace(/[^\d]/g, ""),
                   }))
                 }
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
               />
-              <span className="text-[10px] text-stone-400">
-                Temps accordé pour régler l'acompte
+              <span className="text-[11px] text-stone-400 block mt-1">
+                Temps accordé pour régler l&apos;acompte
               </span>
             </div>
           </div>
 
           <div>
-            <label className="font-semibold text-brun block mb-1">
-              Texte de la politique d'annulation
+            <label className="font-semibold text-brun block mb-1.5">
+              Texte de la politique d&apos;annulation
             </label>
             <textarea
               rows={3}
@@ -621,7 +629,7 @@ export default function AdminSettingsView({ initialSettings }) {
                   cancellationPolicyText: e.target.value,
                 })
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-brun"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-sm text-brun"
             />
           </div>
         </div>
@@ -631,13 +639,32 @@ export default function AdminSettingsView({ initialSettings }) {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-8 py-3.5 rounded-full font-semibold text-xs shadow-md transition-all disabled:opacity-50"
+            className="w-full sm:w-auto min-h-[48px] inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-8 py-3.5 rounded-full font-semibold text-sm shadow-md transition-all disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-4 h-4 text-champagne" />
             <span>{submitting ? "Enregistrement..." : "Enregistrer tous les paramètres"}</span>
           </button>
         </div>
       </form>
+
+      {hasUnsavedChanges && (
+        <div className="sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]">
+          <div className="bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-sm sm:text-base font-semibold">
+              Modifications des paramètres non enregistrées.
+            </span>
+            <button
+              type="submit"
+              form="admin-settings-form"
+              disabled={submitting}
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span>{submitting ? "Enregistrement..." : "Enregistrer maintenant"}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

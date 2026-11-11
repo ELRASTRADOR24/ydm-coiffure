@@ -1,5 +1,5 @@
 export default function sitemap() {
-  const baseUrl = "https://ydmcoiffure.com";
+  const baseUrl = "https://www.ydmcoiffure.com";
   const now = new Date();
 
   return [

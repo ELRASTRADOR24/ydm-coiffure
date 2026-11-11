@@ -46,7 +46,7 @@ export function ToggleVisibilityButton({
     <button
       type="button"
       onClick={onToggle}
-      className={`inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all cursor-pointer shrink-0 ${
+      className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer shrink-0 ${
         isShown
           ? "bg-emerald-50 text-emerald-900 border-emerald-400 hover:bg-emerald-100"
           : "bg-stone-200 text-stone-700 border-stone-400 hover:bg-stone-300"
@@ -110,7 +110,7 @@ export function SectionCard({
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 transition-colors cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-4 h-4 shrink-0" />
               <span>Rétablir</span>
@@ -120,7 +120,7 @@ export function SectionCard({
             <button
               type="button"
               onClick={onDelete}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4 shrink-0" />
               <span>Supprimer</span>
@@ -160,7 +160,7 @@ export function TextField({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-600 hover:text-red-700 hover:bg-red-50 border border-stone-200 transition-colors cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-stone-600 hover:text-red-700 hover:bg-red-50 border border-stone-200 transition-colors cursor-pointer"
             title="Effacer ce texte (champ vide = texte retiré du site)"
           >
             <Eraser className="w-3.5 h-3.5" />
@@ -175,7 +175,7 @@ export function TextField({
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-stone-50 border border-stone-300 rounded-xl p-3.5 text-sm sm:text-base text-brun leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne resize-y"
+          className="w-full bg-stone-50 border border-stone-300 rounded-xl p-3.5 text-base lg:text-sm text-brun leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne resize-y"
         />
       ) : (
         <input
@@ -183,7 +183,7 @@ export function TextField({
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-3 text-sm sm:text-base text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne"
+          className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-3 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne"
         />
       )}
 
@@ -240,7 +240,7 @@ export function ImageSelectorField({
             type="button"
             disabled={uploading}
             onClick={() => fileRef.current?.click()}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-brun hover:bg-brun-dark text-creme transition-colors disabled:opacity-50 cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-brun hover:bg-brun-dark text-creme transition-colors disabled:opacity-50 cursor-pointer"
           >
             {uploading ? (
               <Loader2 className="w-4 h-4 animate-spin text-champagne" />
@@ -253,7 +253,7 @@ export function ImageSelectorField({
           <button
             type="button"
             onClick={() => setShowPicker(!showPicker)}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white hover:bg-stone-100 text-brun border border-stone-300 transition-colors cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white hover:bg-stone-100 text-brun border border-stone-300 transition-colors cursor-pointer"
           >
             <ImageIcon className="w-4 h-4 text-champagne-dark" />
             <span>{showPicker ? "Fermer la galerie" : "Choisir photo du salon"}</span>
@@ -263,7 +263,7 @@ export function ImageSelectorField({
             <button
               type="button"
               onClick={() => onChangeUrl("")}
-              className="inline-flex items-center space-x-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               <span>Retirer l&apos;image</span>
@@ -296,13 +296,13 @@ export function ImageSelectorField({
             value={imageUrl || ""}
             onChange={(e) => onChangeUrl(e.target.value)}
             placeholder="/images/realisations/..."
-            className="w-full bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
           />
         </div>
       </div>
 
       {showPicker && (
-        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2.5 pt-2 border-t border-stone-200">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-2 border-t border-stone-200">
           {SALON_IMAGE_PRESETS.map((preset) => {
             const selected = imageUrl === preset.path;
             return (
@@ -432,7 +432,7 @@ export function RichArticleListEditor({
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveItem(idx, "up")}
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
                     <span>Monter</span>
@@ -442,7 +442,7 @@ export function RichArticleListEditor({
                     type="button"
                     disabled={idx === list.length - 1}
                     onClick={() => moveItem(idx, "down")}
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
                     <span>Descendre</span>
@@ -457,7 +457,7 @@ export function RichArticleListEditor({
                   <button
                     type="button"
                     onClick={() => removeItem(idx)}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold transition-colors cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Supprimer</span>
@@ -492,7 +492,7 @@ export function RichArticleListEditor({
                         paragraphs: [...paragraphs, "Nouveau paragraphe..."],
                       })
                     }
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-sm font-semibold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-sm font-semibold text-brun cursor-pointer"
                   >
                     <Plus className="w-4 h-4 text-champagne-dark" />
                     <span>Ajouter un paragraphe</span>
@@ -509,7 +509,7 @@ export function RichArticleListEditor({
                         nextP[pIdx] = e.target.value;
                         updateItem(idx, { paragraphs: nextP });
                       }}
-                      className="flex-1 w-full bg-white border border-stone-300 rounded-xl p-3 text-sm text-brun leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+                      className="flex-1 w-full bg-white border border-stone-300 rounded-xl p-3 text-base lg:text-sm text-brun leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
                     />
                     <button
                       type="button"
@@ -518,7 +518,7 @@ export function RichArticleListEditor({
                           paragraphs: paragraphs.filter((_, i) => i !== pIdx),
                         })
                       }
-                      className="inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-white hover:bg-red-50 text-red-700 border border-stone-300 hover:border-red-200 text-xs font-semibold shrink-0 cursor-pointer"
+                      className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-white hover:bg-red-50 text-red-700 border border-stone-300 hover:border-red-200 text-xs font-semibold shrink-0 cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                       <span>Supprimer</span>
@@ -540,7 +540,7 @@ export function RichArticleListEditor({
                         bullets: [...bullets, "Nouveau point..."],
                       })
                     }
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-sm font-semibold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-sm font-semibold text-brun cursor-pointer"
                   >
                     <Plus className="w-4 h-4 text-champagne-dark" />
                     <span>Ajouter une puce</span>
@@ -557,7 +557,7 @@ export function RichArticleListEditor({
                         nextB[bIdx] = e.target.value;
                         updateItem(idx, { bullets: nextB });
                       }}
-                      className="flex-1 bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                      className="flex-1 min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                     />
                     <button
                       type="button"
@@ -566,7 +566,7 @@ export function RichArticleListEditor({
                           bullets: bullets.filter((_, i) => i !== bIdx),
                         })
                       }
-                      className="inline-flex items-center space-x-1 px-3 py-2.5 rounded-xl bg-white hover:bg-red-50 text-red-700 border border-stone-300 hover:border-red-200 text-xs font-semibold shrink-0 cursor-pointer"
+                      className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2.5 rounded-xl bg-white hover:bg-red-50 text-red-700 border border-stone-300 hover:border-red-200 text-xs font-semibold shrink-0 cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                       <span>Supprimer</span>

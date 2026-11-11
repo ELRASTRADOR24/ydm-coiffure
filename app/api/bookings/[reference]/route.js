@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getBookingByReference } from "@/lib/store";
+import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 
 export async function GET(request, { params }) {
   try {
@@ -19,6 +20,14 @@ export async function GET(request, { params }) {
       );
     }
 
+    const resolvedPaymentUrl = booking.stripePaymentUrl
+      ? normalizeBookingPaymentUrl(
+          booking.stripePaymentUrl,
+          booking.bookingReference,
+          request
+        )
+      : undefined;
+
     // Retourne les données nécessaires au suivi client
     return NextResponse.json({
       success: true,
@@ -36,7 +45,7 @@ export async function GET(request, { params }) {
         selectedOptions: booking.selectedOptions,
         customerName: `${booking.customer.firstName}${booking.customer.lastName ? ` ${booking.customer.lastName.charAt(0)}.` : ""}`,
         holdExpiresAt: booking.holdExpiresAt,
-        stripePaymentUrl: booking.stripePaymentUrl,
+        stripePaymentUrl: resolvedPaymentUrl,
       },
     });
   } catch (error) {

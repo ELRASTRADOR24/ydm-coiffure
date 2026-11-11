@@ -21,10 +21,13 @@ import {
   AlertTriangle,
   ExternalLink,
   Loader2,
+  Film,
+  Copy,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { DEFAULT_MAINTENANCE } from "@/lib/siteContent";
 import { getParisDateString } from "@/lib/adminHelpers";
+import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 
 export default function AdminDashboardView({
   initialStats,
@@ -49,6 +52,17 @@ export default function AdminDashboardView({
   useEffect(() => {
     setMaintenance(initialMaintenance || DEFAULT_MAINTENANCE);
   }, [initialMaintenance]);
+
+  useEffect(() => {
+    if (!rejectModalBooking) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setRejectModalBooking(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [rejectModalBooking]);
 
   const pendingApprovals = bookings.filter(
     (b) => b.status === "PENDING_APPROVAL"
@@ -226,28 +240,35 @@ export default function AdminDashboardView({
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/admin/site-editor"
-            className="inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xs transition-all hover:scale-[1.02]"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xs transition-all hover:scale-[1.02]"
           >
             <Sparkles className="w-4 h-4 text-brun" />
             <span>Modifier tout le site</span>
           </Link>
           <Link
+            href="/admin/gallery"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
+          >
+            <Film className="w-4 h-4 text-champagne-dark" />
+            <span>Galerie &amp; Vidéos</span>
+          </Link>
+          <Link
             href="/admin/emails"
-            className="inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
             <Mail className="w-4 h-4 text-champagne-dark" />
             <span>Cartes Mail &amp; Gmail</span>
           </Link>
           <Link
             href="/admin/calendar"
-            className="inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
             <Calendar className="w-4 h-4 text-champagne-dark" />
             <span>Ouvrir le calendrier</span>
           </Link>
           <Link
             href="/admin/bookings"
-            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
             <span>Toutes les réservations</span>
             <ArrowRight className="w-4 h-4" />
@@ -363,7 +384,7 @@ export default function AdminDashboardView({
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Card 1: Today */}
         <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-1">
           <div className="text-[11px] text-stone-500 font-medium">Aujourd'hui</div>
@@ -443,7 +464,7 @@ export default function AdminDashboardView({
         </div>
 
         {pendingApprovals.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pendingApprovals.map((b) => {
               const bId = b.id || b._id;
               const isLoading = actionLoading === bId;
@@ -453,29 +474,37 @@ export default function AdminDashboardView({
                   key={bId}
                   className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm space-y-4"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
                         Réf : {b.bookingReference}
                       </span>
-                      <h3 className="font-serif text-lg font-bold text-brun">
+                      <h3 className="font-serif text-lg font-bold text-brun truncate">
                         {b.customer.firstName} {b.customer.lastName}
                       </h3>
-                      <div className="text-xs text-stone-500 flex items-center space-x-3 mt-1">
-                        <span className="flex items-center space-x-1">
-                          <Phone className="w-3 h-3 text-stone-400" />
-                          <span>{b.customer.phone}</span>
-                        </span>
+                      <div className="text-xs text-stone-600 flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                        {b.customer.phone && (
+                          <a
+                            href={`tel:${b.customer.phone}`}
+                            className="inline-flex items-center gap-1 underline decoration-stone-300 hover:text-brun"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                            <span>{b.customer.phone}</span>
+                          </a>
+                        )}
                         {b.customer.email && (
-                          <span className="flex items-center space-x-1">
-                            <Mail className="w-3 h-3 text-stone-400" />
+                          <a
+                            href={`mailto:${b.customer.email}`}
+                            className="inline-flex items-center gap-1 min-w-0 break-all underline decoration-stone-300 hover:text-brun"
+                          >
+                            <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                             <span>{b.customer.email}</span>
-                          </span>
+                          </a>
                         )}
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <div className="text-sm font-bold font-serif text-brun">
                         {formatPrice(b.totalPrice)}
                       </div>
@@ -495,26 +524,28 @@ export default function AdminDashboardView({
                     </div>
                     {b.customer.notes && (
                       <div className="text-stone-500 italic pt-1 border-t border-stone-200/60">
-                        "{b.customer.notes}"
+                        &quot;{b.customer.notes}&quot;
                       </div>
                     )}
                   </div>
 
                   {/* Actions Buttons */}
-                  <div className="flex items-center space-x-3 pt-1">
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
                     <button
+                      type="button"
                       disabled={isLoading}
                       onClick={() => handleApprove(bId)}
-                      className="flex-1 inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+                      className="flex-1 min-w-[200px] min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                     >
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-4 h-4 shrink-0" />
                       <span>{isLoading ? "Traitement..." : "Accepter & Envoyer lien acompte"}</span>
                     </button>
 
                     <button
+                      type="button"
                       disabled={isLoading}
                       onClick={() => setRejectModalBooking(b)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 transition-colors"
+                      className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
                     >
                       Refuser
                     </button>
@@ -544,7 +575,7 @@ export default function AdminDashboardView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {sortedPendingPayments.map((b) => {
               const bId = b.id || b._id;
               const isLoading = actionLoading === bId;
@@ -557,16 +588,24 @@ export default function AdminDashboardView({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
                         Réf : {b.bookingReference}
                       </span>
-                      <h3 className="font-serif text-lg font-bold text-brun">
+                      <h3 className="font-serif text-lg font-bold text-brun truncate">
                         {b.customer.firstName} {b.customer.lastName}
                       </h3>
-                      <div className="text-xs text-stone-500 mt-0.5">
-                        Tél : {b.customer.phone}
-                      </div>
+                      {b.customer.phone && (
+                        <div className="text-xs text-stone-600 mt-0.5">
+                          <a
+                            href={`tel:${b.customer.phone}`}
+                            className="inline-flex items-center gap-1 underline decoration-stone-300 hover:text-brun"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                            <span>{b.customer.phone}</span>
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-right shrink-0">
@@ -592,23 +631,46 @@ export default function AdminDashboardView({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 gap-3">
-                    <Link
-                      href={`/reserver/statut/${b.bookingReference}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-stone-600 hover:text-brun underline"
-                    >
-                      Voir fiche cliente
-                    </Link>
+                  <div className="flex flex-wrap items-center justify-between pt-1 gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Link
+                        href={`/reserver/statut/${b.bookingReference}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-h-[44px] inline-flex items-center text-xs font-medium text-stone-600 hover:text-brun underline"
+                      >
+                        Voir fiche cliente
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const liveUrl = normalizeBookingPaymentUrl(
+                            b.stripePaymentUrl,
+                            b.bookingReference,
+                            null,
+                            typeof window !== "undefined" ? window.location.origin : ""
+                          );
+                          try {
+                            await navigator.clipboard.writeText(liveUrl);
+                            showToast("Lien d'acompte en ligne copié !");
+                          } catch (_) {
+                            showToast(liveUrl);
+                          }
+                        }}
+                        className="min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-brun cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-champagne-dark" />
+                        <span>Copier lien acompte</span>
+                      </button>
+                    </div>
 
                     <button
                       type="button"
                       disabled={isLoading}
                       onClick={() => handleMarkPaid(bId)}
-                      className="inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+                      className="min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>
                         {isLoading
                           ? "Confirmation..."
@@ -659,9 +721,16 @@ export default function AdminDashboardView({
                       <div className="text-xs text-stone-600 mt-0.5">
                         {b.service.name} • {formatDuration(b.totalDuration)}
                       </div>
-                      <div className="text-[11px] text-stone-400">
-                        Tél : {b.customer.phone}
-                      </div>
+                      {b.customer.phone && (
+                        <div className="text-xs text-stone-500 mt-0.5">
+                          <a
+                            href={`tel:${b.customer.phone}`}
+                            className="underline decoration-stone-300 hover:text-brun"
+                          >
+                            Tél : {b.customer.phone}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -686,39 +755,62 @@ export default function AdminDashboardView({
 
       {/* REJECT MODAL */}
       {rejectModalBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-stone-300 shadow-2xl space-y-4">
-            <h3 className="font-serif text-xl font-bold text-brun">
-              Refuser la demande de {rejectModalBooking.customer.firstName}
-            </h3>
-            <p className="text-xs text-stone-500 font-light">
-              Le créneau du {rejectModalBooking.date} à {rejectModalBooking.startTime} sera libéré et la cliente sera notifiée poliment par e-mail.
-            </p>
-
-            <div>
-              <label className="text-xs font-semibold text-brun block mb-1">
-                Motif du refus (optionnel) :
-              </label>
-              <textarea
-                rows={3}
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Ex : Indisponibilité exceptionnelle ce jour-là, ou créneau déjà réservé en direct."
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs text-brun focus:outline-none focus:border-champagne"
-              />
+        <div
+          onClick={() => setRejectModalBooking(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full max-h-[88dvh] flex flex-col overflow-hidden border border-stone-300 shadow-2xl"
+          >
+            <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
+              <h3 className="font-serif text-xl font-bold text-brun">
+                Refuser {rejectModalBooking.customer.firstName}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRejectModalBooking(null)}
+                aria-label="Fermer"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 inline-flex items-center justify-center text-brun cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="pt-2 flex items-center justify-end space-x-3">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-4">
+              <p className="text-sm text-stone-600 font-light">
+                Le créneau du {rejectModalBooking.date} à {rejectModalBooking.startTime} sera libéré et la cliente sera notifiée poliment par e-mail.
+              </p>
+
+              <div>
+                <label className="text-sm font-semibold text-brun block mb-1.5">
+                  Motif du refus (optionnel) :
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Ex : Indisponibilité exceptionnelle ce jour-là, ou créneau déjà réservé en direct."
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-stone-200 bg-stone-50 flex flex-wrap items-center justify-end gap-3 shrink-0">
               <button
+                type="button"
                 onClick={() => setRejectModalBooking(null)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100"
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-200 cursor-pointer"
               >
                 Annuler
               </button>
               <button
+                type="button"
                 onClick={handleConfirmReject}
                 disabled={actionLoading === (rejectModalBooking.id || rejectModalBooking._id)}
-                className="bg-red-700 hover:bg-red-800 text-white px-5 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+                className="min-h-[44px] bg-red-700 hover:bg-red-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 cursor-pointer"
               >
                 {actionLoading === (rejectModalBooking.id || rejectModalBooking._id)
                   ? "Enregistrement..."
