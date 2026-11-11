@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -62,6 +62,12 @@ export default function DepositPaymentOptions({
   const [declared, setDeclared] = useState(initialDeclared);
   const [declaredMethod, setDeclaredMethod] = useState(initialMethod);
   const [rejectionReason, setRejectionReason] = useState(initialRejectionReason);
+
+  useEffect(() => {
+    setDeclared(initialDeclared);
+    setDeclaredMethod(initialMethod);
+    setRejectionReason(initialRejectionReason);
+  }, [initialDeclared, initialMethod, initialRejectionReason]);
   const [loadingMethod, setLoadingMethod] = useState("");
   const [copiedText, setCopiedText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");

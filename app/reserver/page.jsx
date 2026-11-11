@@ -4,8 +4,13 @@ import {
   getSettings,
   getAvailabilities,
   getUnavailabilities,
+  getBookingByReference,
 } from "@/lib/store";
 import { buildPublicSettings } from "@/lib/siteContent";
+import {
+  isValidBookingReference,
+  normalizeBookingReference,
+} from "@/lib/bookingPersistence";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 import BookingWizard from "@/components/BookingWizard";
 import HiddenPageNotice from "@/components/HiddenPageNotice";
@@ -19,7 +24,14 @@ export const metadata = {
     "Réservez votre séance de tresses africaines en ligne en quelques étapes simples. Validation personnalisée et paiement d'acompte sécurisé.",
 };
 
-export default async function ReserverPage() {
+export default async function ReserverPage({ searchParams }) {
+  const resolvedParams = await searchParams;
+  const queryRef = normalizeBookingReference(resolvedParams?.ref || "");
+  const initialSubmittedBooking =
+    queryRef && isValidBookingReference(queryRef)
+      ? await getBookingByReference(queryRef).catch(() => null)
+      : null;
+
   const [services, rawSettings, availabilities, unavailabilities] =
     await Promise.all([
       getServices(true),
@@ -89,6 +101,7 @@ export default async function ReserverPage() {
           <BookingWizard
             initialServices={services}
             initialBookingRules={initialBookingRules}
+            initialSubmittedBooking={initialSubmittedBooking}
           />
         </Suspense>
       </div>

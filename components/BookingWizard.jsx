@@ -72,12 +72,15 @@ const MIX_PRESET_COLORS = [
 export default function BookingWizard({
   initialServices = [],
   initialBookingRules = {},
+  initialSubmittedBooking = null,
 }) {
   const searchParams = useSearchParams();
   const preselectedSlug = searchParams.get("service");
 
   // Multi-step state: 1 to 7
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(
+    initialSubmittedBooking ? 7 : 1
+  );
 
   // Form selections
   const [selectedService, setSelectedService] = useState(null);
@@ -171,7 +174,9 @@ export default function BookingWizard({
 
   // Submission & persisted tracking state
   const [submitting, setSubmitting] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState(null);
+  const [submissionResult, setSubmissionResult] = useState(
+    initialSubmittedBooking || null
+  );
   const [submitError, setSubmitError] = useState("");
   const [savedShortcut, setSavedShortcut] = useState(null);
   const preselectedRef = searchParams.get("ref");
@@ -179,6 +184,9 @@ export default function BookingWizard({
   useEffect(() => {
     const cleanRef = normalizeBookingReference(preselectedRef || "");
     if (cleanRef && isValidBookingReference(cleanRef)) {
+      if (initialSubmittedBooking?.bookingReference === cleanRef) {
+        saveTrackedBooking(initialSubmittedBooking);
+      }
       fetch(`/api/bookings/${encodeURIComponent(cleanRef)}`, { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
@@ -194,7 +202,7 @@ export default function BookingWizard({
     if (list.length > 0) {
       setSavedShortcut(list[0]);
     }
-  }, [preselectedRef]);
+  }, [preselectedRef, initialSubmittedBooking]);
 
   // Pre-select service from URL query if present
   useEffect(() => {
