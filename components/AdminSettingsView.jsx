@@ -6,12 +6,9 @@ import Link from "next/link";
 import {
   Save,
   ShieldAlert,
-  Sparkles,
+  CheckCircle2,
   MapPin,
-  Clock,
-  Settings,
   Mail,
-  Phone,
   ArrowRight,
   Wallet,
 } from "lucide-react";
@@ -21,6 +18,7 @@ import {
   parsePostalCityInput,
   resolvePaymentAccounts,
 } from "@/lib/adminHelpers";
+import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
 
 function getInitialPaymentAccounts(initialSettings) {
   return {
@@ -186,7 +184,7 @@ export default function AdminSettingsView({ initialSettings }) {
     <div className="space-y-8 max-w-4xl pb-24">
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-champagne" />
+          <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -205,13 +203,13 @@ export default function AdminSettingsView({ initialSettings }) {
       <div className="bg-stone-50 border-2 border-stone-200 rounded-3xl p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-champagne-dark block">
-            Éditeur Complet, Cartes Mail &amp; Mode Maintenance
+            Textes du site, Cartes Mail &amp; Maintenance
           </span>
           <h3 className="font-serif text-lg font-bold text-brun">
-            Modifier les textes du site ou la carte des e-mails Gmail ?
+            Modifier les textes des pages ou les modèles d&apos;e-mails ?
           </h3>
           <p className="text-sm text-stone-600">
-            Tout le contenu du site et le Studio Cartes Mail (couleurs, polices, logo, cadres style Google Docs) sont accessibles en 1 clic.
+            Modifiez vos pages publiques ou personnalisez vos cartes mail (logo, textes, couleurs, boutons).
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5 shrink-0">
@@ -319,7 +317,7 @@ export default function AdminSettingsView({ initialSettings }) {
 
         {/* SECTION 2: DIRECT DEPOSIT ACCOUNTS (WERO, REVOLUT, PAYPAL) */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-5">
-          <div className="flex items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center space-x-2 text-brun">
               <Wallet className="w-5 h-5 text-champagne-dark shrink-0" />
               <div>
@@ -331,6 +329,7 @@ export default function AdminSettingsView({ initialSettings }) {
                 </p>
               </div>
             </div>
+            <AdminLocationIllustration zone="paymentAccounts" compact />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 text-xs sm:text-sm">
@@ -475,11 +474,14 @@ export default function AdminSettingsView({ initialSettings }) {
 
         {/* SECTION 2: CONFIDENTIAL ADDRESS */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-champagne shadow-2xs space-y-5">
-          <div className="flex items-center space-x-2 text-brun">
-            <MapPin className="w-5 h-5 text-champagne-dark shrink-0" />
-            <h2 className="font-serif text-xl font-bold">
-              Adresse Personnelle Confidentielle
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center space-x-2 text-brun">
+              <MapPin className="w-5 h-5 text-champagne-dark shrink-0" />
+              <h2 className="font-serif text-xl font-bold">
+                Adresse Personnelle Confidentielle
+              </h2>
+            </div>
+            <AdminLocationIllustration zone="addressPrivate" compact />
           </div>
 
           <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs sm:text-sm text-amber-900 flex items-start space-x-2">

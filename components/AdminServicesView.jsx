@@ -7,7 +7,7 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Sparkles,
+  CheckCircle2,
   Check,
   X,
   ToggleLeft,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { uploadMediaClient } from "@/lib/uploadMedia";
+import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
 import {
   createServiceFormDraft,
   updateDraftBasePrice,
@@ -128,6 +129,7 @@ export default function AdminServicesView({ initialServices = [] }) {
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showManualUrls, setShowManualUrls] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Media Upload State (Vidéos et Photos vers Cloudinary)
@@ -233,6 +235,7 @@ export default function AdminServicesView({ initialServices = [] }) {
     setIsCreatingCategory(false);
     setNewCategoryName("");
     setShowImagePicker(false);
+    setShowManualUrls(false);
     setForm(
       createServiceFormDraft(null, {
         defaultCategory: existingCategories[0] || "Sans mèches incluses",
@@ -247,6 +250,7 @@ export default function AdminServicesView({ initialServices = [] }) {
     setIsCreatingCategory(false);
     setNewCategoryName("");
     setShowImagePicker(false);
+    setShowManualUrls(false);
     setForm(
       createServiceFormDraft(service, {
         defaultCategory: "Sans mèches incluses",
@@ -424,36 +428,39 @@ export default function AdminServicesView({ initialServices = [] }) {
     <div className="space-y-6">
       {toastMessage && (
         <div className="fixed top-20 lg:top-6 right-4 lg:right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-champagne shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
-            Gestion des Prestations
-          </h1>
-          <p className="text-xs sm:text-sm text-stone-500 font-light mt-1">
-            Réorganisez l&apos;ordre par position, flèches ou sélection tactile sur iPad, et modifiez tarifs, photos et catégories.
-          </p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 flex-1">
+          <div>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
+              Coiffures &amp; Tarifs
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-500 mt-1">
+              Modifiez vos prix, longueurs, photos et l&apos;ordre d&apos;affichage sur le site.
+            </p>
+          </div>
+          <AdminLocationIllustration zone="serviceCard" compact />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Bouton de zoom / dézoom pour réorganisation facile */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Bouton pour réorganiser facilement l'ordre */}
           <button
             type="button"
             onClick={() => {
               setIsCompactMode(!isCompactMode);
               setMovingIndex(null);
             }}
-            className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition-all cursor-pointer ${
+            className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition-all cursor-pointer ${
               isCompactMode
                 ? "bg-champagne text-brun-dark border-champagne-dark shadow-xs ring-2 ring-champagne/40"
                 : "bg-white text-stone-700 border-stone-200 hover:border-champagne hover:bg-stone-50"
             }`}
-            title={isCompactMode ? "Revenir à la vue détaillée" : "Dézoomer pour déplacer facilement les cartes"}
+            title={isCompactMode ? "Revenir à la vue détaillée" : "Réorganiser l'ordre des coiffures"}
           >
             {isCompactMode ? (
               <>
@@ -463,7 +470,7 @@ export default function AdminServicesView({ initialServices = [] }) {
             ) : (
               <>
                 <ZoomOut className="w-4 h-4 text-champagne-dark" />
-                <span>Dézoomer (Vue d&apos;ensemble)</span>
+                <span>Réorganiser l&apos;ordre</span>
               </>
             )}
           </button>
@@ -471,24 +478,24 @@ export default function AdminServicesView({ initialServices = [] }) {
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 text-champagne" />
-            <span>Ajouter une prestation</span>
+            <span>Ajouter une coiffure</span>
           </button>
         </div>
       </div>
 
-      {/* Message d'aide + Contrôles 2-taps iPad en mode dézoomé */}
+      {/* Message d'aide + Contrôles 2-taps iPad en mode réorganisation */}
       {isCompactMode && (
         <div className="p-4 rounded-2xl bg-champagne-light/60 border-2 border-champagne/60 space-y-3 text-xs sm:text-sm text-brun animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-champagne-dark shrink-0 mt-0.5 sm:mt-0" />
+              <CheckCircle2 className="w-4 h-4 text-champagne-dark shrink-0 mt-0.5 sm:mt-0" />
               <span className="font-medium">
                 {movingIndex !== null && services[movingIndex]
                   ? `Déplacement de « ${services[movingIndex].name} » (#${movingIndex + 1}) : touchez une autre carte pour l'y placer, ou utilisez les boutons ci-dessous.`
-                  : "Mode dézoomé iPad & Tactile : touchez une carte puis touchez l'emplacement où vous voulez la placer (ou glissez-déposez sur ordinateur)."}
+                  : "Touchez une coiffure puis touchez l'emplacement où la placer (ou glissez-déposez à la souris)."}
               </span>
             </div>
             <button
@@ -1147,59 +1154,108 @@ export default function AdminServicesView({ initialServices = [] }) {
                   </div>
                 </div>
 
-                {/* Champ Vidéo URL spécifique */}
-                {form.videoUrl && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-semibold text-brun text-xs sm:text-sm flex items-center space-x-1">
-                        <Film className="w-3.5 h-3.5 text-champagne-dark" />
-                        <span>Lien de la vidéo</span>
-                      </label>
+                {/* Aperçu visuel + Photo / Vidéo */}
+                <div className="p-4 bg-white border border-stone-200 rounded-2xl space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-brun text-xs sm:text-sm">
+                      Aperçu de la photo principale
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, videoUrl: "" })}
-                        className="text-xs text-red-600 hover:underline px-2 py-1 cursor-pointer"
+                        onClick={() => setShowImagePicker(!showImagePicker)}
+                        className="text-xs text-champagne-dark hover:underline font-semibold flex items-center space-x-1 px-2 py-1 cursor-pointer"
                       >
-                        Retirer la vidéo
+                        <ImageIcon className="w-4 h-4" />
+                        <span>
+                          {showImagePicker
+                            ? "Masquer les photos du salon"
+                            : "Choisir parmi les photos du salon"}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualUrls(!showManualUrls)}
+                        className="text-xs text-stone-500 hover:text-brun underline font-medium px-2 py-1 cursor-pointer"
+                      >
+                        {showManualUrls
+                          ? "Masquer les liens"
+                          : "Modifier les liens manuellement"}
                       </button>
                     </div>
-                    <input
-                      type="text"
-                      value={form.videoUrl}
-                      onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
-                      placeholder="https://res.cloudinary.com/.../video.mp4"
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-sm"
-                    />
-                  </div>
-                )}
-
-                {/* Champ Photo / Visuel */}
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <label className="font-semibold text-brun text-xs sm:text-sm">
-                      Photo principale / Vignette
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowImagePicker(!showImagePicker)}
-                      className="text-xs text-champagne-dark hover:underline font-semibold flex items-center space-x-1 px-2 py-1 cursor-pointer"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      <span>
-                        {showImagePicker
-                          ? "Masquer la sélection"
-                          : "Choisir parmi les photos du salon"}
-                      </span>
-                    </button>
                   </div>
 
-                  <input
-                    type="text"
-                    value={form.imageUrl}
-                    onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                    placeholder="/images/realisations/... ou https://..."
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-sm"
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-16 h-20 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0">
+                      <Image
+                        src={
+                          form.imageUrl ||
+                          "/images/realisations/knotless-still.jpeg"
+                        }
+                        alt={form.name || "Aperçu prestation"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1.5 text-xs text-stone-600">
+                      <div>
+                        {form.imageUrl ? (
+                          <span className="inline-block font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                            Photo prête à l&apos;affichage
+                          </span>
+                        ) : (
+                          <span className="text-stone-400">
+                            Aucune photo sélectionnée (image par défaut utilisée).
+                          </span>
+                        )}
+                      </div>
+                      {form.videoUrl && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center space-x-1 text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium">
+                            <Film className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Vidéo attachée</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, videoUrl: "" })}
+                            className="text-xs text-red-600 hover:underline px-1.5 py-0.5 cursor-pointer"
+                          >
+                            Retirer la vidéo
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Champs avancés cachés par défaut */}
+                  {showManualUrls && (
+                    <div className="space-y-3 pt-3 border-t border-stone-200">
+                      <div>
+                        <label className="font-semibold text-brun text-xs block mb-1">
+                          Lien de la photo
+                        </label>
+                        <input
+                          type="text"
+                          value={form.imageUrl}
+                          onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                          placeholder="/images/realisations/... ou https://..."
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-xs sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-brun text-xs block mb-1">
+                          Lien de la vidéo (optionnel)
+                        </label>
+                        <input
+                          type="text"
+                          value={form.videoUrl}
+                          onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+                          placeholder="https://res.cloudinary.com/.../video.mp4"
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-xs sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Sélecteur visuel en 1 clic */}
                   {showImagePicker && (

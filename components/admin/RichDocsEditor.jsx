@@ -23,7 +23,7 @@ import {
   Loader2,
   Upload,
   Code,
-  Sparkles,
+  Tag,
   Eraser,
 } from "lucide-react";
 import { uploadMediaClient } from "@/lib/uploadMedia";
@@ -72,7 +72,7 @@ export default function RichDocsEditor({
   cardBgColor = "#FFFFFF",
   defaultTextColor = "#1A1A1A",
   defaultFontFamily = "Arial, Helvetica, sans-serif",
-  placeholder = "Écrivez ou mettez en forme votre texte comme dans Google Docs...",
+  placeholder = "Écrivez et mettez en forme votre message...",
   minHeight = 160,
   onToast,
 }) {
@@ -201,7 +201,7 @@ export default function RichDocsEditor({
 
   return (
     <div className="rounded-2xl border-2 border-stone-200 bg-white overflow-hidden shadow-2xs">
-      {/* BARRE D'OUTILS STYLE GOOGLE DOCS */}
+      {/* BARRE D'OUTILS MISE EN FORME */}
       <div className="bg-stone-100/90 border-b border-stone-200 p-2 sm:p-2.5 flex flex-wrap items-center gap-1.5">
         {/* Historique */}
         <div className="flex items-center gap-0.5 bg-white rounded-xl border border-stone-200 p-0.5">
@@ -699,7 +699,7 @@ export default function RichDocsEditor({
       {variables.length > 0 && (
         <div className="bg-stone-50 border-b border-stone-200 px-3 py-2.5 flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-bold uppercase tracking-wider text-champagne-dark flex items-center space-x-1 mr-1">
-            <Sparkles className="w-3.5 h-3.5" />
+            <Tag className="w-3.5 h-3.5" />
             <span>Insérer :</span>
           </span>
           {variables.slice(0, 10).map((v) => (
@@ -724,7 +724,7 @@ export default function RichDocsEditor({
         </div>
       )}
 
-      {/* FEUILLE ÉDITABLE STYLE GOOGLE DOCS */}
+      {/* FEUILLE ÉDITABLE */}
       {showHtmlSource ? (
         <textarea
           rows={6}

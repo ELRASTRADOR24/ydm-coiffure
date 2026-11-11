@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
 import { getBookingById, updateBooking, getSettings } from "@/lib/store";
+import { getEffectiveBookingStatus } from "@/lib/adminHelpers";
 import { sendBookingRejectedEmail } from "@/lib/email";
 import { sendBookingRejectedSms } from "@/lib/sms";
 
@@ -24,9 +25,22 @@ export async function POST(request, { params }) {
       );
     }
 
+    const effectiveStatus = getEffectiveBookingStatus(booking);
+    if (effectiveStatus !== "PENDING_APPROVAL") {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Seule une demande en attente d'approbation peut être refusée. Utilisez « Annuler » pour libérer ce rendez-vous.",
+        },
+        { status: 409 }
+      );
+    }
+
     const updated = await updateBooking(id, {
       status: "REJECTED",
       rejectionReason: reason,
+      holdExpiresAt: null,
     });
 
     const settings = await getSettings();

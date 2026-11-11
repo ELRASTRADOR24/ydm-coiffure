@@ -69,6 +69,56 @@ export async function PUT(request) {
       }
     }
 
+    if (rest.breaks !== undefined) {
+      if (!Array.isArray(rest.breaks)) {
+        return NextResponse.json(
+          { success: false, error: "Format des pauses invalide." },
+          { status: 400 }
+        );
+      }
+      const sanitizedBreaks = [];
+      for (const brk of rest.breaks) {
+        if (!brk || !isValidTimeString(brk.start) || !isValidTimeString(brk.end)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Veuillez saisir des horaires de pause valides (HH:mm).",
+            },
+            { status: 400 }
+          );
+        }
+        const bStart = timeToMinutes(brk.start);
+        const bEnd = timeToMinutes(brk.end);
+        if (bStart >= bEnd) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "La fin de la pause doit être postérieure au début de la pause.",
+            },
+            { status: 400 }
+          );
+        }
+        if (
+          rest.isOpen !== false &&
+          (bStart < timeToMinutes(rest.startTime) || bEnd > timeToMinutes(rest.endTime))
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "La pause doit être comprise dans les horaires d'ouverture.",
+            },
+            { status: 400 }
+          );
+        }
+        sanitizedBreaks.push({
+          start: brk.start,
+          end: brk.end,
+          label: String(brk.label || "Pause déjeuner").trim() || "Pause déjeuner",
+        });
+      }
+      rest.breaks = sanitizedBreaks;
+    }
+
     const updated = await updateAvailability(dayOfWeek, rest);
     revalidateAvailabilityRoutes();
     return NextResponse.json({ success: true, availability: updated });

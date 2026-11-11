@@ -24,8 +24,10 @@ export function RulesEditorTab({
     <div className="space-y-6">
       <SectionCard
         title="En-tête de la page Règlement Intérieur (/conditions-reservation)"
-        description="Sur-titre et titre principal affichés tout en haut de la page Règlement."
+        description="Petit titre au-dessus et titre principal affichés tout en haut de la page Règlement."
         visible={header.visible}
+        zone="pageHeader"
+        defaultOpen={true}
         onToggleVisible={() =>
           onChangeRulesPage({
             ...rulesPage,
@@ -36,7 +38,7 @@ export function RulesEditorTab({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={header.eyebrow}
             onChange={(val) =>
               onChangeRulesPage({
@@ -62,6 +64,8 @@ export function RulesEditorTab({
         title="Articles du Règlement Intérieur"
         description="Ajoutez, modifiez, réorganisez, masquez ou supprimez chaque article du règlement."
         visible={true}
+        zone="legal"
+        defaultOpen={true}
       >
         <RichArticleListEditor
           articles={rulesPage.sections || []}
@@ -77,6 +81,7 @@ export function RulesEditorTab({
         title="Blocs de texte supplémentaires sur /conditions-reservation"
         description="Ajoutez librement des encadrés complémentaires sous le règlement."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={rulesPage.customBlocks || []}
@@ -92,6 +97,7 @@ export function RulesEditorTab({
         title="Textes de rappel du tunnel de réservation"
         description="Ces 3 textes apparaissent dans les résumés de réservation, pages de suivi et rappels clients."
         visible={true}
+        zone="bookingFlow"
       >
         <TextField
           label="Politique d'acompte (rappel 10 € / 2h)"
@@ -137,6 +143,8 @@ export function LegalEditorTab({ legalPage, onChangeLegalPage, onResetPage }) {
         title="En-tête des Mentions Légales (/mentions-legales)"
         description="Titre principal et mention de date de mise à jour."
         visible={header.visible}
+        zone="pageHeader"
+        defaultOpen={true}
         onToggleVisible={() =>
           onChangeLegalPage({
             ...legalPage,
@@ -173,6 +181,8 @@ export function LegalEditorTab({ legalPage, onChangeLegalPage, onResetPage }) {
         title="Articles des Mentions Légales"
         description="Modifiez, masquez ou supprimez n'importe quel paragraphe ou liste des mentions légales."
         visible={true}
+        zone="legal"
+        defaultOpen={true}
       >
         <RichArticleListEditor
           articles={legalPage.sections || []}
@@ -188,6 +198,7 @@ export function LegalEditorTab({ legalPage, onChangeLegalPage, onResetPage }) {
         title="Blocs de texte supplémentaires sur /mentions-legales"
         description="Ajoutez librement des informations complémentaires."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={legalPage.customBlocks || []}
@@ -218,6 +229,8 @@ export function PrivacyEditorTab({
         title="En-tête Politique de Confidentialité (/politique-confidentialite)"
         description="Titre principal et mention de conformité RGPD."
         visible={header.visible}
+        zone="pageHeader"
+        defaultOpen={true}
         onToggleVisible={() =>
           onChangePrivacyPage({
             ...privacyPage,
@@ -254,6 +267,8 @@ export function PrivacyEditorTab({
         title="Articles Politique de Confidentialité & RGPD"
         description="Modifiez, masquez ou supprimez chaque section sur la gestion des données."
         visible={true}
+        zone="legal"
+        defaultOpen={true}
       >
         <RichArticleListEditor
           articles={privacyPage.sections || []}
@@ -270,6 +285,7 @@ export function PrivacyEditorTab({
         title="Blocs de texte supplémentaires sur /politique-confidentialite"
         description="Ajoutez librement d'autres clauses ou précisions."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={privacyPage.customBlocks || []}
@@ -322,6 +338,8 @@ export function GlobalEditorTab({
         title="Barre de Navigation du Haut (Menu & Logo)"
         description="Présente sur toutes les pages du site public."
         visible={header.visible}
+        zone="navbar"
+        defaultOpen={true}
         onToggleVisible={() =>
           updateHeader({ visible: header.visible === false })
         }
@@ -447,6 +465,7 @@ export function GlobalEditorTab({
         title="Pied de Page (Footer en bas de toutes les pages)"
         description="Colonnes d'informations, conditions clés, liens légaux et signature."
         visible={footer.visible}
+        zone="footer"
         onToggleVisible={() =>
           updateFooter({ visible: footer.visible === false })
         }
@@ -868,6 +887,8 @@ export function BookingEditorTab({
         title="Accès au Tunnel de Réservation en Ligne (/reserver)"
         description="Contrôlez si les clientes peuvent réserver en ligne ou si la page est temporairement masquée."
         visible={isReserverVisible}
+        zone="bookingFlow"
+        defaultOpen={true}
         onToggleVisible={onToggleReserverVisible}
       >
         <p className="text-sm text-stone-700 leading-relaxed">
@@ -879,6 +900,7 @@ export function BookingEditorTab({
         title="Bannière d'introduction au-dessus de l'assistant de réservation"
         description="Par défaut masquée pour garder l'écran épuré ; activez-la si vous souhaitez ajouter une annonce ou des consignes tout en haut de /reserver."
         visible={Boolean(intro.visible)}
+        zone="pageHeader"
         onToggleVisible={() =>
           onChangeBookingPage({
             ...bookingPage,
@@ -889,7 +911,7 @@ export function BookingEditorTab({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={intro.eyebrow}
             onChange={(val) =>
               onChangeBookingPage({

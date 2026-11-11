@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBookingByReference } from "@/lib/store";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
+import { getEffectiveBookingStatus } from "@/lib/adminHelpers";
 
 export async function GET(request, { params }) {
   try {
@@ -28,12 +29,14 @@ export async function GET(request, { params }) {
         )
       : undefined;
 
+    const effectiveStatus = getEffectiveBookingStatus(booking);
+
     // Retourne les données nécessaires au suivi client
     return NextResponse.json({
       success: true,
       booking: {
         bookingReference: booking.bookingReference,
-        status: booking.status,
+        status: effectiveStatus,
         date: booking.date,
         startTime: booking.startTime,
         endTime: booking.endTime,

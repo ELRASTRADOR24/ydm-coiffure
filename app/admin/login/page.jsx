@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Lock, Mail, Sparkles, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -133,7 +133,7 @@ export default function AdminLoginPage() {
             >
               {loading ? (
                 <>
-                  <Sparkles className="w-4 h-4 text-brun-dark animate-spin" />
+                  <Loader2 className="w-4 h-4 text-brun-dark animate-spin" />
                   <span>Connexion en cours...</span>
                 </>
               ) : (

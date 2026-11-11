@@ -5,21 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  CalendarDays,
-  BookmarkCheck,
-  Scissors,
-  Clock,
-  Users,
-  Settings,
   LogOut,
   ExternalLink,
   Menu,
   X,
-  FileText,
-  Film,
   AlertTriangle,
-  Mail,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -66,17 +56,32 @@ export default function AdminSidebar({
     return <>{children}</>;
   }
 
-  const links = [
-    { label: "Tableau de bord", href: "/admin", icon: LayoutDashboard },
-    { label: "Galerie & Vidéos", href: "/admin/gallery", icon: Film },
-    { label: "Contenu & Textes", href: "/admin/site-editor", icon: FileText },
-    { label: "Cartes Mail & Gmail", href: "/admin/emails", icon: Mail },
-    { label: "Calendrier", href: "/admin/calendar", icon: CalendarDays },
-    { label: "Réservations", href: "/admin/bookings", icon: BookmarkCheck },
-    { label: "Prestations", href: "/admin/services", icon: Scissors },
-    { label: "Horaires & Dispos", href: "/admin/availability", icon: Clock },
-    { label: "Fichier Clientes", href: "/admin/customers", icon: Users },
-    { label: "Paramètres", href: "/admin/settings", icon: Settings },
+  const linkGroups = [
+    {
+      title: "Quotidien",
+      items: [
+        { label: "Tableau de bord", href: "/admin", emoji: "📊" },
+        { label: "Calendrier", href: "/admin/calendar", emoji: "🗓️" },
+        { label: "Réservations", href: "/admin/bookings", emoji: "📋" },
+        { label: "Clientes", href: "/admin/customers", emoji: "👤" },
+      ],
+    },
+    {
+      title: "Salon & Planning",
+      items: [
+        { label: "Coiffures & Tarifs", href: "/admin/services", emoji: "✂️" },
+        { label: "Horaires & Pauses", href: "/admin/availability", emoji: "⏰" },
+        { label: "Galerie & Vidéos", href: "/admin/gallery", emoji: "🎬" },
+      ],
+    },
+    {
+      title: "Site & Réglages",
+      items: [
+        { label: "Textes du site", href: "/admin/site-editor", emoji: "📝" },
+        { label: "Cartes Mail", href: "/admin/emails", emoji: "✉️" },
+        { label: "Paramètres", href: "/admin/settings", emoji: "⚙️" },
+      ],
+    },
   ];
 
   const handleLogout = async () => {
@@ -140,29 +145,37 @@ export default function AdminSidebar({
               )}
 
               {/* Liens de navigation tablette / mobile */}
-              <nav className="space-y-1.5">
-                {links.map((link) => {
-                  const Icon = link.icon;
-                  const isActive =
-                    link.href === "/admin"
-                      ? pathname === "/admin"
-                      : pathname.startsWith(link.href);
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center space-x-3 px-4 min-h-[46px] rounded-xl text-sm font-medium tracking-wide transition-all ${
-                        isActive
-                          ? "bg-champagne text-brun-dark font-bold shadow-xs"
-                          : "text-beige-light hover:text-creme hover:bg-brun-light/40"
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-brun-dark" : "text-champagne"}`} />
-                      <span>{link.label}</span>
-                    </Link>
-                  );
-                })}
+              <nav className="space-y-4">
+                {linkGroups.map((group) => (
+                  <div key={group.title} className="space-y-1">
+                    <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-champagne/80">
+                      {group.title}
+                    </div>
+                    {group.items.map((link) => {
+                      const isActive =
+                        link.href === "/admin"
+                          ? pathname === "/admin"
+                          : pathname.startsWith(link.href);
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`flex items-center space-x-3 px-4 min-h-[44px] rounded-xl text-sm font-medium tracking-wide transition-all ${
+                            isActive
+                              ? "bg-champagne text-brun-dark font-bold shadow-xs"
+                              : "text-beige-light hover:text-creme hover:bg-brun-light/40"
+                          }`}
+                        >
+                          <span className="text-base leading-none shrink-0" aria-hidden="true">
+                            {link.emoji}
+                          </span>
+                          <span>{link.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
               </nav>
             </div>
 
@@ -261,28 +274,36 @@ export default function AdminSidebar({
             </div>
 
             {/* Navigation Links */}
-            <nav className="space-y-1">
-              {links.map((link) => {
-                const Icon = link.icon;
-                const isActive =
-                  link.href === "/admin"
-                    ? pathname === "/admin"
-                    : pathname.startsWith(link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex items-center space-x-3 px-3.5 min-h-[44px] rounded-xl text-sm font-medium tracking-wide transition-all ${
-                      isActive
-                        ? "bg-champagne text-brun-dark font-bold shadow-xs"
-                        : "text-beige-light/90 hover:text-creme hover:bg-brun-light/40"
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-brun-dark" : "text-champagne"}`} />
-                    <span>{link.label}</span>
-                  </Link>
-                );
-              })}
+            <nav className="space-y-4">
+              {linkGroups.map((group) => (
+                <div key={group.title} className="space-y-1">
+                  <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-champagne/80">
+                    {group.title}
+                  </div>
+                  {group.items.map((link) => {
+                    const isActive =
+                      link.href === "/admin"
+                        ? pathname === "/admin"
+                        : pathname.startsWith(link.href);
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={`flex items-center space-x-3 px-3.5 min-h-[42px] rounded-xl text-sm font-medium tracking-wide transition-all ${
+                          isActive
+                            ? "bg-champagne text-brun-dark font-bold shadow-xs"
+                            : "text-beige-light/90 hover:text-creme hover:bg-brun-light/40"
+                        }`}
+                      >
+                        <span className="text-base leading-none shrink-0" aria-hidden="true">
+                          {link.emoji}
+                        </span>
+                        <span>{link.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
           </div>
 

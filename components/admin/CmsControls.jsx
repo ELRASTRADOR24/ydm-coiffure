@@ -15,8 +15,15 @@ import {
   Loader2,
   Image as ImageIcon,
   Check,
+  ChevronDown,
+  ChevronUp,
+  Link2,
 } from "lucide-react";
 import { uploadMediaClient } from "@/lib/uploadMedia";
+import {
+  ADMIN_SECTION_GUIDE,
+  AdminLocationIllustration,
+} from "./AdminVisualGuide";
 
 export const SALON_IMAGE_PRESETS = [
   { label: "Knotless Traçage net", path: "/images/realisations/IMG_3401_still.jpeg" },
@@ -74,32 +81,65 @@ export function SectionCard({
   onToggleVisible,
   onDelete,
   onReset,
+  zone,
+  defaultOpen = false,
   children,
 }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const isShown = visible !== false;
+  const guide = zone ? ADMIN_SECTION_GUIDE[zone] : null;
 
   return (
     <div
-      className={`bg-white rounded-2xl border-2 transition-all p-5 sm:p-7 space-y-5 shadow-2xs ${
+      className={`bg-white rounded-2xl border-2 transition-all p-4 sm:p-6 shadow-2xs ${
         isShown ? "border-stone-200" : "border-stone-300 bg-stone-50/70"
       }`}
     >
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-stone-200">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h3 className="font-serif text-xl font-bold text-brun">{title}</h3>
-            {!isShown && (
-              <span className="px-2.5 py-0.5 rounded-lg bg-stone-200 text-stone-700 text-xs font-bold uppercase tracking-wide">
-                Masqué
-              </span>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((prev) => !prev)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        className={`flex flex-col lg:flex-row lg:items-center justify-between gap-3 cursor-pointer select-none ${
+          isOpen ? "pb-4 border-b border-stone-200" : ""
+        }`}
+      >
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
+          {zone && <AdminLocationIllustration zone={zone} compact />}
+          <div className="space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {guide && (
+                <span className="sm:hidden text-base leading-none shrink-0" aria-hidden="true">
+                  {guide.emoji}
+                </span>
+              )}
+              <h3 className="font-serif text-lg sm:text-xl font-bold text-brun">
+                {title}
+              </h3>
+              {!isShown && (
+                <span className="px-2.5 py-0.5 rounded-lg bg-stone-200 text-stone-700 text-xs font-bold uppercase tracking-wide">
+                  Masqué
+                </span>
+              )}
+            </div>
+            {description && (
+              <p className="text-xs sm:text-sm text-stone-600 leading-snug">
+                {description}
+              </p>
             )}
           </div>
-          {description && (
-            <p className="text-sm text-stone-600 leading-snug">{description}</p>
-          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="flex flex-wrap items-center gap-2 shrink-0"
+        >
           {onToggleVisible && (
             <ToggleVisibilityButton
               visible={isShown}
@@ -126,18 +166,40 @@ export function SectionCard({
               <span>Supprimer</span>
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            aria-label={isOpen ? "Replier la section" : "Ouvrir la section"}
+            className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-stone-100 hover:bg-champagne-light text-brun border border-stone-300 transition-colors cursor-pointer"
+          >
+            {isOpen ? (
+              <>
+                <ChevronUp className="w-4 h-4 shrink-0" />
+                <span>Fermer</span>
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4 shrink-0" />
+                <span>Modifier</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {!isShown && (
-        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-950 font-medium">
-          Cette section est actuellement masquée : elle n&apos;apparaît pas sur le site public tant que vous ne cliquez pas sur &laquo; Masqué sur le site &raquo; pour la réafficher.
+      {isOpen && (
+        <div className="pt-5 space-y-5">
+          {!isShown && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-950 font-medium">
+              Cette section est actuellement masquée : elle n&apos;apparaît pas sur le site public tant que vous ne cliquez pas sur &laquo; Masqué sur le site &raquo; pour la réafficher.
+            </div>
+          )}
+
+          <div className={isShown ? "space-y-4" : "space-y-4 opacity-70"}>
+            {children}
+          </div>
         </div>
       )}
-
-      <div className={isShown ? "space-y-4" : "space-y-4 opacity-70"}>
-        {children}
-      </div>
     </div>
   );
 }
@@ -150,7 +212,7 @@ export function TextField({
   rows = 3,
   placeholder = "",
   help = "",
-  allowClear = true,
+  allowClear = false,
 }) {
   return (
     <div className="space-y-1.5">
@@ -200,6 +262,7 @@ export function ImageSelectorField({
   onToast,
 }) {
   const [showPicker, setShowPicker] = useState(showImagePickerDefault);
+  const [showManualUrl, setShowManualUrl] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
 
@@ -273,7 +336,7 @@ export function ImageSelectorField({
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="relative w-24 h-28 rounded-xl overflow-hidden bg-white border border-stone-300 shrink-0 flex items-center justify-center">
+        <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-white border border-stone-300 shrink-0 flex items-center justify-center">
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -287,17 +350,35 @@ export function ImageSelectorField({
             </span>
           )}
         </div>
-        <div className="flex-1 w-full space-y-1">
-          <label className="text-xs font-semibold text-stone-600 block">
-            Lien ou chemin de l&apos;image :
-          </label>
-          <input
-            type="text"
-            value={imageUrl || ""}
-            onChange={(e) => onChangeUrl(e.target.value)}
-            placeholder="/images/realisations/..."
-            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
-          />
+        <div className="flex-1 w-full space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-stone-600">
+              {imageUrl
+                ? "Image sélectionnée et prête à s'afficher."
+                : "Importez une image ou choisissez-en une dans la galerie."}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowManualUrl((prev) => !prev)}
+              className="inline-flex items-center space-x-1.5 text-xs font-semibold text-brun hover:text-champagne-dark underline cursor-pointer"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              <span>
+                {showManualUrl
+                  ? "Masquer le lien technique"
+                  : "Modifier le lien manuellement"}
+              </span>
+            </button>
+          </div>
+          {showManualUrl && (
+            <input
+              type="text"
+              value={imageUrl || ""}
+              onChange={(e) => onChangeUrl(e.target.value)}
+              placeholder="/images/realisations/..."
+              className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+            />
+          )}
         </div>
       </div>
 
@@ -355,6 +436,7 @@ export function RichArticleListEditor({
   allowClosingParagraph = false,
 }) {
   const list = Array.isArray(articles) ? articles : [];
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
   const updateItem = (idx, patch) => {
     const next = list.map((item, i) => (i === idx ? { ...item, ...patch } : item));
@@ -362,6 +444,7 @@ export function RichArticleListEditor({
   };
 
   const addItem = () => {
+    const nextIdx = list.length;
     onChange([
       ...list,
       {
@@ -372,10 +455,15 @@ export function RichArticleListEditor({
         bullets: [],
       },
     ]);
+    setExpandedIndex(nextIdx);
   };
 
   const removeItem = (idx) => {
     onChange(list.filter((_, i) => i !== idx));
+    if (expandedIndex === idx) setExpandedIndex(null);
+    else if (expandedIndex !== null && expandedIndex > idx) {
+      setExpandedIndex(expandedIndex - 1);
+    }
   };
 
   const moveItem = (idx, dir) => {
@@ -386,10 +474,12 @@ export function RichArticleListEditor({
     next[idx] = next[target];
     next[target] = tmp;
     onChange(next);
+    if (expandedIndex === idx) setExpandedIndex(target);
+    else if (expandedIndex === target) setExpandedIndex(idx);
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {list.length === 0 ? (
         <div className="p-6 rounded-2xl bg-stone-50 border border-dashed border-stone-300 text-center space-y-3">
           <p className="text-sm text-stone-600">
@@ -407,6 +497,7 @@ export function RichArticleListEditor({
       ) : (
         list.map((article, idx) => {
           const isShown = article.visible !== false;
+          const isExpanded = expandedIndex === idx;
           const paragraphs = Array.isArray(article.paragraphs)
             ? article.paragraphs
             : [];
@@ -415,55 +506,81 @@ export function RichArticleListEditor({
           return (
             <div
               key={article.id || idx}
-              className={`rounded-2xl border-2 p-5 space-y-4 transition-all ${
+              className={`rounded-2xl border-2 p-4 sm:p-5 transition-all ${
                 isShown
                   ? "bg-stone-50 border-stone-200"
                   : "bg-stone-100/80 border-stone-300 opacity-75"
               }`}
             >
-              {/* Barre du haut de l'article avec libellés explicites */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3 py-1 rounded-lg bg-white border border-stone-300 text-sm font-bold text-brun">
+              {/* En-tête compact de l'article */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <span className="px-2.5 py-1 rounded-lg bg-white border border-stone-300 text-xs font-bold text-brun shrink-0">
                     {itemLabel} #{idx + 1}
                   </span>
+                  <span className="font-serif font-bold text-sm sm:text-base text-brun truncate">
+                    {article.title || "Sans titre"}
+                  </span>
+                </div>
 
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveItem(idx, "up")}
-                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
+                    title="Monter"
+                    className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
-                    <span>Monter</span>
                   </button>
-
                   <button
                     type="button"
                     disabled={idx === list.length - 1}
                     onClick={() => moveItem(idx, "down")}
-                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
+                    title="Descendre"
+                    className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
-                    <span>Descendre</span>
                   </button>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
                   <ToggleVisibilityButton
                     visible={isShown}
+                    visibleLabel="Affiché"
+                    hiddenLabel="Masqué"
                     onToggle={() => updateItem(idx, { visible: !isShown })}
                   />
                   <button
                     type="button"
+                    onClick={() =>
+                      setExpandedIndex(isExpanded ? null : idx)
+                    }
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-champagne-light text-brun border border-stone-300 text-xs sm:text-sm font-bold cursor-pointer"
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        <span>Fermer</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        <span>Modifier</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => removeItem(idx)}
-                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold transition-colors cursor-pointer"
+                    aria-label="Supprimer cet élément"
+                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>Supprimer</span>
+                    <span className="hidden md:inline">Supprimer</span>
                   </button>
                 </div>
               </div>
+
+              {isExpanded && (
+                <div className="space-y-4 pt-4 mt-4 border-t border-stone-200">
 
               {/* Titre */}
               <TextField
@@ -584,6 +701,8 @@ export function RichArticleListEditor({
                   rows={2}
                   onChange={(val) => updateItem(idx, { closingParagraph: val })}
                 />
+              )}
+                </div>
               )}
             </div>
           );

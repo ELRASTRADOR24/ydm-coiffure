@@ -27,6 +27,11 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
     );
   });
 
+  const totalCustomers = customers.length;
+  const regularCustomers = customers.filter(
+    (c) => Number(c.totalBookings || 0) >= 2
+  ).length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -34,9 +39,31 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
         <h1 className="font-serif text-3xl font-bold text-brun">
           Fichier Clientes
         </h1>
-        <p className="text-xs text-stone-500 font-light mt-1">
-          Historique, coordonnées et fidélité de votre clientèle.
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">
+          Historique, coordonnées et rendez-vous confirmés de votre clientèle.
         </p>
+      </div>
+
+      {/* Résumé rapide */}
+      <div className="grid grid-cols-2 sm:max-w-md gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-lg shrink-0" aria-hidden="true">
+            👤
+          </span>
+          <div>
+            <div className="text-[11px] font-medium text-stone-500">Total clientes</div>
+            <div className="font-serif text-xl font-bold text-brun">{totalCustomers}</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-champagne-light/60 flex items-center justify-center text-lg shrink-0" aria-hidden="true">
+            ⭐
+          </span>
+          <div>
+            <div className="text-[11px] font-medium text-stone-500">Fidèles (2+ rdv)</div>
+            <div className="font-serif text-xl font-bold text-brun">{regularCustomers}</div>
+          </div>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -90,7 +117,7 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
                       {formatPrice(cust.totalSpent || 0)}
                     </div>
                     <div className="text-[11px] text-stone-500">
-                      {cust.totalBookings || 1} rdv
+                      {cust.totalBookings ?? 0} rdv
                     </div>
                   </div>
                 </div>
@@ -182,7 +209,7 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
                       )}
                     </td>
                     <td className="py-4 px-5 font-semibold text-brun">
-                      {cust.totalBookings || 1}
+                      {cust.totalBookings ?? 0}
                     </td>
                     <td className="py-4 px-5 font-serif font-bold text-brun">
                       {formatPrice(cust.totalSpent || 0)}

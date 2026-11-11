@@ -7,6 +7,7 @@ import GalleryPreview from "@/components/GalleryPreview";
 import LengthGuide from "@/components/LengthGuide";
 import CustomContentBlocks from "@/components/CustomContentBlocks";
 import { getServices, getSettings } from "@/lib/store";
+import { selectFeaturedServices } from "@/lib/adminHelpers";
 import { buildPublicSettings } from "@/lib/siteContent";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 
@@ -39,7 +40,7 @@ export default async function HomePage() {
   const faqSectionCfg = home.faqSection;
   const finalCtaCfg = home.finalCta;
 
-  const popularServices = allServices.slice(0, 3);
+  const popularServices = selectFeaturedServices(allServices, 3);
   const visibleFaqItems = Array.isArray(faqItems)
     ? faqItems.filter((item) => item && item.visible !== false)
     : [];

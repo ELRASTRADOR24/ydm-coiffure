@@ -14,7 +14,7 @@ import {
   Film,
   Upload,
   Loader2,
-  Sparkles,
+  Info,
   Play,
   Link2,
   Wand2,
@@ -38,6 +38,7 @@ import {
   TextField,
   RichArticleListEditor,
 } from "./CmsControls";
+import { AdminLocationIllustration } from "./AdminVisualGuide";
 
 export function FaqEditorTab({
   faqList,
@@ -90,6 +91,8 @@ export function FaqEditorTab({
         title="En-tête du bloc Questions & FAQ (Page d'Accueil)"
         description="Choisissez d'afficher ou de masquer toute la section FAQ sur l'accueil, et personnalisez son titre."
         visible={homeFaqSection.visible}
+        zone="faq"
+        defaultOpen={true}
         onToggleVisible={() => {
           onChangeHomeFaqSection({
             ...homeFaqSection,
@@ -100,7 +103,7 @@ export function FaqEditorTab({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={homeFaqSection.eyebrow}
             onChange={(val) =>
               onChangeHomeFaqSection({ ...homeFaqSection, eyebrow: val })
@@ -782,13 +785,16 @@ export function GalleryEditorTab({
       {/* 1. PORTFOLIO PHOTOS & VIDÉOS EN PRIORITÉ EN HAUT DE PAGE */}
       <div className="bg-white rounded-2xl p-5 sm:p-7 border-2 border-stone-200 shadow-2xs space-y-5">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-stone-200 pb-5">
-          <div>
-            <h3 className="font-serif text-xl sm:text-2xl font-bold text-brun">
-              Photos &amp; Vidéos de la Galerie ({galleryList.length})
-            </h3>
-            <p className="text-sm text-stone-600 mt-1">
-              Importez directement vos vidéos (1 ou plusieurs à la fois depuis votre iPad), visionnez-les ou réorganisez-les.
-            </p>
+          <div className="flex items-start sm:items-center gap-3">
+            <AdminLocationIllustration zone="galleryPreview" compact />
+            <div>
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-brun">
+                Photos &amp; Vidéos de la Galerie ({galleryList.length})
+              </h3>
+              <p className="text-sm text-stone-600 mt-1">
+                Importez directement vos vidéos (1 ou plusieurs à la fois depuis votre iPad), visionnez-les ou réorganisez-les.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -861,7 +867,7 @@ export function GalleryEditorTab({
               ) : (
                 <>
                   <ZoomOut className="w-4 h-4 text-champagne-dark" />
-                  <span>Vue d&apos;ensemble (Dézoomer)</span>
+                  <span>Réorganiser l&apos;ordre</span>
                 </>
               )}
             </button>
@@ -958,7 +964,7 @@ export function GalleryEditorTab({
           <div className="p-4 rounded-2xl bg-champagne-light/50 border border-champagne/50 space-y-3 text-sm text-brun">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-champagne-dark shrink-0" />
+                <Info className="w-5 h-5 text-champagne-dark shrink-0" />
                 <span className="font-medium">
                   Sur iPad ou ordinateur : touchez une photo ou vidéo pour la déplacer, puis touchez sa nouvelle place (ou glissez-déposez).
                 </span>
@@ -1367,6 +1373,7 @@ export function GalleryEditorTab({
         title="En-tête de la page Galerie"
         description="Textes affichés tout en haut de la page Galerie (/galerie)."
         visible={header.visible}
+        zone="pageHeader"
         onToggleVisible={() =>
           onChangeGalleryPage({
             ...galleryPage,
@@ -1377,7 +1384,7 @@ export function GalleryEditorTab({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={header.eyebrow}
             onChange={(val) =>
               onChangeGalleryPage({
@@ -1415,6 +1422,7 @@ export function GalleryEditorTab({
         title="Encadré en bas de page Galerie"
         description="Bloc d'appel à l'action affiché sous les photos et vidéos de réalisations."
         visible={bottomCta.visible}
+        zone="finalCta"
         onToggleVisible={() =>
           onChangeGalleryPage({
             ...galleryPage,
@@ -1481,6 +1489,7 @@ export function GalleryEditorTab({
         title="Blocs de texte libres sur la page Galerie"
         description="Ajoutez un paragraphe ou un encadré supplémentaire n'importe où sous la galerie."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={galleryPage.customBlocks || []}

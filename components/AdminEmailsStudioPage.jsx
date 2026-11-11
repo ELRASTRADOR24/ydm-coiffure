@@ -10,6 +10,7 @@ import {
   getResolvedEmailSettings,
 } from "@/lib/emailTemplates";
 import EmailEditorTab from "./admin/EmailEditorTab";
+import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
 
 export default function AdminEmailsStudioPage({ initialSettings = {} }) {
   const router = useRouter();
@@ -85,13 +86,18 @@ export default function AdminEmailsStudioPage({ initialSettings = {} }) {
       )}
 
       <div className="bg-white rounded-3xl p-5 sm:p-7 border-2 border-stone-200 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
-            Cartes Mail &amp; Modèles Gmail
-          </h1>
-          <p className="text-sm sm:text-base text-stone-600">
-            Modifiez vos e-mails comme sur Google Docs : polices, couleurs, logo, cadres et boutons, avec aperçu réel en direct.
-          </p>
+        <div className="space-y-2 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
+                Cartes Mail &amp; Modèles Gmail
+              </h1>
+              <p className="text-sm text-stone-600 mt-1">
+                Personnalisez les e-mails envoyés automatiquement aux clientes (logo, textes, couleurs et boutons) avec aperçu en direct.
+              </p>
+            </div>
+            <AdminLocationIllustration zone="email" compact />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">

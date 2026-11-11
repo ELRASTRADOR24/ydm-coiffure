@@ -56,21 +56,34 @@ import { FaqEditorTab, GalleryEditorTab } from "./admin/GalleryAndFaqEditors";
 import EmailEditorTab from "./admin/EmailEditorTab";
 
 const TABS = [
-  { id: "pages", label: "Pages (Afficher / Masquer)", icon: Layers },
-  { id: "maintenance", label: "Mode Maintenance", icon: Power },
-  { id: "home", label: "Page d'Accueil", icon: Home },
-  { id: "services", label: "Prestations & Longueurs", icon: Scissors },
-  { id: "gallery", label: "Galerie & Médias", icon: ImageIcon },
-  { id: "about", label: "À propos de moi", icon: UserCheck },
-  { id: "contact", label: "Contact & Infos", icon: Phone },
-  { id: "rules", label: "Règlement Intérieur", icon: FileCheck },
-  { id: "legal", label: "Mentions Légales", icon: Scale },
-  { id: "privacy", label: "Confidentialité / RGPD", icon: ShieldCheck },
-  { id: "faq", label: "Questions & FAQ", icon: HelpCircle },
-  { id: "global", label: "Menu & Pied de page", icon: Layout },
-  { id: "booking", label: "Page Réservation", icon: CalendarCheck },
-  { id: "emails", label: "Cartes Mail & Gmail", icon: Mail },
+  { id: "pages", label: "👁️ Pages", icon: Layers },
+  { id: "maintenance", label: "🚧 Maintenance", icon: Power },
+  { id: "home", label: "🏡 Accueil", icon: Home },
+  { id: "services", label: "✂️ Prestations", icon: Scissors },
+  { id: "gallery", label: "📸 Galerie", icon: ImageIcon },
+  { id: "about", label: "👋 À propos", icon: UserCheck },
+  { id: "contact", label: "📞 Contact", icon: Phone },
+  { id: "rules", label: "📜 Règlement", icon: FileCheck },
+  { id: "legal", label: "⚖️ Mentions", icon: Scale },
+  { id: "privacy", label: "🔒 RGPD", icon: ShieldCheck },
+  { id: "faq", label: "❓ FAQ", icon: HelpCircle },
+  { id: "global", label: "🧭 Menu & Pied", icon: Layout },
+  { id: "booking", label: "🗓️ Réservation", icon: CalendarCheck },
+  { id: "emails", label: "✉️ E-mails", icon: Mail },
 ];
+
+const TAB_PREVIEW_PATH = {
+  home: "/",
+  services: "/prestations",
+  gallery: "/galerie",
+  about: "/a-propos",
+  contact: "/contact",
+  rules: "/conditions-reservation",
+  legal: "/mentions-legales",
+  privacy: "/politique-confidentialite",
+  booking: "/reserver",
+  maintenance: "/?preview_maintenance=1",
+};
 
 export default function AdminSiteEditorView({
   initialSettings = {},
@@ -336,7 +349,7 @@ export default function AdminSiteEditorView({
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  maintenance.enabled ? "bg-red-600 animate-ping" : "bg-emerald-600"
+                  maintenance.enabled ? "bg-red-600" : "bg-emerald-600"
                 }`}
               />
               <span>
@@ -345,21 +358,21 @@ export default function AdminSiteEditorView({
             </span>
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
-            Éditeur Complet du Site
+            Contenu du site
           </h1>
-          <p className="text-sm sm:text-base text-stone-600">
-            Modifiez, masquez ou supprimez n&apos;importe quel texte, bloc ou page du site en toute autonomie.
+          <p className="text-sm text-stone-600">
+            Choisissez une page ci-dessous, puis ouvrez le bloc que vous souhaitez modifier.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <a
-            href="/"
+            href={TAB_PREVIEW_PATH[activeTab] || "/"}
             target="_blank"
             rel="noopener noreferrer"
             className="min-h-[44px] inline-flex items-center space-x-2 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
           >
-            <span>Voir le site</span>
+            <span>Voir cette page</span>
             <ExternalLink className="w-4 h-4" />
           </a>
 

@@ -5,7 +5,10 @@ import {
   getBookingById,
   updateBooking,
   getSettings,
+  getBookings,
+  getUnavailabilities,
 } from "@/lib/store";
+import { findManualBookingConflict } from "@/lib/adminHelpers";
 import { createDepositCheckoutSession } from "@/lib/stripe";
 import { sendBookingApprovedPaymentEmail } from "@/lib/email";
 import { sendBookingApprovedPaymentSms } from "@/lib/sms";
@@ -37,7 +40,33 @@ export async function POST(request, { params }) {
       );
     }
 
-    const settings = await getSettings();
+    const [unavailabilities, existingBookings, settings] = await Promise.all([
+      getUnavailabilities(),
+      getBookings({ date: booking.date }),
+      getSettings(),
+    ]);
+
+    const conflictCheck = findManualBookingConflict({
+      date: booking.date,
+      startTime: booking.startTime,
+      duration: booking.totalDuration || booking.service?.duration || 60,
+      existingBookings,
+      unavailabilities,
+      excludeBookingId: id,
+    });
+
+    if (conflictCheck.conflict) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            conflictCheck.reason ||
+            "Ce créneau chevauche désormais un autre rendez-vous ou une indisponibilité.",
+        },
+        { status: 409 }
+      );
+    }
+
     const holdHours = settings?.paymentHoldHours || 2; // Délai officiel strict de 2 heures
     const holdExpiresAt = new Date(Date.now() + holdHours * 60 * 60 * 1000);
 

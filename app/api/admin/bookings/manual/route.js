@@ -37,8 +37,16 @@ export async function POST(request) {
       notes,
       totalPrice: customPrice,
       duration: customDuration,
+      selectedOptions: rawSelectedOptions,
       status = "CONFIRMED",
     } = body;
+
+    if (!["CONFIRMED", "PENDING_PAYMENT", "PENDING_APPROVAL"].includes(status)) {
+      return NextResponse.json(
+        { success: false, error: "Statut de réservation invalide." },
+        { status: 400 }
+      );
+    }
 
     if (
       !serviceId ||
@@ -102,6 +110,17 @@ export async function POST(request) {
     const endMin = startMin + duration;
     const endTime = minutesToTime(endMin);
 
+    const sanitizedOptions = Array.isArray(rawSelectedOptions)
+      ? rawSelectedOptions
+          .filter((o) => o && typeof o === "object" && String(o.name || "").trim() && String(o.choice || "").trim())
+          .map((o) => ({
+            name: String(o.name).trim(),
+            choice: String(o.choice).trim(),
+            priceDiff: Number(o.priceDiff) || 0,
+            durationDiff: Number(o.durationDiff) || 0,
+          }))
+      : [];
+
     const newBooking = await createBooking({
       customer: {
         firstName: String(customerFirstName).trim(),
@@ -117,7 +136,7 @@ export async function POST(request) {
         duration,
         depositAmount,
       },
-      selectedOptions: [],
+      selectedOptions: sanitizedOptions,
       date,
       startTime,
       endTime,

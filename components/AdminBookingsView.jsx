@@ -8,18 +8,24 @@ import {
   X,
   Ban,
   Clock,
-  Sparkles,
+  CheckCircle2,
   Phone,
   Calendar,
   Copy,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
-import { matchesBookingStatusFilter } from "@/lib/adminHelpers";
+import {
+  matchesBookingStatusFilter,
+  normalizeBookingStatus,
+} from "@/lib/adminHelpers";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
+import { AdminWorkflowGuideBar } from "./admin/AdminVisualGuide";
 
 export default function AdminBookingsView({ initialBookings = [] }) {
   const router = useRouter();
-  const [bookings, setBookings] = useState(initialBookings);
+  const [bookings, setBookings] = useState(() =>
+    (initialBookings || []).map((b) => normalizeBookingStatus(b))
+  );
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -34,7 +40,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
   const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
 
   useEffect(() => {
-    setBookings(initialBookings);
+    setBookings((initialBookings || []).map((b) => normalizeBookingStatus(b)));
   }, [initialBookings]);
 
   useEffect(() => {
@@ -230,7 +236,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
     <div className="space-y-6">
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-champagne" />
+          <CheckCircle2 className="w-4 h-4 text-champagne" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -240,10 +246,12 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         <h1 className="font-serif text-3xl font-bold text-brun">
           Gestion des Réservations
         </h1>
-        <p className="text-xs text-stone-500 font-light mt-1">
-          Consultez, filtrez et gérez l'ensemble des demandes de rendez-vous clientes.
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">
+          Consultez, filtrez et validez vos rendez-vous étape par étape.
         </p>
       </div>
+
+      <AdminWorkflowGuideBar />
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200 shadow-2xs space-y-4">

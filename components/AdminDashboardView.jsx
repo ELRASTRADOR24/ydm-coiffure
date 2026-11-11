@@ -5,29 +5,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
-  Clock,
   CheckCircle2,
-  AlertCircle,
-  CreditCard,
-  TrendingUp,
-  User,
   Phone,
   Mail,
   ArrowRight,
   Check,
   X,
-  Sparkles,
   Power,
   AlertTriangle,
   ExternalLink,
   Loader2,
-  Film,
   Copy,
+  FileText,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { DEFAULT_MAINTENANCE } from "@/lib/siteContent";
-import { getParisDateString } from "@/lib/adminHelpers";
+import { getParisDateString, normalizeBookingStatus } from "@/lib/adminHelpers";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
+import { AdminWorkflowGuideBar } from "./admin/AdminVisualGuide";
 
 export default function AdminDashboardView({
   initialStats,
@@ -35,7 +30,9 @@ export default function AdminDashboardView({
   initialMaintenance = DEFAULT_MAINTENANCE,
 }) {
   const router = useRouter();
-  const [bookings, setBookings] = useState(initialBookings || []);
+  const [bookings, setBookings] = useState(() =>
+    (initialBookings || []).map((b) => normalizeBookingStatus(b))
+  );
   const [maintenance, setMaintenance] = useState(
     initialMaintenance || DEFAULT_MAINTENANCE
   );
@@ -48,7 +45,7 @@ export default function AdminDashboardView({
   const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
-    setBookings(initialBookings || []);
+    setBookings((initialBookings || []).map((b) => normalizeBookingStatus(b)));
   }, [initialBookings]);
 
   useEffect(() => {
@@ -260,7 +257,7 @@ export default function AdminDashboardView({
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-champagne" />
+          <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -272,155 +269,120 @@ export default function AdminDashboardView({
             Tableau de Bord
           </h1>
           <p className="text-sm text-stone-600 mt-1">
-            Aperçu en temps réel de votre activité, de vos encaissements et de votre planning.
+            Vos demandes à valider, acomptes à vérifier et prochains rendez-vous.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            href="/admin/site-editor"
-            className="min-h-[44px] inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xs transition-all hover:scale-[1.02]"
-          >
-            <Sparkles className="w-4 h-4 text-brun" />
-            <span>Modifier tout le site</span>
-          </Link>
-          <Link
-            href="/admin/gallery"
-            className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
-          >
-            <Film className="w-4 h-4 text-champagne-dark" />
-            <span>Galerie &amp; Vidéos</span>
-          </Link>
-          <Link
-            href="/admin/emails"
-            className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
-          >
-            <Mail className="w-4 h-4 text-champagne-dark" />
-            <span>Cartes Mail &amp; Gmail</span>
-          </Link>
-          <Link
             href="/admin/calendar"
             className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
             <Calendar className="w-4 h-4 text-champagne-dark" />
-            <span>Ouvrir le calendrier</span>
+            <span>Calendrier</span>
+          </Link>
+          <Link
+            href="/admin/site-editor"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-white border border-stone-300 hover:border-champagne text-brun px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
+          >
+            <FileText className="w-4 h-4 text-champagne-dark" />
+            <span>Textes du site</span>
           </Link>
           <Link
             href="/admin/bookings"
             className="min-h-[44px] inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xs transition-colors"
           >
-            <span>Toutes les réservations</span>
+            <span>Réservations</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
 
-      {/* Bouton de Secours Instantané : Mode Maintenance */}
-      <div
-        className={`rounded-3xl p-5 sm:p-6 border-2 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5 transition-all ${
-          maintenance.enabled
-            ? "bg-red-50 border-red-400"
-            : "bg-white border-stone-200"
-        }`}
-      >
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                maintenance.enabled
-                  ? "bg-red-600 text-white"
-                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
-              }`}
+      {/* Repère visuel du parcours client */}
+      <AdminWorkflowGuideBar />
+
+      {/* Statut du site / Mode Maintenance */}
+      {maintenance.enabled ? (
+        <div className="rounded-2xl p-5 border-2 bg-red-50 border-red-400 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-600 text-white">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>MODE MAINTENANCE ACTIF</span>
+            </span>
+            <h2 className="font-serif text-lg font-bold text-brun pt-1">
+              Le site public est actuellement en pause
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-700">
+              Les visiteuses voient l&apos;écran de maintenance. Cliquez pour rouvrir les réservations dès que vous êtes prête.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              disabled={togglingMaintenance}
+              onClick={handleToggleMaintenance}
+              className="min-h-[44px] inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-60 bg-emerald-700 hover:bg-emerald-800 text-white"
             >
-              {maintenance.enabled ? (
-                <>
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>MODE MAINTENANCE ACTIF</span>
-                </>
+              {togglingMaintenance ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>SITE EN LIGNE</span>
-                </>
+                <Power className="w-4 h-4" />
               )}
+              <span>
+                {togglingMaintenance ? "Mise à jour..." : "Remettre le site en ligne"}
+              </span>
+            </button>
+            <Link
+              href="/admin/site-editor?tab=maintenance"
+              className="min-h-[44px] inline-flex items-center px-4 py-2.5 rounded-xl bg-white hover:bg-stone-100 text-brun border border-stone-300 text-sm font-semibold transition-colors"
+            >
+              Modifier le message
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl px-4 py-3 border border-stone-200 bg-white shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm">
+            <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>SITE EN LIGNE</span>
+            </span>
+            <span className="text-stone-600">
+              Mode maintenance désactivé — les réservations sont ouvertes.
             </span>
           </div>
-          <h2 className="font-serif text-xl font-bold text-brun">
-            Bouton de Secours : Page de Maintenance
-          </h2>
-          <p className="text-sm text-stone-600 max-w-2xl">
-            En cas de problème technique ou de grosse mise à jour, passez le site public en mode maintenance en 1 clic tout en gardant accès à votre administration.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <button
-            type="button"
-            disabled={togglingMaintenance}
-            onClick={handleToggleMaintenance}
-            className={`inline-flex items-center space-x-2 px-5 py-3 rounded-2xl text-sm font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-60 ${
-              maintenance.enabled
-                ? "bg-emerald-700 hover:bg-emerald-800 text-white"
-                : "bg-red-600 hover:bg-red-700 text-white"
-            }`}
-          >
-            {togglingMaintenance ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Power className="w-4 h-4" />
-            )}
-            <span>
-              {togglingMaintenance
-                ? "Mise à jour..."
-                : maintenance.enabled
-                ? "Désactiver la maintenance"
-                : "Activer la maintenance"}
-            </span>
-          </button>
-
-          <Link
-            href="/admin/site-editor?tab=maintenance"
-            className="inline-flex items-center space-x-1.5 px-4 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-brun border border-stone-300 text-sm font-semibold transition-colors"
-          >
-            <span>Personnaliser le message</span>
-          </Link>
-
-          <a
-            href="/?preview_maintenance=1"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center space-x-1.5 px-4 py-3 rounded-2xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 text-sm font-semibold transition-colors"
-          >
-            <span>Aperçu</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </div>
-      </div>
-
-      {/* Banner Site Editor */}
-      <div className="bg-gradient-to-r from-brun via-brun-dark to-stone-900 text-creme rounded-3xl p-5 sm:p-6 border border-champagne/30 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-champagne animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-champagne">
-              Contrôle Complet du Site
-            </span>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Link
+              href="/admin/site-editor?tab=maintenance"
+              className="min-h-[40px] inline-flex items-center px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-brun text-xs font-semibold transition-colors"
+            >
+              Message maintenance
+            </Link>
+            <a
+              href="/?preview_maintenance=1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[40px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 text-stone-700 border border-stone-300 text-xs font-semibold transition-colors"
+            >
+              <span>Aperçu</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <button
+              type="button"
+              disabled={togglingMaintenance}
+              onClick={handleToggleMaintenance}
+              className="min-h-[40px] inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {togglingMaintenance ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Power className="w-3.5 h-3.5" />
+              )}
+              <span>{togglingMaintenance ? "Mise à jour..." : "Mettre en pause"}</span>
+            </button>
           </div>
-          <h2 className="font-serif text-lg sm:text-xl font-bold text-creme">
-            Modifiez chaque page, texte, photo, FAQ et règlement en direct
-          </h2>
-          <p className="text-sm text-stone-300 font-light max-w-2xl">
-            Accueil, Prestations, Galerie, À propos de moi, Contact, Règlement Intérieur, Mentions Légales, Confidentialité, Menu et Pied de page.
-          </p>
         </div>
-        <Link
-          href="/admin/site-editor"
-          className="inline-flex items-center space-x-2 bg-champagne hover:bg-champagne-light text-brun-dark px-5 py-3 rounded-2xl text-sm font-bold shadow-md transition-all shrink-0 hover:scale-[1.02]"
-        >
-          <span>Ouvrir l&apos;éditeur complet</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">

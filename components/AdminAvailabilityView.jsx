@@ -3,14 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Clock,
   Calendar,
   Save,
   Plus,
   Trash2,
-  Sparkles,
-  AlertCircle,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import {
   getParisDateString,
@@ -18,6 +16,7 @@ import {
   expandDateRangeInclusive,
 } from "@/lib/adminHelpers";
 import { timeToMinutes } from "@/lib/availabilityEngine";
+import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
 
 export default function AdminAvailabilityView({
   initialAvailabilities = [],
@@ -30,9 +29,12 @@ export default function AdminAvailabilityView({
   );
   const [toastMessage, setToastMessage] = useState("");
   const [savingDay, setSavingDay] = useState(null);
+  const [savingAll, setSavingAll] = useState(false);
+  const [dirtyDays, setDirtyDays] = useState(() => new Set());
 
   useEffect(() => {
     setAvailabilities(initialAvailabilities);
+    setDirtyDays(new Set());
   }, [initialAvailabilities]);
 
   useEffect(() => {
@@ -57,24 +59,85 @@ export default function AdminAvailabilityView({
     setTimeout(() => setToastMessage(""), 3500);
   };
 
+  const markDayDirty = (dayOfWeek) => {
+    setDirtyDays((prev) => {
+      const next = new Set(prev);
+      next.add(dayOfWeek);
+      return next;
+    });
+  };
+
   const handleDayChange = (dayOfWeek, field, value) => {
     setAvailabilities((prev) =>
       prev.map((day) =>
         day.dayOfWeek === dayOfWeek ? { ...day, [field]: value } : day
       )
     );
+    markDayDirty(dayOfWeek);
+  };
+
+  const handleToggleLunchBreak = (dayOfWeek, enabled) => {
+    setAvailabilities((prev) =>
+      prev.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek) return day;
+        return {
+          ...day,
+          breaks: enabled
+            ? [{ start: "12:30", end: "13:30", label: "Pause déjeuner" }]
+            : [],
+        };
+      })
+    );
+    markDayDirty(dayOfWeek);
+  };
+
+  const handleLunchBreakTime = (dayOfWeek, field, value) => {
+    setAvailabilities((prev) =>
+      prev.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek) return day;
+        const current = Array.isArray(day.breaks) && day.breaks.length > 0
+          ? day.breaks[0]
+          : { start: "12:30", end: "13:30", label: "Pause déjeuner" };
+        return {
+          ...day,
+          breaks: [{ ...current, [field]: value, label: current.label || "Pause déjeuner" }],
+        };
+      })
+    );
+    markDayDirty(dayOfWeek);
+  };
+
+  const validateDaySchedule = (day) => {
+    if (!day.isOpen) return null;
+    if (!isValidTimeString(day.startTime) || !isValidTimeString(day.endTime)) {
+      return `${day.dayName} : veuillez renseigner des heures d'ouverture et de fermeture valides.`;
+    }
+    if (timeToMinutes(day.startTime) >= timeToMinutes(day.endTime)) {
+      return `${day.dayName} : l'heure de fermeture doit être postérieure à l'ouverture.`;
+    }
+    const lunch = Array.isArray(day.breaks) && day.breaks.length > 0 ? day.breaks[0] : null;
+    if (lunch) {
+      if (!isValidTimeString(lunch.start) || !isValidTimeString(lunch.end)) {
+        return `${day.dayName} : veuillez saisir des horaires de pause valides.`;
+      }
+      if (timeToMinutes(lunch.start) >= timeToMinutes(lunch.end)) {
+        return `${day.dayName} : l'heure de fin de pause doit suivre le début.`;
+      }
+      if (
+        timeToMinutes(lunch.start) < timeToMinutes(day.startTime) ||
+        timeToMinutes(lunch.end) > timeToMinutes(day.endTime)
+      ) {
+        return `${day.dayName} : la pause déjeuner doit rester comprise dans vos horaires d'ouverture.`;
+      }
+    }
+    return null;
   };
 
   const handleSaveDay = async (day) => {
-    if (day.isOpen) {
-      if (!isValidTimeString(day.startTime) || !isValidTimeString(day.endTime)) {
-        showToast("Veuillez renseigner des heures d'ouverture et de fermeture valides.");
-        return;
-      }
-      if (timeToMinutes(day.startTime) >= timeToMinutes(day.endTime)) {
-        showToast("L'heure de fermeture doit être postérieure à l'heure d'ouverture.");
-        return;
-      }
+    const err = validateDaySchedule(day);
+    if (err) {
+      showToast(err);
+      return;
     }
 
     setSavingDay(day.dayOfWeek);
@@ -93,6 +156,11 @@ export default function AdminAvailabilityView({
             )
           );
         }
+        setDirtyDays((prev) => {
+          const next = new Set(prev);
+          next.delete(day.dayOfWeek);
+          return next;
+        });
         router.refresh();
         showToast(`Horaires du ${day.dayName} sauvegardés !`);
       } else {
@@ -102,6 +170,58 @@ export default function AdminAvailabilityView({
       showToast("Erreur lors de la sauvegarde des horaires.");
     } finally {
       setSavingDay(null);
+    }
+  };
+
+  const handleSaveAllDays = async () => {
+    const daysToSave =
+      dirtyDays.size > 0
+        ? availabilities.filter((d) => dirtyDays.has(d.dayOfWeek))
+        : availabilities;
+
+    for (const day of daysToSave) {
+      const err = validateDaySchedule(day);
+      if (err) {
+        showToast(err);
+        return;
+      }
+    }
+
+    setSavingAll(true);
+    try {
+      const results = await Promise.all(
+        daysToSave.map(async (day) => {
+          const res = await fetch("/api/admin/availability", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(day),
+          });
+          const data = await res.json();
+          return { ok: res.ok && data.success, availability: data.availability, error: data.error };
+        })
+      );
+
+      const failed = results.find((r) => !r.ok);
+      if (failed) {
+        showToast(failed.error || "Une erreur est survenue lors de l'enregistrement.");
+        return;
+      }
+
+      const updatedByDay = new Map(
+        results
+          .filter((r) => r.availability)
+          .map((r) => [r.availability.dayOfWeek, r.availability])
+      );
+      setAvailabilities((prev) =>
+        prev.map((d) => updatedByDay.get(d.dayOfWeek) || d)
+      );
+      setDirtyDays(new Set());
+      router.refresh();
+      showToast("Tous vos horaires hebdomadaires ont été enregistrés !");
+    } catch (_) {
+      showToast("Erreur réseau lors de l'enregistrement des horaires.");
+    } finally {
+      setSavingAll(false);
     }
   };
 
@@ -208,37 +328,75 @@ export default function AdminAvailabilityView({
     <div className="space-y-8">
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-champagne" />
+          <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="font-serif text-3xl font-bold text-brun">
-          Disponibilités & Planning de Travail
-        </h1>
-        <p className="text-xs text-stone-500 font-light mt-1">
-          Configurez vos heures de présence hebdomadaires, vos temps de pause et vos congés exceptionnels.
-        </p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-3xl font-bold text-brun">
+            Horaires &amp; Pauses
+          </h1>
+          <p className="text-xs sm:text-sm text-stone-500 mt-1">
+            Réglez vos horaires d&apos;ouverture, votre pause déjeuner et vos jours de congé.
+          </p>
+        </div>
+        <AdminLocationIllustration zone="availability" compact />
       </div>
 
       {/* WEEKLY SCHEDULE */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xs space-y-6">
-        <h2 className="font-serif text-xl font-bold text-brun">
-          Horaires Hebdomadaires Récurrents
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-xl font-bold text-brun">
+              Semaine type d&apos;ouverture
+            </h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Cochez « Pause déjeuner » si vous bloquez un créneau repas dans la journée.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={savingAll}
+            onClick={handleSaveAllDays}
+            className={`min-h-[44px] inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50 ${
+              dirtyDays.size > 0
+                ? "bg-champagne-dark hover:bg-brun text-white ring-2 ring-champagne/40"
+                : "bg-brun hover:bg-brun-dark text-creme"
+            }`}
+          >
+            {savingAll ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 text-champagne" />
+            )}
+            <span>
+              {savingAll
+                ? "Enregistrement..."
+                : dirtyDays.size > 0
+                ? `Tout enregistrer (${dirtyDays.size})`
+                : "Tout enregistrer"}
+            </span>
+          </button>
+        </div>
 
         <div className="divide-y divide-stone-100">
           {sortedDays.map((day) => {
             const isSaving = savingDay === day.dayOfWeek;
+            const isDirty = dirtyDays.has(day.dayOfWeek);
+            const lunchBreak =
+              Array.isArray(day.breaks) && day.breaks.length > 0
+                ? day.breaks[0]
+                : null;
             return (
               <div
                 key={day.dayOfWeek}
-                className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs"
+                className="py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-xs"
               >
                 {/* Day name & Open toggle */}
-                <div className="w-full sm:w-48 flex items-center gap-3 shrink-0">
+                <div className="w-full sm:w-44 flex items-center gap-3 shrink-0">
                   <label className="min-h-[44px] inline-flex items-center cursor-pointer shrink-0">
                     <input
                       type="checkbox"
@@ -261,7 +419,7 @@ export default function AdminAvailabilityView({
 
                 {/* Hours inputs (if open) */}
                 {day.isOpen ? (
-                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 flex-1">
+                  <div className="flex flex-wrap items-center gap-3 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-stone-500 font-medium">Heures :</span>
                       <input
@@ -281,6 +439,44 @@ export default function AdminAvailabilityView({
                         }
                         className="min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-medium text-brun"
                       />
+                    </div>
+
+                    {/* Pause déjeuner */}
+                    <div className="flex flex-wrap items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5">
+                      <label className="min-h-[36px] inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-brun">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(lunchBreak)}
+                          onChange={(e) =>
+                            handleToggleLunchBreak(day.dayOfWeek, e.target.checked)
+                          }
+                          className="w-4 h-4 accent-brun rounded border-stone-300"
+                        />
+                        <span>Pause déjeuner</span>
+                      </label>
+                      {lunchBreak && (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="time"
+                            aria-label={`Début pause ${day.dayName}`}
+                            value={lunchBreak.start || "12:30"}
+                            onChange={(e) =>
+                              handleLunchBreakTime(day.dayOfWeek, "start", e.target.value)
+                            }
+                            className="min-h-[36px] bg-white border border-stone-200 rounded-lg px-2 py-1 text-sm font-medium text-brun"
+                          />
+                          <span>–</span>
+                          <input
+                            type="time"
+                            aria-label={`Fin pause ${day.dayName}`}
+                            value={lunchBreak.end || "13:30"}
+                            onChange={(e) =>
+                              handleLunchBreakTime(day.dayOfWeek, "end", e.target.value)
+                            }
+                            className="min-h-[36px] bg-white border border-stone-200 rounded-lg px-2 py-1 text-sm font-medium text-brun"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Battement */}
@@ -314,9 +510,13 @@ export default function AdminAvailabilityView({
                 <div>
                   <button
                     type="button"
-                    disabled={isSaving}
+                    disabled={isSaving || savingAll}
                     onClick={() => handleSaveDay(day)}
-                    className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-stone-100 hover:bg-brun hover:text-creme text-stone-700 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                    className={`w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer ${
+                      isDirty
+                        ? "bg-champagne hover:bg-champagne-dark text-brun-dark"
+                        : "bg-stone-100 hover:bg-brun hover:text-creme text-stone-700"
+                    }`}
                   >
                     <Save className="w-4 h-4 shrink-0" />
                     <span>{isSaving ? "Sauvegarde..." : "Enregistrer"}</span>

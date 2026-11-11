@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { getBookings } from "@/lib/store";
+import {
+  normalizeBookingStatus,
+  matchesBookingStatusFilter,
+} from "@/lib/adminHelpers";
 
 export async function GET(request) {
   const session = await getAdminSession();
@@ -14,7 +18,14 @@ export async function GET(request) {
     const status = searchParams.get("status");
     const search = searchParams.get("search")?.toLowerCase();
 
-    let bookings = await getBookings({ date, status });
+    const rawBookings = await getBookings({ date });
+    let bookings = rawBookings.map((b) => normalizeBookingStatus(b));
+
+    if (status && status !== "ALL") {
+      bookings = bookings.filter((b) =>
+        matchesBookingStatusFilter(b.status, status)
+      );
+    }
 
     if (search) {
       bookings = bookings.filter((b) => {

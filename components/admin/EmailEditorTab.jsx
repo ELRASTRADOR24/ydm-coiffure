@@ -24,7 +24,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Sparkles,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import {
@@ -86,6 +86,7 @@ export default function EmailEditorTab({
   const [subPanel, setSubPanel] = useState("content"); // "content" | "style" | "headerFooter"
   const [previewDevice, setPreviewDevice] = useState("desktop"); // "desktop" | "mobile"
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [openFrameStyleIdx, setOpenFrameStyleIdx] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBlockIdx, setUploadingBlockIdx] = useState(null);
   const [testEmailAddress, setTestEmailAddress] = useState(
@@ -184,7 +185,7 @@ export default function EmailEditorTab({
         type: "richtext",
         visible: true,
         boxed: false,
-        html: '<p style="margin:0;font-size:13px;line-height:1.6;">Nouveau paragraphe libre. Utilisez la barre Google Docs ci-dessus pour changer la police, les couleurs ou insérer des variables.</p>',
+        html: '<p style="margin:0;font-size:13px;line-height:1.6;">Nouveau paragraphe libre. Utilisez la barre de mise en forme ci-dessus pour ajuster le texte ou insérer des variables.</p>',
       });
     } else if (kind === "boxedText") {
       blocks.push({
@@ -375,7 +376,7 @@ export default function EmailEditorTab({
   const blockTypeLabel = (type) => {
     switch (type) {
       case "richtext":
-        return "Texte riche (Google Docs)";
+        return "Texte mis en forme";
       case "summaryCard":
         return "Fiche Détails / Récapitulatif";
       case "addressCard":
@@ -406,7 +407,7 @@ export default function EmailEditorTab({
               </h2>
             </div>
             <p className="text-sm text-stone-600 mt-1">
-              Personnalisez chaque e-mail envoyé aux clientes comme sur Google Docs : polices, couleurs, logo, cadres et textes.
+              Personnalisez chaque e-mail envoyé aux clientes : polices, couleurs, logo, cadres et textes.
             </p>
           </div>
 
@@ -452,7 +453,10 @@ export default function EmailEditorTab({
                 <button
                   key={meta.key}
                   type="button"
-                  onClick={() => setSelectedTemplateKey(meta.key)}
+                  onClick={() => {
+                    setSelectedTemplateKey(meta.key);
+                    setOpenFrameStyleIdx(null);
+                  }}
                   className={`min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border text-left transition-all cursor-pointer ${
                     active
                       ? "bg-brun text-creme border-brun shadow-sm"
@@ -470,7 +474,7 @@ export default function EmailEditorTab({
         {/* Styles rapides en 1 clic */}
         <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center space-x-2 text-xs sm:text-sm font-bold text-brun">
-            <Sparkles className="w-4 h-4 text-champagne-dark shrink-0" />
+            <Palette className="w-4 h-4 text-champagne-dark shrink-0" />
             <span>Thèmes rapides (couleurs &amp; cadres en 1 clic) :</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -501,7 +505,7 @@ export default function EmailEditorTab({
               }`}
             >
               <Type className="w-4 h-4" />
-              <span>Contenu &amp; Blocs (Google Docs)</span>
+              <span>Contenu &amp; Blocs</span>
             </button>
 
             <button
@@ -558,10 +562,10 @@ export default function EmailEditorTab({
 
       {/* CORPS SPLIT : ÉDITEUR À GAUCHE + APERÇU GMAIL EN DIRECT À DROITE */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* COLONNE GAUCHE : CONTRÔLES ET ÉDITEUR GOOGLE DOCS (7 colonnes) */}
+        {/* COLONNE GAUCHE : CONTRÔLES ET ÉDITEUR DE CONTENU (7 colonnes) */}
         <div className="xl:col-span-7 space-y-6">
           {/* ========================================================== */}
-          {/* SOUS-ONGLET 1 : CONTENU & BLOCS (GOOGLE DOCS)              */}
+          {/* SOUS-ONGLET 1 : CONTENU & BLOCS                            */}
           {/* ========================================================== */}
           {subPanel === "content" && (
             <div className="space-y-5">
@@ -690,37 +694,58 @@ export default function EmailEditorTab({
 
                       {/* Personnalisation optionnelle du cadre de ce bloc */}
                       {canToggleFrame && block.boxed !== false && (
-                        <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                          <ColorControl
-                            label="Fond du cadre (bloc)"
-                            value={block.boxBgColor || ""}
-                            onChange={(val) => updateBlock(bIdx, { boxBgColor: val })}
-                            fallback={design.boxBgColor || "#FAF8F5"}
-                          />
-                          <ColorControl
-                            label="Bordure du cadre"
-                            value={block.boxBorderColor || ""}
-                            onChange={(val) => updateBlock(bIdx, { boxBorderColor: val })}
-                            fallback={design.boxBorderColor || "#ECE7E1"}
-                          />
-                          <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 flex flex-col justify-between">
-                            <label className="text-xs font-bold text-brun flex items-center justify-between">
-                              <span>Arrondi cadre</span>
-                              <span>{block.boxBorderRadius ?? design.boxBorderRadius ?? 12} px</span>
-                            </label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="28"
-                              value={block.boxBorderRadius ?? design.boxBorderRadius ?? 12}
-                              onChange={(e) =>
-                                updateBlock(bIdx, {
-                                  boxBorderRadius: Number(e.target.value),
-                                })
-                              }
-                              className="w-full accent-brun cursor-pointer"
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenFrameStyleIdx((prev) =>
+                                prev === bIdx ? null : bIdx
+                              )
+                            }
+                            className="inline-flex items-center space-x-1.5 text-xs font-semibold text-brun hover:text-champagne-dark underline cursor-pointer"
+                          >
+                            <SlidersHorizontal className="w-3.5 h-3.5" />
+                            <span>
+                              {openFrameStyleIdx === bIdx
+                                ? "Masquer le style du cadre"
+                                : "Style du cadre (optionnel)"}
+                            </span>
+                          </button>
+
+                          {openFrameStyleIdx === bIdx && (
+                            <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                              <ColorControl
+                                label="Fond du cadre (bloc)"
+                                value={block.boxBgColor || ""}
+                                onChange={(val) => updateBlock(bIdx, { boxBgColor: val })}
+                                fallback={design.boxBgColor || "#FAF8F5"}
+                              />
+                              <ColorControl
+                                label="Bordure du cadre"
+                                value={block.boxBorderColor || ""}
+                                onChange={(val) => updateBlock(bIdx, { boxBorderColor: val })}
+                                fallback={design.boxBorderColor || "#ECE7E1"}
+                              />
+                              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 flex flex-col justify-between">
+                                <label className="text-xs font-bold text-brun flex items-center justify-between">
+                                  <span>Arrondi cadre</span>
+                                  <span>{block.boxBorderRadius ?? design.boxBorderRadius ?? 12} px</span>
+                                </label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="28"
+                                  value={block.boxBorderRadius ?? design.boxBorderRadius ?? 12}
+                                  onChange={(e) =>
+                                    updateBlock(bIdx, {
+                                      boxBorderRadius: Number(e.target.value),
+                                    })
+                                  }
+                                  className="w-full accent-brun cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -732,7 +757,7 @@ export default function EmailEditorTab({
                           {block.type === "addressCard" && (
                             <div>
                               <label className="text-xs font-bold text-brun block mb-1">
-                                Sur-titre du cadre Adresse
+                                Petit titre du cadre Adresse
                               </label>
                               <input
                                 type="text"
@@ -1192,7 +1217,7 @@ export default function EmailEditorTab({
                     className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <Type className="w-4 h-4 text-champagne-dark" />
-                    <span>+ Texte libre (Google Docs)</span>
+                    <span>+ Texte libre</span>
                   </button>
                   <button
                     type="button"
@@ -1748,7 +1773,7 @@ export default function EmailEditorTab({
                       Pied de la carte mail (Signature &amp; Instagram)
                     </h3>
                     <p className="text-xs sm:text-sm text-stone-600">
-                      Modifiez librement le bas de tous vos e-mails comme dans Google Docs.
+                      Modifiez librement le bas de tous vos e-mails (signature et liens).
                     </p>
                   </div>
                   <ToggleVisibilityButton

@@ -17,6 +17,7 @@ import {
   SectionCard,
   TextField,
 } from "./CmsControls";
+import { AdminLocationIllustration } from "./AdminVisualGuide";
 
 export function MaintenanceTab({
   maintenance,
@@ -68,6 +69,9 @@ export function MaintenanceTab({
               Activez ce mode en un clic si vous rencontrez un gros bug ou devez effectuer une grosse mise à jour. Toutes les pages publiques et les réservations seront immédiatement remplacées par l&apos;écran de maintenance ci-dessous, mais{" "}
               <strong>vous gardez toujours accès à votre espace d&apos;administration</strong>.
             </p>
+            <div className="pt-1">
+              <AdminLocationIllustration zone="maintenance" compact />
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
@@ -111,8 +115,10 @@ export function MaintenanceTab({
       {/* Personnalisation des textes de maintenance */}
       <SectionCard
         title="Personnaliser le message de maintenance"
-        description="Modifiez les textes affichés aux visiteuses lorsque le mode maintenance est activé (n'oubliez pas d'enregistrer en haut ou en bas si vous modifiez ces textes)."
+        description="Modifiez les textes affichés aux visiteuses lorsque le mode maintenance est activé (pensez à enregistrer si vous modifiez ces textes)."
         visible={true}
+        zone="maintenance"
+        defaultOpen={true}
         onReset={onResetDefaults}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -311,13 +317,16 @@ export function PagesVisibilityTab({
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border-2 border-stone-200 p-5 sm:p-7 space-y-5 shadow-2xs">
-        <div className="border-b border-stone-200 pb-4">
-          <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
-            Afficher ou Masquer chaque page du site
-          </h2>
-          <p className="text-sm text-stone-600 mt-1">
-            Lorsqu&apos;une page est masquée, ses liens disparaissent automatiquement du menu et du pied de page, et ses visiteuses voient un message d&apos;information courtois à la place.
-          </p>
+        <div className="border-b border-stone-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-brun">
+              Afficher ou Masquer chaque page du site
+            </h2>
+            <p className="text-sm text-stone-600 mt-1">
+              Lorsqu&apos;une page est masquée, ses liens disparaissent automatiquement du menu et du pied de page, et ses visiteuses voient un message d&apos;information courtois à la place.
+            </p>
+          </div>
+          <AdminLocationIllustration zone="visibility" compact />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -392,11 +401,13 @@ export function PagesVisibilityTab({
         title="Message affiché quand une page est masquée"
         description="Si une cliente ouvre directement l'adresse d'une page que vous avez masquée, voici le message qu'elle verra."
         visible={true}
+        zone="visibility"
+        defaultOpen={true}
         onReset={onResetNotice}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={hiddenPageNotice.eyebrow}
             onChange={(val) =>
               onChangeHiddenPageNotice({ ...hiddenPageNotice, eyebrow: val })

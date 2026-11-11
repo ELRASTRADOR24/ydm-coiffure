@@ -49,11 +49,13 @@ export function HomeEditorTab({
         title="1. Bannière Principale (Haut de la page d'Accueil)"
         description="Premier bloc visible à l'arrivée sur le site : grand titre, description, photo principale et boutons."
         visible={hero.visible}
+        zone="hero"
+        defaultOpen={true}
         onToggleVisible={() => updateHero({ visible: hero.visible === false })}
         onReset={onResetPage}
       >
         <TextField
-          label="Sur-titre (petit texte doré au-dessus du titre)"
+          label="Petit titre au-dessus (texte doré)"
           value={hero.eyebrow}
           onChange={(val) => updateHero({ eyebrow: val })}
         />
@@ -141,7 +143,7 @@ export function HomeEditorTab({
             onToast={onToast}
           />
           <TextField
-            label="Description de la photo (texte alternatif)"
+            label="Description de l'image"
             value={hero.imageAlt}
             onChange={(val) => updateHero({ imageAlt: val })}
           />
@@ -233,6 +235,7 @@ export function HomeEditorTab({
         title="2. Section Nos Coiffures Phares"
         description="Affiche vos 3 premières prestations actives sur la page d'accueil."
         visible={popular.visible}
+        zone="popularServices"
         onToggleVisible={() =>
           onChangeHome({
             ...home,
@@ -256,7 +259,7 @@ export function HomeEditorTab({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={popular.eyebrow}
             onChange={(val) =>
               onChangeHome({
@@ -322,6 +325,7 @@ export function HomeEditorTab({
         title="3. Section Guide des Longueurs sur l'Accueil"
         description="Activez ou masquez le Guide des Longueurs sur la page d'accueil."
         visible={lengthSec.visible}
+        zone="lengthGuide"
         onToggleVisible={() =>
           onChangeHome({
             ...home,
@@ -352,6 +356,7 @@ export function HomeEditorTab({
         title="4. Section Aperçu de la Galerie sur l'Accueil"
         description="Présente vos réalisations récentes avec lien vers la galerie complète."
         visible={gallerySec.visible}
+        zone="galleryPreview"
         onToggleVisible={() =>
           onChangeHome({
             ...home,
@@ -364,7 +369,7 @@ export function HomeEditorTab({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={gallerySec.eyebrow}
             onChange={(val) =>
               onChangeHome({
@@ -419,6 +424,7 @@ export function HomeEditorTab({
         title="5. Section Questions & FAQ sur l'Accueil"
         description="Affiche vos questions/réponses sur l'accueil."
         visible={faqSec.visible}
+        zone="faq"
         onToggleVisible={() =>
           onChangeHome({
             ...home,
@@ -446,6 +452,7 @@ export function HomeEditorTab({
         title="6. Bandeau Final (Bas de la page d'Accueil)"
         description="Bandeau brun tout en bas de la page d'accueil invitant à prendre rendez-vous."
         visible={finalCta.visible}
+        zone="finalCta"
         onToggleVisible={() =>
           onChangeHome({
             ...home,
@@ -510,6 +517,7 @@ export function HomeEditorTab({
         title="7. Blocs de texte supplémentaires sur l'Accueil"
         description="Ajoutez librement autant d'encadrés d'information ou d'annonces que vous souhaitez sur votre page d'accueil."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={home.customBlocks || []}
@@ -582,6 +590,8 @@ export function ServicesEditorTab({
         title="En-tête de la page Prestations & Tarifs (/prestations)"
         description="Titre et présentation en haut de la carte des prestations."
         visible={header.visible}
+        zone="pageHeader"
+        defaultOpen={true}
         onToggleVisible={() =>
           onChangeServicesPage({
             ...servicesPage,
@@ -592,7 +602,7 @@ export function ServicesEditorTab({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={header.eyebrow}
             onChange={(val) =>
               onChangeServicesPage({
@@ -631,6 +641,7 @@ export function ServicesEditorTab({
         title="Bannière des règles clés (3 points en haut de page)"
         description="Bandeau blanc mettant en avant les informations principales avant les tarifs."
         visible={banner.visible}
+        zone="legal"
         onToggleVisible={() =>
           onChangeServicesPage({
             ...servicesPage,
@@ -742,6 +753,7 @@ export function ServicesEditorTab({
         title="Encadré Tarif Étudiant (-5 €)"
         description="Bandeau promotionnel affiché au-dessus de la liste des prestations."
         visible={promo.visible}
+        zone="popularServices"
         onToggleVisible={() =>
           onChangeServicesPage({
             ...servicesPage,
@@ -790,6 +802,7 @@ export function ServicesEditorTab({
         title="Guide des Longueurs (Repères visuels Court / Mi-long / Long / Extra-long)"
         description="Ce bloc apparaît sur l'Accueil et en bas de la page Prestations. Vous pouvez tout modifier, masquer ou supprimer."
         visible={lengthGuide.visible}
+        zone="lengthGuide"
         onToggleVisible={() =>
           onChangeLengthGuide({
             ...lengthGuide,
@@ -816,7 +829,7 @@ export function ServicesEditorTab({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={lengthGuide.eyebrow}
             onChange={(val) =>
               onChangeLengthGuide({ ...lengthGuide, eyebrow: val })
@@ -1023,6 +1036,7 @@ export function ServicesEditorTab({
         title="Blocs de texte supplémentaires sur /prestations"
         description="Ajoutez des explications, conditions spéciales mèches ou annonces sur votre page tarifs."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={servicesPage.customBlocks || []}
@@ -1074,8 +1088,10 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
     <div className="space-y-6">
       <SectionCard
         title="En-tête de la page À propos de moi (/a-propos)"
-        description="Sur-titre, grand titre et phrase d'introduction."
+        description="Petit titre au-dessus, grand titre et phrase d'introduction."
         visible={header.visible}
+        zone="pageHeader"
+        defaultOpen={true}
         onToggleVisible={() =>
           onChangeAbout({
             ...about,
@@ -1086,7 +1102,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={header.eyebrow}
             onChange={(val) =>
               onChangeAbout({ ...about, header: { ...header, eyebrow: val } })
@@ -1115,6 +1131,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
         title="Votre Photo Portrait & Récit Personnel"
         description="Modifiez votre photo, ajoutez/masquez/supprimez vos paragraphes et boutons."
         visible={story.visible}
+        zone="hero"
         onToggleVisible={() =>
           updateStory({ visible: story.visible === false })
         }
@@ -1317,6 +1334,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
         title="Cartes Valeurs & Engagements"
         description="Les 3 petites cartes (Cadre privé, Tarif étudiante, Finitions nettes...)."
         visible={values.visible}
+        zone="popularServices"
         onToggleVisible={() =>
           onChangeAbout({
             ...about,
@@ -1440,6 +1458,7 @@ export function AboutEditorTab({ about, onChangeAbout, onResetPage, onToast }) {
         title="Blocs de texte supplémentaires sur /a-propos"
         description="Ajoutez de nouvelles sections libres sous votre présentation."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={about.customBlocks || []}
@@ -1486,6 +1505,8 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
         title="En-tête de la page Contact (/contact)"
         description="Titre et sous-titre en haut de la page Contact & Informations."
         visible={header.visible}
+        zone="pageHeader"
+        defaultOpen={true}
         onToggleVisible={() =>
           onChangeContact({
             ...contact,
@@ -1496,7 +1517,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
-            label="Sur-titre"
+            label="Petit titre au-dessus"
             value={header.eyebrow}
             onChange={(val) =>
               onChangeContact({ ...contact, header: { ...header, eyebrow: val } })
@@ -1524,6 +1545,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
         title="Carte Localisation (Colonne de gauche - haut)"
         description="Ville d'exercice et message sur la confidentialité de l'adresse."
         visible={loc.visible}
+        zone="addressPrivate"
         onToggleVisible={() =>
           onChangeContact({
             ...contact,
@@ -1602,6 +1624,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
         title="Carte Coordonnées & Horaires (Colonne de gauche - bas)"
         description="Horaires d'ouverture, Instagram officiel et rappel confidentialité."
         visible={coords.visible}
+        zone="availability"
         onToggleVisible={() =>
           onChangeContact({
             ...contact,
@@ -1779,6 +1802,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
         title="Carte Règlement Intérieur & Préparation (Colonne de droite)"
         description="Liste des règles affichées à droite sur la page Contact."
         visible={rulesCard.visible}
+        zone="legal"
         onToggleVisible={() =>
           onChangeContact({
             ...contact,
@@ -1951,6 +1975,7 @@ export function ContactEditorTab({ contact, onChangeContact, onResetPage }) {
         title="Blocs de texte supplémentaires sur /contact"
         description="Ajoutez librement des encadrés supplémentaires sur la page Contact."
         visible={true}
+        zone="legal"
       >
         <RichArticleListEditor
           articles={contact.customBlocks || []}

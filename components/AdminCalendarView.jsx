@@ -3,64 +3,171 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Plus,
-  Clock,
-  User,
   Phone,
-  Mail,
   CheckCircle2,
   X,
   AlertCircle,
-  Sparkles,
+  Ban,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
-import { getParisDateString, getBookingStatusLabel } from "@/lib/adminHelpers";
+import {
+  getParisDateString,
+  getBookingStatusLabel,
+  normalizeBookingStatus,
+} from "@/lib/adminHelpers";
+import {
+  isLengthOption,
+  formatOptionChoiceDisplayLabel,
+} from "@/lib/servicePricing";
+
+function buildManualFormDefaults(services, dateStr = getParisDateString()) {
+  const svc = services[0] || null;
+  const lenOpt = Array.isArray(svc?.options)
+    ? svc.options.find((o) => isLengthOption(o))
+    : null;
+  const firstChoice = lenOpt?.choices?.[0] || null;
+  const basePrice = Number(svc?.price) || 0;
+  const baseDur = Number(svc?.duration) || 180;
+  return {
+    serviceId: svc?.id || svc?._id || "",
+    lengthChoice: firstChoice?.label || "",
+    totalPrice: String(basePrice + (Number(firstChoice?.priceDiff) || 0)),
+    duration: String(baseDur + (Number(firstChoice?.durationDiff) || 0)),
+    status: "CONFIRMED",
+    customerFirstName: "",
+    customerLastName: "",
+    customerEmail: "",
+    customerPhone: "",
+    date: dateStr,
+    startTime: "10:00",
+    notes: "",
+  };
+}
 
 export default function AdminCalendarView({ initialBookings = [], services = [] }) {
   const router = useRouter();
-  const [bookings, setBookings] = useState(initialBookings);
+  const [bookings, setBookings] = useState(() =>
+    (initialBookings || []).map((b) => normalizeBookingStatus(b))
+  );
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayStr, setSelectedDayStr] = useState(() => getParisDateString());
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
 
+  // Toast + Action Modals
+  const [toastMessage, setToastMessage] = useState("");
+  const [rejectModalBooking, setRejectModalBooking] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [depositNotReceivedBooking, setDepositNotReceivedBooking] = useState(null);
+  const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
+
   // Manual booking form state
-  const [manualForm, setManualForm] = useState({
-    serviceId: services[0]?.id || services[0]?._id || "",
-    customerFirstName: "",
-    customerLastName: "",
-    customerEmail: "",
-    customerPhone: "",
-    date: getParisDateString(),
-    startTime: "10:00",
-    notes: "",
-  });
+  const [manualForm, setManualForm] = useState(() =>
+    buildManualFormDefaults(services)
+  );
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [manualError, setManualError] = useState("");
   const [modalActionLoading, setModalActionLoading] = useState(false);
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 4000);
+  };
+
   useEffect(() => {
-    if (!selectedBooking && !showManualModal) return;
+    if (
+      !selectedBooking &&
+      !showManualModal &&
+      !rejectModalBooking &&
+      !depositNotReceivedBooking
+    )
+      return;
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
         setSelectedBooking(null);
         setShowManualModal(false);
+        setRejectModalBooking(null);
+        setDepositNotReceivedBooking(null);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedBooking, showManualModal]);
+  }, [
+    selectedBooking,
+    showManualModal,
+    rejectModalBooking,
+    depositNotReceivedBooking,
+  ]);
 
   const openManualModalForDate = (dateStr) => {
     setManualError("");
+    setManualForm((prev) => {
+      const targetDate = dateStr || selectedDayStr || getParisDateString();
+      if (!prev.serviceId && services.length > 0) {
+        return buildManualFormDefaults(services, targetDate);
+      }
+      return {
+        ...prev,
+        date: targetDate,
+      };
+    });
+    setShowManualModal(true);
+  };
+
+  const selectedManualService =
+    services.find((s) => (s.id || s._id) === manualForm.serviceId) || null;
+  const manualLengthOption = Array.isArray(selectedManualService?.options)
+    ? selectedManualService.options.find((o) => isLengthOption(o))
+    : null;
+
+  const handleSelectManualService = (nextServiceId) => {
+    const svc = services.find((s) => (s.id || s._id) === nextServiceId) || null;
+    const lenOpt = Array.isArray(svc?.options)
+      ? svc.options.find((o) => isLengthOption(o))
+      : null;
+    const firstChoice = lenOpt?.choices?.[0] || null;
+    const basePrice = Number(svc?.price) || 0;
+    const baseDur = Number(svc?.duration) || 180;
     setManualForm((prev) => ({
       ...prev,
-      date: dateStr || selectedDayStr || getParisDateString(),
+      serviceId: nextServiceId,
+      lengthChoice: firstChoice?.label || "",
+      totalPrice: String(basePrice + (Number(firstChoice?.priceDiff) || 0)),
+      duration: String(baseDur + (Number(firstChoice?.durationDiff) || 0)),
     }));
-    setShowManualModal(true);
+  };
+
+  const handleSelectManualLength = (choiceLabel) => {
+    if (!selectedManualService || !manualLengthOption) {
+      setManualForm((prev) => ({ ...prev, lengthChoice: choiceLabel }));
+      return;
+    }
+    const found = (manualLengthOption.choices || []).find(
+      (c) => c.label === choiceLabel
+    );
+    const basePrice = Number(selectedManualService.price) || 0;
+    const baseDur = Number(selectedManualService.duration) || 180;
+    setManualForm((prev) => ({
+      ...prev,
+      lengthChoice: choiceLabel,
+      totalPrice: String(basePrice + (Number(found?.priceDiff) || 0)),
+      duration: String(baseDur + (Number(found?.durationDiff) || 0)),
+    }));
+  };
+
+  const syncUpdatedBooking = (updated) => {
+    if (!updated) return;
+    const normalized = normalizeBookingStatus(updated);
+    const id = normalized.id || normalized._id;
+    setBookings((prev) =>
+      prev.map((item) => ((item.id || item._id) === id ? normalized : item))
+    );
+    if (selectedBooking && (selectedBooking.id || selectedBooking._id) === id) {
+      setSelectedBooking(normalized);
+    }
   };
 
   const handleApproveFromCalendar = async (booking) => {
@@ -73,15 +180,14 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setBookings((prev) =>
-          prev.map((item) => ((item.id || item._id) === bId ? data.booking : item))
-        );
-        if (selectedBooking && (selectedBooking.id || selectedBooking._id) === bId) {
-          setSelectedBooking(data.booking);
-        }
+        syncUpdatedBooking(data.booking);
         router.refresh();
+        showToast("Demande acceptée ! Lien d'acompte envoyé à la cliente.");
+      } else {
+        showToast(data.error || "Impossible d'approuver cette demande.");
       }
     } catch (_) {
+      showToast("Erreur réseau lors de la validation de la demande.");
     } finally {
       setModalActionLoading(false);
     }
@@ -97,57 +203,106 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setBookings((prev) =>
-          prev.map((item) => ((item.id || item._id) === bId ? data.booking : item))
-        );
-        if (selectedBooking && (selectedBooking.id || selectedBooking._id) === bId) {
-          setSelectedBooking(data.booking);
-        }
+        syncUpdatedBooking(data.booking);
         router.refresh();
+        showToast("Acompte validé ! Rendez-vous confirmé et adresse envoyée.");
+      } else {
+        showToast(data.error || "Impossible de valider cet acompte.");
       }
     } catch (_) {
+      showToast("Erreur réseau lors de la validation de l'acompte.");
     } finally {
       setModalActionLoading(false);
     }
   };
 
-  const handleDepositNotReceivedFromCalendar = async (booking) => {
-    const bId = booking.id || booking._id;
+  const handleConfirmRejectFromCalendar = async () => {
+    if (!rejectModalBooking) return;
+    const bId = rejectModalBooking.id || rejectModalBooking._id;
+    setModalActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: rejectionReason }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        syncUpdatedBooking(data.booking);
+        router.refresh();
+        showToast("Demande refusée et créneau libéré.");
+        setRejectModalBooking(null);
+        setRejectionReason("");
+      } else {
+        showToast(data.error || "Impossible d'enregistrer le refus.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors du refus de la demande.");
+    } finally {
+      setModalActionLoading(false);
+    }
+  };
+
+  const handleConfirmDepositNotReceivedFromCalendar = async () => {
+    if (!depositNotReceivedBooking) return;
+    const bId = depositNotReceivedBooking.id || depositNotReceivedBooking._id;
     setModalActionLoading(true);
     try {
       const res = await fetch(`/api/admin/bookings/${bId}/deposit-not-received`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ reason: depositNotReceivedNote }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setBookings((prev) =>
-          prev.map((item) => ((item.id || item._id) === bId ? data.booking : item))
-        );
-        if (selectedBooking && (selectedBooking.id || selectedBooking._id) === bId) {
-          setSelectedBooking(data.booking);
-        }
+        syncUpdatedBooking(data.booking);
         router.refresh();
+        showToast("Relance envoyée à la cliente par e-mail et SMS.");
+        setDepositNotReceivedBooking(null);
+        setDepositNotReceivedNote("");
+      } else {
+        showToast(data.error || "Impossible d'envoyer la relance.");
       }
     } catch (_) {
+      showToast("Erreur réseau lors de l'envoi de la relance.");
+    } finally {
+      setModalActionLoading(false);
+    }
+  };
+
+  const handleCancelFromCalendar = async (booking) => {
+    const bId = booking?.id || booking?._id;
+    if (!bId) return;
+    if (!confirm("Voulez-vous vraiment annuler ce rendez-vous ?")) return;
+    setModalActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bId}/cancel`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        syncUpdatedBooking(data.booking);
+        router.refresh();
+        showToast("Rendez-vous annulé et créneau libéré.");
+      } else {
+        showToast(data.error || "Impossible d'annuler ce rendez-vous.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors de l'annulation.");
     } finally {
       setModalActionLoading(false);
     }
   };
 
   useEffect(() => {
-    setBookings(initialBookings);
+    setBookings((initialBookings || []).map((b) => normalizeBookingStatus(b)));
   }, [initialBookings]);
 
   useEffect(() => {
     if (!manualForm.serviceId && services.length > 0) {
-      setManualForm((prev) => ({
-        ...prev,
-        serviceId: services[0].id || services[0]._id || "",
-      }));
+      setManualForm(buildManualFormDefaults(services, selectedDayStr));
     }
-  }, [services, manualForm.serviceId]);
+  }, [services, manualForm.serviceId, selectedDayStr]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -185,27 +340,61 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
     setManualError("");
 
     try {
+      let selectedOptions = [];
+      if (manualLengthOption && manualForm.lengthChoice) {
+        const found = (manualLengthOption.choices || []).find(
+          (c) => c.label === manualForm.lengthChoice
+        );
+        if (found) {
+          selectedOptions = [
+            {
+              name: manualLengthOption.name,
+              choice: formatOptionChoiceDisplayLabel(
+                found,
+                selectedManualService?.price,
+                true
+              ),
+              priceDiff: Number(found.priceDiff) || 0,
+              durationDiff: Number(found.durationDiff) || 0,
+            },
+          ];
+        }
+      }
+
+      const parsedDuration = Number(manualForm.duration);
+      const parsedPrice = Number(manualForm.totalPrice);
+
       const res = await fetch("/api/admin/bookings/manual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(manualForm),
+        body: JSON.stringify({
+          serviceId: manualForm.serviceId,
+          customerFirstName: manualForm.customerFirstName,
+          customerLastName: manualForm.customerLastName,
+          customerEmail: manualForm.customerEmail,
+          customerPhone: manualForm.customerPhone,
+          date: manualForm.date,
+          startTime: manualForm.startTime,
+          notes: manualForm.notes,
+          status: manualForm.status || "CONFIRMED",
+          duration: Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : undefined,
+          totalPrice:
+            manualForm.totalPrice !== "" && Number.isFinite(parsedPrice) && parsedPrice >= 0
+              ? parsedPrice
+              : undefined,
+          selectedOptions,
+        }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setBookings((prev) => [...prev, data.booking]);
+        const normalized = normalizeBookingStatus(data.booking);
+        setBookings((prev) => [...prev, normalized]);
+        setSelectedDayStr(normalized.date || manualForm.date);
         router.refresh();
         setShowManualModal(false);
-        setManualForm({
-          serviceId: services[0]?.id || services[0]?._id || "",
-          customerFirstName: "",
-          customerLastName: "",
-          customerEmail: "",
-          customerPhone: "",
-          date: getParisDateString(),
-          startTime: "10:00",
-          notes: "",
-        });
+        setManualForm(buildManualFormDefaults(services, normalized.date || getParisDateString()));
+        showToast("Rendez-vous ajouté au calendrier !");
       } else {
         setManualError(data.error || "Erreur lors de l'ajout.");
       }
@@ -224,6 +413,8 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
         return "bg-amber-100 text-amber-900 border-amber-300";
       case "PENDING_PAYMENT":
         return "bg-blue-100 text-blue-900 border-blue-300";
+      case "EXPIRED":
+        return "bg-stone-200 text-stone-600 border-stone-300";
       case "CANCELLED":
       case "REJECTED":
         return "bg-stone-200 text-stone-700 border-stone-300";
@@ -262,13 +453,20 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
 
   return (
     <div className="space-y-6">
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Calendar Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-brun">
             Planning & Calendrier
           </h1>
-          <p className="text-xs sm:text-sm text-stone-500 font-light mt-1">
+          <p className="text-xs sm:text-sm text-stone-500 mt-1">
             Touchez un jour pour consulter son agenda détaillé, valider un créneau ou ajouter un rendez-vous.
           </p>
         </div>
@@ -335,6 +533,10 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
             <span>Paiement en attente</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-400" />
+            <span>Expiré</span>
           </div>
         </div>
 
@@ -485,19 +687,32 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     <button
                       type="button"
                       onClick={() => setSelectedBooking(b)}
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-xs font-semibold text-brun cursor-pointer"
+                      className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-xs font-semibold text-brun cursor-pointer"
                     >
                       Voir détails
                     </button>
                     {b.status === "PENDING_APPROVAL" && (
-                      <button
-                        type="button"
-                        disabled={modalActionLoading}
-                        onClick={() => handleApproveFromCalendar(b)}
-                        className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
-                      >
-                        Valider demande
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          disabled={modalActionLoading}
+                          onClick={() => handleApproveFromCalendar(b)}
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                        >
+                          Valider demande
+                        </button>
+                        <button
+                          type="button"
+                          disabled={modalActionLoading}
+                          onClick={() => {
+                            setRejectModalBooking(b);
+                            setRejectionReason("");
+                          }}
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                        >
+                          Refuser
+                        </button>
+                      </>
                     )}
                     {b.status === "PENDING_PAYMENT" && (
                       <>
@@ -505,7 +720,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                           type="button"
                           disabled={modalActionLoading}
                           onClick={() => handleMarkPaidFromCalendar(b)}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
                         >
                           Valider acompte ({formatPrice(b.depositAmount ?? 10)})
                         </button>
@@ -513,13 +728,27 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                           <button
                             type="button"
                             disabled={modalActionLoading}
-                            onClick={() => handleDepositNotReceivedFromCalendar(b)}
-                            className="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                            onClick={() => {
+                              setDepositNotReceivedBooking(b);
+                              setDepositNotReceivedNote("");
+                            }}
+                            className="min-h-[44px] px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-semibold cursor-pointer disabled:opacity-50"
                           >
                             Acompte non reçu
                           </button>
                         )}
                       </>
+                    )}
+                    {["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                      <button
+                        type="button"
+                        disabled={modalActionLoading}
+                        onClick={() => handleCancelFromCalendar(b)}
+                        className="min-h-[44px] px-3 py-2 rounded-xl border border-stone-200 text-stone-600 hover:text-red-700 hover:border-red-200 hover:bg-red-50 text-xs font-semibold inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                        <span>Annuler</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -577,6 +806,22 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                   <span className="text-stone-500">Prestation :</span>
                   <span className="font-bold text-brun text-right">{selectedBooking.service.name}</span>
                 </div>
+                {Array.isArray(selectedBooking.selectedOptions) &&
+                  selectedBooking.selectedOptions.length > 0 && (
+                    <div className="py-1.5 border-b border-stone-100 flex flex-wrap justify-between items-start gap-2">
+                      <span className="text-stone-500">Options / Longueur :</span>
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {selectedBooking.selectedOptions.map((opt, idx) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2.5 py-0.5 rounded-lg bg-stone-100 border border-stone-200 text-brun font-medium"
+                          >
+                            {opt.name} : {opt.choice}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 <div className="flex justify-between gap-2 py-1.5 border-b border-stone-100">
                   <span className="text-stone-500">Date & Horaires :</span>
                   <span className="font-bold text-brun text-right">
@@ -646,14 +891,27 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
 
             <div className="px-6 py-4 sm:px-8 border-t border-stone-100 bg-stone-50/90 flex flex-wrap items-center justify-end gap-3 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {selectedBooking.status === "PENDING_APPROVAL" && (
-                <button
-                  type="button"
-                  disabled={modalActionLoading}
-                  onClick={() => handleApproveFromCalendar(selectedBooking)}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {modalActionLoading ? "Validation..." : "Valider demande"}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    disabled={modalActionLoading}
+                    onClick={() => {
+                      setRejectModalBooking(selectedBooking);
+                      setRejectionReason("");
+                    }}
+                    className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Refuser
+                  </button>
+                  <button
+                    type="button"
+                    disabled={modalActionLoading}
+                    onClick={() => handleApproveFromCalendar(selectedBooking)}
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {modalActionLoading ? "Validation..." : "Valider demande"}
+                  </button>
+                </>
               )}
               {selectedBooking.status === "PENDING_PAYMENT" && (
                 <>
@@ -661,12 +919,13 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     <button
                       type="button"
                       disabled={modalActionLoading}
-                      onClick={() =>
-                        handleDepositNotReceivedFromCalendar(selectedBooking)
-                      }
+                      onClick={() => {
+                        setDepositNotReceivedBooking(selectedBooking);
+                        setDepositNotReceivedNote("");
+                      }}
                       className="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                     >
-                      {modalActionLoading ? "Envoi..." : "Acompte non reçu"}
+                      Acompte non reçu
                     </button>
                   )}
                   <button
@@ -681,12 +940,148 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                   </button>
                 </>
               )}
+              {["PENDING_PAYMENT", "CONFIRMED"].includes(selectedBooking.status) && (
+                <button
+                  type="button"
+                  disabled={modalActionLoading}
+                  onClick={() => handleCancelFromCalendar(selectedBooking)}
+                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:text-red-700 hover:border-red-200 hover:bg-red-50 text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Annuler ce rdv
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedBooking(null)}
                 className="bg-brun hover:bg-brun-dark text-creme px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer"
               >
                 Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECT MODAL */}
+      {rejectModalBooking && (
+        <div
+          onClick={() => setRejectModalBooking(null)}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full border border-stone-300 shadow-2xl p-6 space-y-4"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-brun">
+                  Refuser la demande
+                </h3>
+                <p className="text-xs text-stone-500 mt-1">
+                  La cliente ({rejectModalBooking.customer.firstName}) sera notifiée par e-mail et SMS.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectModalBooking(null)}
+                aria-label="Fermer la fenêtre"
+                className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-brun block mb-1.5">
+                Motif ou message personnalisé (optionnel)
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Ex : Indisponibilité exceptionnelle sur cet horaire, n'hésitez pas à choisir un autre créneau..."
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-xs text-brun"
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalBooking(null)}
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={modalActionLoading}
+                onClick={handleConfirmRejectFromCalendar}
+                className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {modalActionLoading ? "Envoi..." : "Confirmer le refus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DEPOSIT NOT RECEIVED MODAL */}
+      {depositNotReceivedBooking && (
+        <div
+          onClick={() => setDepositNotReceivedBooking(null)}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brun-dark/80 backdrop-blur-xs animate-fadeIn overscroll-contain"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full border border-stone-300 shadow-2xl p-6 space-y-4"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-brun">
+                  Acompte non reçu
+                </h3>
+                <p className="text-xs text-stone-500 mt-1">
+                  La cliente ({depositNotReceivedBooking.customer.firstName}) recevra un message lui indiquant que son acompte n&apos;a pas encore été reçu et pourra vérifier son virement (délai +2h).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDepositNotReceivedBooking(null)}
+                aria-label="Fermer la fenêtre"
+                className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-brun block mb-1.5">
+                Note à inclure dans l&apos;e-mail (optionnel)
+              </label>
+              <textarea
+                rows={3}
+                value={depositNotReceivedNote}
+                onChange={(e) => setDepositNotReceivedNote(e.target.value)}
+                placeholder="Ex : Aucun virement reçu sur Wero ou Revolut pour le moment. Pensez à vérifier le libellé ou le destinataire..."
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-xs text-brun"
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDepositNotReceivedBooking(null)}
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={modalActionLoading}
+                onClick={handleConfirmDepositNotReceivedFromCalendar}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {modalActionLoading ? "Envoi..." : "Envoyer la relance"}
               </button>
             </div>
           </div>
@@ -735,10 +1130,8 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 </label>
                 <select
                   value={manualForm.serviceId}
-                  onChange={(e) =>
-                    setManualForm({ ...manualForm, serviceId: e.target.value })
-                  }
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                  onChange={(e) => handleSelectManualService(e.target.value)}
+                  className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
                 >
                   {services.map((s) => (
                     <option key={s.id || s._id} value={s.id || s._id}>
@@ -746,6 +1139,79 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {manualLengthOption &&
+                Array.isArray(manualLengthOption.choices) &&
+                manualLengthOption.choices.length > 0 && (
+                  <div>
+                    <label className="text-xs sm:text-sm font-semibold text-brun block mb-1.5">
+                      {manualLengthOption.name || "Longueur des tresses"}
+                    </label>
+                    <select
+                      value={manualForm.lengthChoice}
+                      onChange={(e) => handleSelectManualLength(e.target.value)}
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                    >
+                      {manualLengthOption.choices.map((c) => (
+                        <option key={c.label} value={c.label}>
+                          {formatOptionChoiceDisplayLabel(
+                            c,
+                            selectedManualService?.price,
+                            true
+                          )}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs sm:text-sm font-semibold text-brun block mb-1.5">
+                    Prix total (€)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={manualForm.totalPrice}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, totalPrice: e.target.value })
+                    }
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs sm:text-sm font-semibold text-brun block mb-1.5">
+                    Durée (min)
+                  </label>
+                  <input
+                    type="number"
+                    min="15"
+                    step="15"
+                    value={manualForm.duration}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, duration: e.target.value })
+                    }
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs sm:text-sm font-semibold text-brun block mb-1.5">
+                    Statut initial
+                  </label>
+                  <select
+                    value={manualForm.status}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, status: e.target.value })
+                    }
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-base lg:text-sm text-brun"
+                  >
+                    <option value="CONFIRMED">Confirmé (déjà réglé)</option>
+                    <option value="PENDING_PAYMENT">Acompte en attente</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

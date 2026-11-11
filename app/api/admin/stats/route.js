@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { getBookings } from "@/lib/store";
-import { getParisDateString } from "@/lib/adminHelpers";
+import { getParisDateString, normalizeBookingStatus } from "@/lib/adminHelpers";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -10,7 +10,8 @@ export async function GET() {
   }
 
   try {
-    const allBookings = await getBookings();
+    const rawBookings = await getBookings();
+    const allBookings = rawBookings.map((b) => normalizeBookingStatus(b));
     const todayStr = getParisDateString();
 
     const todayBookings = allBookings.filter(
@@ -41,7 +42,11 @@ export async function GET() {
 
     // Prochains rendez-vous (futurs, triés par date et heure)
     const upcomingBookings = allBookings
-      .filter((b) => b.date >= todayStr && b.status !== "CANCELLED" && b.status !== "REJECTED")
+      .filter(
+        (b) =>
+          b.date >= todayStr &&
+          !["CANCELLED", "REJECTED", "EXPIRED"].includes(b.status)
+      )
       .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
       .slice(0, 6);
 
