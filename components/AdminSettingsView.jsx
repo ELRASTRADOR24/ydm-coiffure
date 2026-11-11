@@ -19,6 +19,7 @@ import {
   resolvePaymentAccounts,
 } from "@/lib/adminHelpers";
 import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
+import { useVirtualKeyboard } from "@/lib/useVirtualKeyboard";
 
 function getInitialPaymentAccounts(initialSettings) {
   return {
@@ -63,6 +64,7 @@ export default function AdminSettingsView({ initialSettings }) {
   const [submitting, setSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const isKeyboardOpen = useVirtualKeyboard();
 
   useEffect(() => {
     if (initialSettings) {
@@ -183,7 +185,7 @@ export default function AdminSettingsView({ initialSettings }) {
   return (
     <div className="space-y-8 max-w-4xl pb-24">
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
+        <div className="fixed top-20 lg:top-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -253,7 +255,7 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, salonName: e.target.value })
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
             </div>
 
@@ -267,7 +269,7 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, braiderName: e.target.value })
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
             </div>
 
@@ -281,7 +283,7 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, phone: e.target.value })
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
             </div>
 
@@ -295,7 +297,7 @@ export default function AdminSettingsView({ initialSettings }) {
                 onChange={(e) =>
                   setSettings({ ...settings, email: e.target.value })
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
             </div>
           </div>
@@ -310,7 +312,7 @@ export default function AdminSettingsView({ initialSettings }) {
               onChange={(e) =>
                 setSettings({ ...settings, bio: e.target.value })
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-sm text-brun"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base xl:text-sm text-brun"
             />
           </div>
         </div>
@@ -367,7 +369,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     }))
                   }
                   placeholder="07 67 66 38 69"
-                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                 />
                 <span className="text-[11px] text-stone-500 block mt-1.5">
                   Copié par les clientes :{" "}
@@ -412,7 +414,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     }))
                   }
                   placeholder="@ydmcoiffure"
-                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                 />
                 <span className="text-[11px] text-stone-500 block mt-1.5 break-all">
                   Lien affiché :{" "}
@@ -457,7 +459,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     }))
                   }
                   placeholder="ydmcoiffure"
-                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                  className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                 />
                 <span className="text-[11px] text-stone-500 block mt-1.5 break-all">
                   Lien affiché :{" "}
@@ -508,7 +510,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     },
                   })
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
             </div>
 
@@ -521,7 +523,7 @@ export default function AdminSettingsView({ initialSettings }) {
                 value={postalCityInput}
                 onChange={(e) => setPostalCityInput(e.target.value)}
                 placeholder="85000 La Roche-sur-Yon"
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
             </div>
           </div>
@@ -542,7 +544,7 @@ export default function AdminSettingsView({ initialSettings }) {
                   },
                 })
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-sm text-brun"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base xl:text-sm text-brun"
             />
           </div>
         </div>
@@ -568,7 +570,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     minNoticeHours: e.target.value.replace(/[^\d]/g, ""),
                   }))
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
               />
               <span className="text-[11px] text-stone-400 block mt-1">
                 Pas de réservation à moins de X heures
@@ -589,7 +591,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     maxDaysInAdvance: e.target.value.replace(/[^\d]/g, ""),
                   }))
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
               />
               <span className="text-[11px] text-stone-400 block mt-1">
                 Planning ouvert sur X jours dans le futur
@@ -610,7 +612,7 @@ export default function AdminSettingsView({ initialSettings }) {
                     paymentHoldHours: e.target.value.replace(/[^\d]/g, ""),
                   }))
                 }
-                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
               />
               <span className="text-[11px] text-stone-400 block mt-1">
                 Temps accordé pour régler l&apos;acompte
@@ -631,7 +633,7 @@ export default function AdminSettingsView({ initialSettings }) {
                   cancellationPolicyText: e.target.value,
                 })
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-sm text-brun"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base xl:text-sm text-brun"
             />
           </div>
         </div>
@@ -650,7 +652,13 @@ export default function AdminSettingsView({ initialSettings }) {
       </form>
 
       {hasUnsavedChanges && (
-        <div className="sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]">
+        <div
+          className={
+            isKeyboardOpen
+              ? "relative z-10"
+              : "sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]"
+          }
+        >
           <div className="bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-sm sm:text-base font-semibold">
               Modifications des paramètres non enregistrées.

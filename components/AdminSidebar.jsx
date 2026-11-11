@@ -364,7 +364,7 @@ export default function AdminSidebar({
             {maintenanceEnabled && (
               <Link
                 href="/admin/site-editor?tab=maintenance"
-                className="inline-flex items-center space-x-1 px-3 min-h-[40px] rounded-full bg-red-600 text-white text-xs font-bold"
+                className="inline-flex items-center space-x-1 px-3 min-h-[44px] rounded-full bg-red-600 text-white text-xs font-bold"
               >
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 <span>Maintenance</span>

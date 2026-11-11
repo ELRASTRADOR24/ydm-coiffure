@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { uploadMediaClient } from "@/lib/uploadMedia";
+import { usePointerReorder } from "@/lib/usePointerReorder";
+import { moveArrayItem } from "@/lib/reorderUtils";
 import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
 import {
   createServiceFormDraft,
@@ -108,8 +110,6 @@ export default function AdminServicesView({ initialServices = [] }) {
   }, [initialServices]);
 
   // Drag and Drop & iPad 2-Tap Reorder state
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
   const [isCompactMode, setIsCompactMode] = useState(false);
   const [movingIndex, setMovingIndex] = useState(null);
 
@@ -376,30 +376,31 @@ export default function AdminServicesView({ initialServices = [] }) {
     }
   };
 
-  // Drag and drop & iPad tap reordering
+  // Drag and drop (Souris & Tactile unifiés) & iPad 2-tap reordering
   const handleDropService = async (fromIndex, toIndex) => {
     if (fromIndex === toIndex || fromIndex === null || toIndex === null) return;
-    const newServices = [...services];
-    const [moved] = newServices.splice(fromIndex, 1);
-    newServices.splice(toIndex, 0, moved);
+    const newServices = moveArrayItem(services, fromIndex, toIndex);
+    if (newServices === services) return;
 
     const updated = newServices.map((s, idx) => ({ ...s, order: idx + 1 }));
     setServices(updated);
     setMovingIndex(null);
 
     try {
-      const responses = await Promise.all(
-        updated.map((s) =>
-          fetch(`/api/admin/services/${s.id || s._id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ order: s.order }),
-          })
-        )
-      );
-      if (responses.some((r) => !r.ok)) {
-        showToast("Une erreur est survenue lors de l'enregistrement de l'ordre.");
+      const res = await fetch("/api/admin/services", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderedIds: updated.map((s) => s.id || s._id),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data?.error || "Une erreur est survenue lors de l'enregistrement de l'ordre.");
         return;
+      }
+      if (Array.isArray(data.services)) {
+        setServices(data.services);
       }
       router.refresh();
       showToast("Emplacement des prestations réorganisé avec succès !");
@@ -408,6 +409,20 @@ export default function AdminServicesView({ initialServices = [] }) {
     }
   };
 
+  const compactReorder = usePointerReorder({
+    groupId: "services-compact",
+    itemCount: services.length,
+    disabled: !isCompactMode,
+    onReorder: (from, to) => handleDropService(from, to),
+  });
+
+  const detailedReorder = usePointerReorder({
+    groupId: "services-detailed",
+    itemCount: services.length,
+    disabled: isCompactMode,
+    onReorder: (from, to) => handleDropService(from, to),
+  });
+
   const handleMoveService = async (index, direction) => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= services.length) return;
@@ -415,6 +430,7 @@ export default function AdminServicesView({ initialServices = [] }) {
   };
 
   const handleCompactCardTap = (index) => {
+    if (compactReorder.shouldSuppressClick()) return;
     if (movingIndex === null) {
       setMovingIndex(index);
     } else if (movingIndex === index) {
@@ -427,7 +443,7 @@ export default function AdminServicesView({ initialServices = [] }) {
   return (
     <div className="space-y-6">
       {toastMessage && (
-        <div className="fixed top-20 lg:top-6 right-4 lg:right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
+        <div className="fixed top-20 lg:top-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -495,7 +511,7 @@ export default function AdminServicesView({ initialServices = [] }) {
               <span className="font-medium">
                 {movingIndex !== null && services[movingIndex]
                   ? `Déplacement de « ${services[movingIndex].name} » (#${movingIndex + 1}) : touchez une autre carte pour l'y placer, ou utilisez les boutons ci-dessous.`
-                  : "Touchez une coiffure puis touchez l'emplacement où la placer (ou glissez-déposez à la souris)."}
+                  : "Touchez une coiffure puis sa nouvelle place, maintenez un instant pour glisser, ou glissez directement depuis le badge #N (tactile ou souris)."}
               </span>
             </div>
             <button
@@ -504,7 +520,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                 setIsCompactMode(false);
                 setMovingIndex(null);
               }}
-              className="px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun hover:bg-stone-50 shrink-0 cursor-pointer"
+              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun hover:bg-stone-50 shrink-0 cursor-pointer"
             >
               Retour vue détaillée
             </button>
@@ -516,7 +532,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                 type="button"
                 disabled={movingIndex === 0}
                 onClick={() => handleDropService(movingIndex, movingIndex - 1)}
-                className="inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
+                className="min-h-[44px] inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
               >
                 <ArrowUp className="w-4 h-4 -rotate-90" />
                 <span>Reculer</span>
@@ -525,7 +541,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                 type="button"
                 disabled={movingIndex === services.length - 1}
                 onClick={() => handleDropService(movingIndex, movingIndex + 1)}
-                className="inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
+                className="min-h-[44px] inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
               >
                 <ArrowDown className="w-4 h-4 -rotate-90" />
                 <span>Avancer</span>
@@ -534,14 +550,14 @@ export default function AdminServicesView({ initialServices = [] }) {
                 type="button"
                 disabled={movingIndex === 0}
                 onClick={() => handleDropService(movingIndex, 0)}
-                className="px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs sm:text-sm font-bold text-brun disabled:opacity-40 cursor-pointer"
               >
                 Mettre en #1
               </button>
               <button
                 type="button"
                 onClick={() => openEditModal(services[movingIndex])}
-                className="inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-brun text-creme text-xs sm:text-sm font-bold cursor-pointer"
+                className="min-h-[44px] inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-brun text-creme text-xs sm:text-sm font-bold cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5 text-champagne" />
                 <span>Modifier cette coiffure</span>
@@ -549,7 +565,7 @@ export default function AdminServicesView({ initialServices = [] }) {
               <button
                 type="button"
                 onClick={() => setMovingIndex(null)}
-                className="px-3.5 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs sm:text-sm font-semibold cursor-pointer ml-auto"
+                className="min-h-[44px] px-3.5 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs sm:text-sm font-semibold cursor-pointer ml-auto"
               >
                 Annuler sélection
               </button>
@@ -558,53 +574,37 @@ export default function AdminServicesView({ initialServices = [] }) {
         </div>
       )}
 
-      {/* Services Grid avec Drag & Drop + 2-Tap iPad Reordering */}
+      {/* Services Grid avec Drag & Drop (Souris + Tactile) & 2-Tap iPad Reordering */}
       {isCompactMode ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+        <div
+          data-reorder-group="services-compact"
+          className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 ${
+            compactReorder.draggingIndex !== null ? "select-none" : ""
+          }`}
+        >
           {services.map((service, index) => {
             const id = service.id || service._id;
-            const isDragging = draggedIndex === index;
-            const isOver = dragOverIndex === index;
+            const isDragging = compactReorder.draggingIndex === index;
+            const isOver =
+              compactReorder.overIndex === index &&
+              compactReorder.draggingIndex !== index;
             const isSelectedForMove = movingIndex === index;
             const isDropTargetCandidate = movingIndex !== null && movingIndex !== index;
 
             return (
               <div
                 key={id}
+                data-reorder-index={index}
                 role="button"
                 tabIndex={0}
                 aria-label={`${service.name}, position ${index + 1}`}
+                {...compactReorder.getItemProps(index)}
                 onClick={() => handleCompactCardTap(index)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleCompactCardTap(index);
                   }
-                }}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", index.toString());
-                  setDraggedIndex(index);
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (dragOverIndex !== index) setDragOverIndex(index);
-                }}
-                onDragLeave={() => {
-                  if (dragOverIndex === index) setDragOverIndex(null);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
-                  if (!isNaN(fromIdx)) {
-                    handleDropService(fromIdx, index);
-                  }
-                  setDraggedIndex(null);
-                  setDragOverIndex(null);
-                }}
-                onDragEnd={() => {
-                  setDraggedIndex(null);
-                  setDragOverIndex(null);
                 }}
                 className={`group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 cursor-pointer transition-all duration-200 select-none shadow-xs ${
                   isSelectedForMove
@@ -617,7 +617,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     ? "border-dashed border-champagne/80 hover:border-champagne bg-stone-900"
                     : "border-stone-200 hover:border-champagne hover:scale-[1.02] hover:shadow-md bg-stone-900"
                 }`}
-                title={`${service.name} (#${index + 1}) - Toucher pour déplacer`}
+                title={`${service.name} (#${index + 1}) - Glisser ou toucher pour déplacer`}
               >
                 <Image
                   src={
@@ -626,22 +626,27 @@ export default function AdminServicesView({ initialServices = [] }) {
                   }
                   alt={service.name || "Prestation YDM"}
                   fill
+                  draggable={false}
                   className="object-cover object-center pointer-events-none"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent pointer-events-none" />
 
-                {/* Badge numéro */}
-                <div className="absolute top-2 left-2 z-10 flex items-center space-x-1 bg-brun/90 backdrop-blur-md text-creme text-[10px] font-bold px-2 py-0.5 rounded-full border border-champagne/40 shadow-xs">
-                  <GripVertical className="w-3 h-3 text-champagne" />
+                {/* Poignée numéro tactile & souris */}
+                <div
+                  {...compactReorder.getHandleProps(index)}
+                  title="Glisser pour déplacer immédiatement"
+                  className="touch-drag-handle absolute top-2 left-2 z-10 flex items-center space-x-1 bg-brun/90 backdrop-blur-md text-creme text-[11px] font-bold px-2.5 py-1.5 rounded-full border border-champagne/40 shadow-xs cursor-grab active:cursor-grabbing"
+                >
+                  <GripVertical className="w-3.5 h-3.5 text-champagne" />
                   <span>#{index + 1}</span>
                 </div>
 
                 {/* Prix */}
-                <div className="absolute top-2 right-2 z-10 bg-black/75 backdrop-blur-xs text-champagne font-serif font-bold text-[11px] px-2 py-0.5 rounded-md border border-white/10">
+                <div className="absolute top-2 right-2 z-10 bg-black/75 backdrop-blur-xs text-champagne font-serif font-bold text-[11px] px-2 py-0.5 rounded-md border border-white/10 pointer-events-none">
                   {formatPrice(service.price)}
                 </div>
 
-                {isDropTargetCandidate && (
+                {isDropTargetCandidate && !compactReorder.draggingIndex && (
                   <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
                     <span className="inline-block bg-brun/90 text-champagne border border-champagne/70 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
                       Placer ici (#{index + 1})
@@ -649,7 +654,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                   </div>
                 )}
 
-                {isSelectedForMove && (
+                {isSelectedForMove && !compactReorder.draggingIndex && (
                   <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
                     <span className="inline-block bg-champagne text-brun-dark text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
                       Sélectionnée
@@ -657,8 +662,16 @@ export default function AdminServicesView({ initialServices = [] }) {
                   </div>
                 )}
 
+                {isOver && (
+                  <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
+                    <span className="inline-block bg-champagne text-brun-dark text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
+                      Déposer en #{index + 1}
+                    </span>
+                  </div>
+                )}
+
                 {/* Titre et catégorie */}
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white">
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white pointer-events-none">
                   <span className="text-[9px] uppercase tracking-wider text-stone-300 block truncate">
                     {service.category}
                   </span>
@@ -671,55 +684,50 @@ export default function AdminServicesView({ initialServices = [] }) {
           })}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div
+          data-reorder-group="services-detailed"
+          className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 ${
+            detailedReorder.draggingIndex !== null ? "select-none" : ""
+          }`}
+        >
         {services.map((service, index) => {
           const id = service.id || service._id;
-          const isDragging = draggedIndex === index;
-          const isOver = dragOverIndex === index;
+          const isDragging = detailedReorder.draggingIndex === index;
+          const isOver =
+            detailedReorder.overIndex === index &&
+            detailedReorder.draggingIndex !== index;
 
           return (
             <div
               key={id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("text/plain", index.toString());
-                setDraggedIndex(index);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (dragOverIndex !== index) setDragOverIndex(index);
-              }}
-              onDragLeave={() => {
-                if (dragOverIndex === index) setDragOverIndex(null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
-                if (!isNaN(fromIdx)) {
-                  handleDropService(fromIdx, index);
-                }
-                setDraggedIndex(null);
-                setDragOverIndex(null);
-              }}
-              onDragEnd={() => {
-                setDraggedIndex(null);
-                setDragOverIndex(null);
-              }}
-              className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 relative select-none flex flex-col ${
+              data-reorder-index={index}
+              className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 relative flex flex-col ${
                 isDragging
-                  ? "opacity-40 scale-95 border-dashed border-stone-400"
+                  ? "opacity-40 scale-95 border-dashed border-champagne-dark"
                   : isOver
-                  ? "ring-2 ring-champagne border-champagne scale-[1.02] shadow-xl"
+                  ? "ring-4 ring-champagne border-champagne scale-[1.02] shadow-xl z-10"
                   : service.isActive
                   ? "border-stone-200 shadow-2xs hover:shadow-md"
                   : "border-stone-300 opacity-75 bg-stone-50"
               }`}
             >
-              {/* Drag Handle Top Bar */}
-              <div className="absolute top-3 left-3 z-20 flex items-center space-x-1 bg-brun/85 backdrop-blur-md text-creme text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-md border border-white/20">
-                <GripVertical className="w-3.5 h-3.5 text-champagne" />
+              {/* Poignée Drag & Drop unifiée (Souris & Tactile) */}
+              <button
+                type="button"
+                {...detailedReorder.getHandleProps(index)}
+                aria-label={`Déplacer ${service.name} par glisser-déposer (position ${index + 1})`}
+                title="Maintenir et glisser pour déplacer (tactile ou souris)"
+                className="touch-drag-handle absolute top-3 left-3 z-20 inline-flex items-center space-x-1.5 min-h-[44px] bg-brun/90 hover:bg-brun backdrop-blur-md text-creme text-xs font-bold px-3.5 py-2 rounded-full shadow-md border border-champagne/40 cursor-grab active:cursor-grabbing"
+              >
+                <GripVertical className="w-4 h-4 text-champagne shrink-0" />
                 <span>#{index + 1}</span>
-              </div>
+              </button>
+
+              {isOver && (
+                <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-champagne text-brun-dark text-xs font-bold px-3 py-1 rounded-full shadow-md whitespace-nowrap">
+                  Déposer en #{index + 1}
+                </div>
+              )}
 
               <div className="relative aspect-[3/4] w-full bg-stone-100">
                 <Image
@@ -729,6 +737,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                   }
                   alt={service.name || "Prestation YDM"}
                   fill
+                  draggable={false}
                   className="object-cover object-center pointer-events-none"
                 />
                 <div className="absolute top-3 right-3 bg-black/75 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-md">
@@ -775,11 +784,11 @@ export default function AdminServicesView({ initialServices = [] }) {
                   {/* Contrôles tactiles iPad : Position directe, Monter/Descendre, Modifier, Supprimer */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center space-x-1.5">
-                      <select
+                        <select
                         aria-label={`Position de ${service.name}`}
                         value={index}
                         onChange={(e) => handleDropService(index, Number(e.target.value))}
-                        className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
+                        className="min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base xl:text-xs font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
                         title="Choisir la position directement"
                       >
                         {services.map((_, posIdx) => (
@@ -839,6 +848,56 @@ export default function AdminServicesView({ initialServices = [] }) {
       </div>
       )}
 
+      {/* Floating drag preview card (Compact & Detailed) */}
+      {(() => {
+        const activeReorder = isCompactMode ? compactReorder : detailedReorder;
+        const activeIdx = activeReorder.draggingIndex;
+        const activeService = activeIdx !== null ? services[activeIdx] : null;
+        if (activeIdx === null || !activeService || !activeReorder.pointerPos) {
+          return null;
+        }
+        const targetIdx = activeReorder.overIndex;
+        return (
+          <div
+            aria-hidden="true"
+            style={{
+              left: `${activeReorder.pointerPos.x}px`,
+              top: `${activeReorder.pointerPos.y}px`,
+            }}
+            className="fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2 w-56 sm:w-64 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-champagne shadow-2xl p-2.5 flex items-center gap-3 ring-4 ring-champagne/30"
+          >
+            <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-stone-200">
+              <Image
+                src={
+                  activeService.images?.[0] ||
+                  "/images/realisations/knotless-still.jpeg"
+                }
+                alt={activeService.name || "Prestation"}
+                fill
+                draggable={false}
+                className="object-cover"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-champagne-dark uppercase tracking-wider">
+                <span>#{activeIdx + 1}</span>
+                {targetIdx !== null && targetIdx !== activeIdx && (
+                  <span className="px-1.5 py-0.5 rounded bg-brun text-champagne text-[10px]">
+                    → #{targetIdx + 1}
+                  </span>
+                )}
+              </div>
+              <div className="font-serif font-bold text-sm text-brun truncate">
+                {activeService.name}
+              </div>
+              <div className="text-[11px] text-stone-500 truncate">
+                {activeService.category} • {formatPrice(activeService.price)}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* CREATE / EDIT MODAL SANS BUG D'URL ET OPTIMISÉ CLAVIER IPAD */}
       {modalOpen && (
         <div
@@ -880,7 +939,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Ex: Knotless Braids Medium"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                  className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                 />
               </div>
 
@@ -896,7 +955,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                       setIsCreatingCategory(!isCreatingCategory);
                       setNewCategoryName("");
                     }}
-                    className="text-xs text-champagne-dark hover:underline font-semibold cursor-pointer px-2 py-1"
+                    className="min-h-[44px] text-xs text-champagne-dark hover:underline font-semibold cursor-pointer px-2.5 py-1.5"
                   >
                     {isCreatingCategory
                       ? "Choisir une catégorie existante"
@@ -911,7 +970,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     placeholder="Tapez le nom de la nouvelle catégorie..."
-                    className="w-full bg-stone-50 border border-champagne rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full min-h-[44px] bg-stone-50 border border-champagne rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                     autoFocus
                   />
                 ) : (
@@ -933,7 +992,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                         }));
                       }
                     }}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   >
                     {existingCategories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -996,7 +1055,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <button
                       type="button"
                       onClick={handleRemoveAllLengths}
-                      className="text-xs text-stone-600 hover:text-red-600 font-semibold px-3 py-1.5 rounded-lg bg-white border border-stone-200 transition-colors shrink-0 cursor-pointer"
+                      className="min-h-[44px] text-xs text-stone-600 hover:text-red-600 font-semibold px-3.5 py-2 rounded-xl bg-white border border-stone-200 transition-colors shrink-0 cursor-pointer"
                     >
                       Désactiver (tarif unique)
                     </button>
@@ -1017,7 +1076,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <button
                       type="button"
                       onClick={handleActivateLengthOptions}
-                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
+                      className="min-h-[44px] inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
                     >
                       <Plus className="w-4 h-4 text-brun" />
                       <span>Activer les choix de longueurs (Court, Mi-long, Long...)</span>
@@ -1047,7 +1106,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                                 value={choice.name}
                                 onChange={(e) => handleUpdateChoice(cIdx, "name", e.target.value)}
                                 placeholder="Nom (ex: Mi-long)"
-                                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-medium text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                                className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-base xl:text-sm font-medium text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                               />
                             </div>
 
@@ -1062,7 +1121,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                                   value={choice.priceInput}
                                   onChange={(e) => handleUpdateChoice(cIdx, "totalPrice", e.target.value)}
                                   placeholder="0"
-                                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-base lg:text-sm font-bold text-brun text-right pr-7 focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
+                                  className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-base xl:text-sm font-bold text-brun text-right pr-7 focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne"
                                 />
                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 font-medium text-xs pointer-events-none">
                                   €
@@ -1095,7 +1154,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     <button
                       type="button"
                       onClick={handleAddLengthChoice}
-                      className="w-full py-2.5 border border-dashed border-stone-300 hover:border-champagne rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-brun flex items-center justify-center space-x-1.5 transition-colors bg-white/60 cursor-pointer"
+                      className="w-full min-h-[44px] py-2.5 border border-dashed border-stone-300 hover:border-champagne rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-brun flex items-center justify-center space-x-1.5 transition-colors bg-white/60 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Ajouter une longueur supplémentaire</span>
@@ -1139,7 +1198,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                       type="button"
                       disabled={uploadingMedia}
                       onClick={() => serviceFileInputRef.current?.click()}
-                      className="inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
+                      className="min-h-[44px] inline-flex items-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                     >
                       <Upload className="w-4 h-4 text-brun" />
                       <span>Choisir un fichier sur mon appareil</span>
@@ -1164,7 +1223,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                       <button
                         type="button"
                         onClick={() => setShowImagePicker(!showImagePicker)}
-                        className="text-xs text-champagne-dark hover:underline font-semibold flex items-center space-x-1 px-2 py-1 cursor-pointer"
+                        className="min-h-[44px] text-xs text-champagne-dark hover:underline font-semibold flex items-center space-x-1 px-2.5 py-1.5 cursor-pointer"
                       >
                         <ImageIcon className="w-4 h-4" />
                         <span>
@@ -1176,7 +1235,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                       <button
                         type="button"
                         onClick={() => setShowManualUrls(!showManualUrls)}
-                        className="text-xs text-stone-500 hover:text-brun underline font-medium px-2 py-1 cursor-pointer"
+                        className="min-h-[44px] text-xs text-stone-500 hover:text-brun underline font-medium px-2.5 py-1.5 cursor-pointer"
                       >
                         {showManualUrls
                           ? "Masquer les liens"
@@ -1218,7 +1277,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                           <button
                             type="button"
                             onClick={() => setForm({ ...form, videoUrl: "" })}
-                            className="text-xs text-red-600 hover:underline px-1.5 py-0.5 cursor-pointer"
+                            className="min-h-[44px] text-xs text-red-600 hover:underline px-2 py-1 cursor-pointer"
                           >
                             Retirer la vidéo
                           </button>
@@ -1239,7 +1298,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                           value={form.imageUrl}
                           onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
                           placeholder="/images/realisations/... ou https://..."
-                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-xs sm:text-sm"
+                          className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-base xl:text-sm"
                         />
                       </div>
                       <div>
@@ -1251,7 +1310,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                           value={form.videoUrl}
                           onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
                           placeholder="https://res.cloudinary.com/.../video.mp4"
-                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-xs sm:text-sm"
+                          className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-brun font-mono text-base xl:text-sm"
                         />
                       </div>
                     </div>
@@ -1305,7 +1364,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                     setForm({ ...form, description: e.target.value })
                   }
                   placeholder="Technique, rendu, confort, tenue..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                 />
               </div>
 
@@ -1353,7 +1412,7 @@ export default function AdminServicesView({ initialServices = [] }) {
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-200/70 font-medium transition-colors cursor-pointer"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-200/70 font-medium transition-colors cursor-pointer"
               >
                 Annuler
               </button>
@@ -1361,7 +1420,7 @@ export default function AdminServicesView({ initialServices = [] }) {
                 type="submit"
                 form="admin-service-form"
                 disabled={submitting}
-                className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                className="min-h-[44px] inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 <Check className="w-4 h-4 text-champagne" />
                 <span>{submitting ? "Enregistrement..." : "Enregistrer la prestation"}</span>

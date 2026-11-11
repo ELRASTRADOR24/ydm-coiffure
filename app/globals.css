@@ -31,12 +31,23 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+  scroll-padding-bottom: 5rem;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+p, li {
+  text-wrap: pretty;
 }
 
 ::selection {
@@ -79,14 +90,22 @@ dialog::backdrop {
 
 html:has(.admin-shell) {
   scroll-padding-top: 5.5rem;
+  scroll-padding-bottom: 5rem;
 }
 
-.admin-shell :where(button, a, input, select, textarea, label, [role="button"]) {
+:where(button, a, input, select, textarea, label, [role="button"]) {
   touch-action: manipulation;
 }
 
+.touch-drag-handle {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 @media (pointer: coarse), (max-width: 1279px) {
-  .admin-shell :where(
+  :where(
     input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"]),
     select,
     textarea,
@@ -95,7 +114,7 @@ html:has(.admin-shell) {
     font-size: max(1rem, 16px);
   }
 
-  .admin-shell :where(
+  :where(
     input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"]),
     select
   ) {

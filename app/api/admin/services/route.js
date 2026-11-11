@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
-import { getServices, createService } from "@/lib/store";
+import { getServices, createService, reorderServices } from "@/lib/store";
 import { slugify } from "@/lib/utils";
 import {
   normalizeServiceServerPayload,
@@ -80,6 +80,34 @@ export async function POST(request) {
     revalidateServicePages();
 
     return NextResponse.json({ success: true, service: newService });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const orderedIds = Array.isArray(body?.orderedIds) ? body.orderedIds : [];
+    if (orderedIds.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Liste d'ordre des prestations requise." },
+        { status: 400 }
+      );
+    }
+
+    const services = await reorderServices(orderedIds);
+    revalidateServicePages();
+
+    return NextResponse.json({ success: true, services });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message },

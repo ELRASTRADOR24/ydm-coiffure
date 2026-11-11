@@ -31,6 +31,8 @@ import {
   isVideoFilenameOrUrl,
 } from "@/lib/uploadMedia";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
+import { usePointerReorder } from "@/lib/usePointerReorder";
+import { moveArrayItem } from "@/lib/reorderUtils";
 import CustomVideoPlayer from "../CustomVideoPlayer";
 import {
   ToggleVisibilityButton,
@@ -77,13 +79,21 @@ export function FaqEditorTab({
   const moveFaq = (index, direction) => {
     const target = direction === "up" ? index - 1 : index + 1;
     if (target < 0 || target >= faqList.length) return;
-    const updated = [...faqList];
-    const temp = updated[index];
-    updated[index] = updated[target];
-    updated[target] = temp;
+    moveFaqTo(index, target);
+  };
+
+  const moveFaqTo = (fromIndex, toIndex) => {
+    const updated = moveArrayItem(faqList, fromIndex, toIndex);
+    if (updated === faqList) return;
     setFaqList(updated.map((it, idx) => ({ ...it, order: idx + 1 })));
     markChanged();
   };
+
+  const faqReorder = usePointerReorder({
+    groupId: "faq-list",
+    itemCount: faqList.length,
+    onReorder: (from, to) => moveFaqTo(from, to),
+  });
 
   return (
     <div className="space-y-6">
@@ -139,7 +149,7 @@ export function FaqEditorTab({
           <button
             type="button"
             onClick={handleAddFaq}
-            className="inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-3 rounded-xl text-sm font-bold transition-colors cursor-pointer shrink-0"
+            className="min-h-[44px] inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-3 rounded-xl text-sm font-bold transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4 text-champagne" />
             <span>Ajouter une question</span>
@@ -154,30 +164,49 @@ export function FaqEditorTab({
             <button
               type="button"
               onClick={handleAddFaq}
-              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-brun text-creme text-sm font-semibold cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-brun text-creme text-sm font-semibold cursor-pointer"
             >
               <Plus className="w-4 h-4 text-champagne" />
               <span>Ajouter une première question</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div
+            data-reorder-group="faq-list"
+            className={`space-y-4 ${faqReorder.draggingIndex !== null ? "select-none" : ""}`}
+          >
             {faqList.map((faq, index) => {
               const isShown = faq.visible !== false;
+              const isDragging = faqReorder.draggingIndex === index;
+              const isOver =
+                faqReorder.overIndex === index &&
+                faqReorder.draggingIndex !== index;
               return (
                 <div
                   key={faq._id || faq.id || index}
-                  className={`p-5 rounded-2xl border-2 space-y-4 transition-colors ${
-                    isShown
+                  data-reorder-index={index}
+                  className={`p-5 rounded-2xl border-2 space-y-4 transition-all ${
+                    isDragging
+                      ? "opacity-40 border-dashed border-champagne-dark"
+                      : isOver
+                      ? "border-champagne-dark ring-4 ring-champagne/40 bg-champagne/10"
+                      : isShown
                       ? "bg-stone-50 border-stone-200"
                       : "bg-stone-100 border-stone-300 opacity-75"
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-3 py-1 rounded-lg bg-white border border-stone-300 text-sm font-bold text-brun">
-                        Question #{index + 1}
-                      </span>
+                      <button
+                        type="button"
+                        {...faqReorder.getHandleProps(index)}
+                        aria-label={`Déplacer Question ${index + 1} par glisser-déposer`}
+                        title="Glisser pour déplacer (tactile ou souris)"
+                        className="touch-drag-handle min-h-[44px] inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light/50 border border-stone-300 text-sm font-bold text-brun cursor-grab active:cursor-grabbing"
+                      >
+                        <GripVertical className="w-4 h-4 text-champagne-dark shrink-0" />
+                        <span>Question #{index + 1}</span>
+                      </button>
                       <button
                         type="button"
                         disabled={index === 0}
@@ -233,6 +262,32 @@ export function FaqEditorTab({
           </div>
         )}
       </div>
+
+      {faqReorder.draggingIndex !== null &&
+        faqReorder.pointerPos &&
+        faqList[faqReorder.draggingIndex] && (
+          <div
+            aria-hidden="true"
+            style={{
+              left: `${faqReorder.pointerPos.x}px`,
+              top: `${faqReorder.pointerPos.y}px`,
+            }}
+            className="fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2 max-w-[18rem] rounded-2xl bg-white/95 backdrop-blur-md border-2 border-champagne shadow-2xl px-4 py-3 ring-4 ring-champagne/30"
+          >
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-champagne-dark uppercase tracking-wider">
+              <span>Question #{faqReorder.draggingIndex + 1}</span>
+              {faqReorder.overIndex !== null &&
+                faqReorder.overIndex !== faqReorder.draggingIndex && (
+                  <span className="px-1.5 py-0.5 rounded bg-brun text-champagne text-[10px]">
+                    → #{faqReorder.overIndex + 1}
+                  </span>
+                )}
+            </div>
+            <div className="font-serif font-bold text-sm text-brun truncate mt-0.5">
+              {faqList[faqReorder.draggingIndex].question || "Question"}
+            </div>
+          </div>
+        )}
     </div>
   );
 }
@@ -260,6 +315,7 @@ function AdminThumb({ item, className = "object-cover object-center pointer-even
           src={posterSrc}
           alt={item?.title || "Réalisation"}
           fill
+          draggable={false}
           className={className}
         />
       );
@@ -270,6 +326,7 @@ function AdminThumb({ item, className = "object-cover object-center pointer-even
         src={posterSrc}
         alt={item?.title || "Réalisation"}
         loading="lazy"
+        draggable={false}
         className={`w-full h-full ${className}`}
       />
     );
@@ -282,6 +339,7 @@ function AdminThumb({ item, className = "object-cover object-center pointer-even
         muted
         playsInline
         preload="metadata"
+        draggable={false}
         className={`w-full h-full ${className}`}
       />
     );
@@ -307,8 +365,6 @@ export function GalleryEditorTab({
   hasUnsavedChanges = false,
   savingNow = false,
 }) {
-  const [draggedGalleryIndex, setDraggedGalleryIndex] = useState(null);
-  const [dragOverGalleryIndex, setDragOverGalleryIndex] = useState(null);
   const [isCompactGallery, setIsCompactGallery] = useState(false);
   const [movingGalleryIndex, setMovingGalleryIndex] = useState(null);
   const [mediaFilter, setMediaFilter] = useState("ALL");
@@ -667,64 +723,11 @@ export function GalleryEditorTab({
   };
 
   const moveGalleryItemTo = (fromIndex, targetIndex) => {
-    if (
-      fromIndex === null ||
-      fromIndex === undefined ||
-      targetIndex === null ||
-      targetIndex === undefined ||
-      fromIndex === targetIndex ||
-      fromIndex < 0 ||
-      targetIndex < 0 ||
-      fromIndex >= galleryList.length ||
-      targetIndex >= galleryList.length
-    ) {
-      return;
-    }
-    const updated = [...galleryList];
-    const [movedItem] = updated.splice(fromIndex, 1);
-    updated.splice(targetIndex, 0, movedItem);
+    const updated = moveArrayItem(galleryList, fromIndex, targetIndex);
+    if (updated === galleryList) return;
     setGalleryList(updated.map((item, idx) => ({ ...item, order: idx + 1 })));
     setMovingGalleryIndex(null);
     markChanged();
-  };
-
-  const handleDragStartGallery = (e, index) => {
-    setDraggedGalleryIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", index.toString());
-  };
-
-  const handleDragOverGallery = (e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragOverGalleryIndex !== index) {
-      setDragOverGalleryIndex(index);
-    }
-  };
-
-  const handleDropGallery = (e, targetIndex) => {
-    e.preventDefault();
-    if (draggedGalleryIndex === null || draggedGalleryIndex === targetIndex) {
-      setDraggedGalleryIndex(null);
-      setDragOverGalleryIndex(null);
-      return;
-    }
-    const updated = [...galleryList];
-    const [movedItem] = updated.splice(draggedGalleryIndex, 1);
-    updated.splice(targetIndex, 0, movedItem);
-    const reordered = updated.map((item, idx) => ({
-      ...item,
-      order: idx + 1,
-    }));
-    setGalleryList(reordered);
-    setDraggedGalleryIndex(null);
-    setDragOverGalleryIndex(null);
-    markChanged();
-  };
-
-  const handleDragEndGallery = () => {
-    setDraggedGalleryIndex(null);
-    setDragOverGalleryIndex(null);
   };
 
   const totalVideos = galleryList.filter((it) => it?.type === "video").length;
@@ -739,6 +742,26 @@ export function GalleryEditorTab({
       if (mediaFilter === "HIDDEN") return item?.visible === false;
       return true;
     });
+
+  const compactGalleryReorder = usePointerReorder({
+    groupId: "gallery-compact",
+    itemCount: galleryList.length,
+    disabled: !isCompactGallery,
+    onReorder: (from, to) => moveGalleryItemTo(from, to),
+  });
+
+  const detailedGalleryReorder = usePointerReorder({
+    groupId: "gallery-detailed",
+    itemCount: filteredIndexedItems.length,
+    disabled: isCompactGallery,
+    onReorder: (fromVis, toVis) => {
+      const fromReal = filteredIndexedItems[fromVis]?.index;
+      const toReal = filteredIndexedItems[toVis]?.index;
+      if (Number.isInteger(fromReal) && Number.isInteger(toReal)) {
+        moveGalleryItemTo(fromReal, toReal);
+      }
+    },
+  });
 
   const header = galleryPage.header;
   const bottomCta = galleryPage.bottomCta;
@@ -966,7 +989,7 @@ export function GalleryEditorTab({
               <div className="flex items-center space-x-2">
                 <Info className="w-5 h-5 text-champagne-dark shrink-0" />
                 <span className="font-medium">
-                  Sur iPad ou ordinateur : touchez une photo ou vidéo pour la déplacer, puis touchez sa nouvelle place (ou glissez-déposez).
+                  Sur tablette ou ordinateur : touchez un média puis sa nouvelle place, maintenez un instant pour glisser, ou glissez directement depuis le badge #N.
                 </span>
               </div>
               <button
@@ -1036,16 +1059,28 @@ export function GalleryEditorTab({
             </p>
           </div>
         ) : isCompactGallery ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <div
+            data-reorder-group="gallery-compact"
+            className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 ${
+              compactGalleryReorder.draggingIndex !== null ? "select-none" : ""
+            }`}
+          >
             {galleryList.map((item, index) => {
               const isSelectedForMove = movingGalleryIndex === index;
               const canPlaceHere = movingGalleryIndex !== null && !isSelectedForMove;
+              const isDragging = compactGalleryReorder.draggingIndex === index;
+              const isOver =
+                compactGalleryReorder.overIndex === index &&
+                compactGalleryReorder.draggingIndex !== index;
               return (
                 <div
                   key={item.id || index}
+                  data-reorder-index={index}
                   role="button"
                   tabIndex={0}
+                  {...compactGalleryReorder.getItemProps(index)}
                   onClick={() => {
+                    if (compactGalleryReorder.shouldSuppressClick()) return;
                     if (movingGalleryIndex === null) {
                       setMovingGalleryIndex(index);
                     } else if (isSelectedForMove) {
@@ -1054,37 +1089,55 @@ export function GalleryEditorTab({
                       moveGalleryItemTo(movingGalleryIndex, index);
                     }
                   }}
-                  draggable
-                  onDragStart={(e) => handleDragStartGallery(e, index)}
-                  onDragOver={(e) => handleDragOverGallery(e, index)}
-                  onDrop={(e) => handleDropGallery(e, index)}
-                  onDragEnd={handleDragEndGallery}
-                  className={`compact-chip group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 cursor-pointer sm:cursor-grab active:cursor-grabbing transition-all select-none shadow-xs bg-stone-900 ${
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (movingGalleryIndex === null) {
+                        setMovingGalleryIndex(index);
+                      } else if (isSelectedForMove) {
+                        setMovingGalleryIndex(null);
+                      } else {
+                        moveGalleryItemTo(movingGalleryIndex, index);
+                      }
+                    }
+                  }}
+                  className={`compact-chip group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 cursor-pointer transition-all select-none shadow-xs bg-stone-900 ${
                     item.visible === false ? "opacity-45" : ""
                   } ${
                     isSelectedForMove
                       ? "ring-4 ring-champagne border-champagne scale-[1.03] z-20"
                       : canPlaceHere
                       ? "border-dashed border-champagne/80 hover:ring-2 hover:ring-champagne"
-                      : draggedGalleryIndex === index
+                      : isDragging
                       ? "opacity-30 scale-90 border-dashed border-champagne"
-                      : dragOverGalleryIndex === index && draggedGalleryIndex !== index
+                      : isOver
                       ? "ring-4 ring-champagne border-champagne scale-105 z-20"
                       : "border-stone-200 hover:border-champagne"
                   }`}
                 >
                   <AdminThumb item={item} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                  <div className="absolute top-2 left-2 z-10 flex items-center space-x-1 bg-brun/90 text-creme text-xs font-bold px-2 py-0.5 rounded-full border border-champagne/40">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
+                  <div
+                    {...compactGalleryReorder.getHandleProps(index)}
+                    title="Glisser pour déplacer immédiatement"
+                    className="touch-drag-handle absolute top-2 left-2 z-10 flex items-center space-x-1 bg-brun/90 text-creme text-xs font-bold px-2.5 py-1.5 rounded-full border border-champagne/40 cursor-grab active:cursor-grabbing"
+                  >
                     <GripVertical className="w-3.5 h-3.5 text-champagne" />
                     <span>#{index + 1}</span>
                   </div>
                   {item.type === "video" && (
-                    <div className="absolute top-2 right-2 z-10 bg-black/75 rounded p-1 text-white">
+                    <div className="absolute top-2 right-2 z-10 bg-black/75 rounded p-1 text-white pointer-events-none">
                       <Film className="w-3.5 h-3.5 text-champagne" />
                     </div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                  {isOver && (
+                    <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-10 text-center pointer-events-none">
+                      <span className="inline-block bg-champagne text-brun-dark text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
+                        Déposer en #{index + 1}
+                      </span>
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-2 text-white pointer-events-none">
                     <span className="text-[11px] uppercase tracking-wider text-stone-300 block truncate">
                       {isSelectedForMove
                         ? "SÉLECTIONNÉE"
@@ -1103,24 +1156,29 @@ export function GalleryEditorTab({
             })}
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredIndexedItems.map(({ item, index }) => {
+          <div
+            data-reorder-group="gallery-detailed"
+            className={`space-y-4 ${
+              detailedGalleryReorder.draggingIndex !== null ? "select-none" : ""
+            }`}
+          >
+            {filteredIndexedItems.map(({ item, index }, visIdx) => {
               const isShown = item.visible !== false;
               const isVideo = item.type === "video";
               const isCardUploading = cardUploadingIndex === index;
+              const isDragging = detailedGalleryReorder.draggingIndex === visIdx;
+              const isOver =
+                detailedGalleryReorder.overIndex === visIdx &&
+                detailedGalleryReorder.draggingIndex !== visIdx;
               return (
                 <div
                   key={item.id || index}
-                  draggable
-                  onDragStart={(e) => handleDragStartGallery(e, index)}
-                  onDragOver={(e) => handleDragOverGallery(e, index)}
-                  onDrop={(e) => handleDropGallery(e, index)}
-                  onDragEnd={handleDragEndGallery}
+                  data-reorder-index={visIdx}
                   className={`p-5 rounded-2xl border-2 transition-all space-y-4 ${
-                    draggedGalleryIndex === index
-                      ? "opacity-40 border-dashed border-champagne"
-                      : dragOverGalleryIndex === index && draggedGalleryIndex !== index
-                      ? "border-champagne-dark ring-2 ring-champagne/40 bg-champagne/10"
+                    isDragging
+                      ? "opacity-40 border-dashed border-champagne-dark"
+                      : isOver
+                      ? "border-champagne-dark ring-4 ring-champagne/40 bg-champagne/10"
                       : isShown
                       ? "bg-stone-50 border-stone-200"
                       : "bg-stone-100 border-stone-300 opacity-75"
@@ -1129,10 +1187,16 @@ export function GalleryEditorTab({
                   {/* Barre actions en haut de la carte */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-sm font-bold text-brun cursor-grab">
-                        <GripVertical className="w-4 h-4 text-stone-400" />
+                      <button
+                        type="button"
+                        {...detailedGalleryReorder.getHandleProps(visIdx)}
+                        aria-label={`Déplacer ${item.title || `Réalisation ${index + 1}`} par glisser-déposer`}
+                        title="Maintenir et glisser pour déplacer (tactile ou souris)"
+                        className="touch-drag-handle min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-champagne-light/50 border border-stone-300 text-sm font-bold text-brun cursor-grab active:cursor-grabbing shadow-2xs"
+                      >
+                        <GripVertical className="w-4 h-4 text-champagne-dark shrink-0" />
                         <span>Réalisation #{index + 1}</span>
-                      </span>
+                      </button>
                       {isVideo && (
                         <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-brun text-champagne text-xs font-bold">
                           <Film className="w-3.5 h-3.5" />
@@ -1143,7 +1207,7 @@ export function GalleryEditorTab({
                         aria-label={`Position de la réalisation ${item.title || index + 1}`}
                         value={index}
                         onChange={(e) => moveGalleryItemTo(index, Number(e.target.value))}
-                        className="min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-1.5 text-sm font-semibold text-brun cursor-pointer"
+                        className="min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-1.5 text-base xl:text-sm font-semibold text-brun cursor-pointer"
                       >
                         {galleryList.map((_, posIdx) => (
                           <option key={posIdx} value={posIdx}>
@@ -1222,7 +1286,7 @@ export function GalleryEditorTab({
                             onChange={(e) =>
                               handleGalleryChange(index, "title", e.target.value)
                             }
-                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-medium text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm font-medium text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                           />
                         </div>
 
@@ -1235,7 +1299,7 @@ export function GalleryEditorTab({
                             onChange={(e) =>
                               handleGalleryChange(index, "type", e.target.value)
                             }
-                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                           >
                             <option value="photo">Photo</option>
                             <option value="video">Vidéo</option>
@@ -1255,7 +1319,7 @@ export function GalleryEditorTab({
                             onChange={(e) =>
                               handleGalleryChange(index, "category", e.target.value)
                             }
-                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                             placeholder="Ex: Knotless, Fulani, Boho Braids..."
                           />
                         </div>
@@ -1271,7 +1335,7 @@ export function GalleryEditorTab({
                               handleGalleryChange(index, "image", e.target.value)
                             }
                             placeholder={isVideo ? "Générée automatiquement si Cloudinary" : "/images/realisations/..."}
-                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                           />
                         </div>
                       </div>
@@ -1287,7 +1351,7 @@ export function GalleryEditorTab({
                             onChange={(e) =>
                               handleGalleryChange(index, "videoUrl", e.target.value)
                             }
-                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                            className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                             placeholder="https://res.cloudinary.com/.../video.mp4"
                           />
                         </div>
@@ -1588,7 +1652,7 @@ export function GalleryEditorTab({
                     value={newVideoUrl}
                     onChange={(e) => setNewVideoUrl(e.target.value)}
                     placeholder="https://res.cloudinary.com/.../video.mp4"
-                    className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                 </div>
 
@@ -1602,7 +1666,7 @@ export function GalleryEditorTab({
                       value={newVideoTitle}
                       onChange={(e) => setNewVideoTitle(e.target.value)}
                       placeholder="Ex: Boho Braids été"
-                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                     />
                   </div>
                   <div>
@@ -1614,7 +1678,7 @@ export function GalleryEditorTab({
                       list="gallery-category-suggestions"
                       value={newVideoCategory}
                       onChange={(e) => setNewVideoCategory(e.target.value)}
-                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                     />
                   </div>
                 </div>
@@ -1628,7 +1692,7 @@ export function GalleryEditorTab({
                     value={newVideoThumb}
                     onChange={(e) => setNewVideoThumb(e.target.value)}
                     placeholder="Laisser vide pour extraire la première image"
-                    className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                 </div>
 
@@ -1680,6 +1744,69 @@ export function GalleryEditorTab({
           </div>
         </div>
       )}
+
+      {/* Aperçu flottant pendant le glisser-déposer (Tactile & Souris) */}
+      {(() => {
+        const activeIdx = isCompactGallery
+          ? compactGalleryReorder.draggingIndex
+          : detailedGalleryReorder.draggingIndex;
+        const activeReorder = isCompactGallery
+          ? compactGalleryReorder
+          : detailedGalleryReorder;
+        const draggedEntry = isCompactGallery
+          ? galleryList[activeIdx]
+          : filteredIndexedItems[activeIdx]?.item;
+        const fromNumber = isCompactGallery
+          ? activeIdx !== null
+            ? activeIdx + 1
+            : null
+          : filteredIndexedItems[activeIdx]
+          ? filteredIndexedItems[activeIdx].index + 1
+          : null;
+        const toNumber =
+          activeReorder.overIndex !== null &&
+          activeReorder.overIndex !== activeIdx
+            ? isCompactGallery
+              ? activeReorder.overIndex + 1
+              : (filteredIndexedItems[activeReorder.overIndex]?.index ??
+                  activeReorder.overIndex) + 1
+            : null;
+
+        if (activeIdx === null || !draggedEntry || !activeReorder.pointerPos) {
+          return null;
+        }
+        return (
+          <div
+            aria-hidden="true"
+            style={{
+              left: `${activeReorder.pointerPos.x}px`,
+              top: `${activeReorder.pointerPos.y}px`,
+            }}
+            className="fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2 w-56 sm:w-64 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-champagne shadow-2xl p-2.5 flex items-center gap-3 ring-4 ring-champagne/30"
+          >
+            <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-stone-900 shrink-0 border border-stone-200">
+              <AdminThumb item={draggedEntry} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-champagne-dark uppercase tracking-wider">
+                <span>#{fromNumber}</span>
+                {toNumber !== null && (
+                  <span className="px-1.5 py-0.5 rounded bg-brun text-champagne text-[10px]">
+                    → #{toNumber}
+                  </span>
+                )}
+              </div>
+              <div className="font-serif font-bold text-sm text-brun truncate">
+                {draggedEntry.title || "Réalisation"}
+              </div>
+              <div className="text-[11px] text-stone-500 truncate">
+                {draggedEntry.category ||
+                  (draggedEntry.type === "video" ? "Vidéo" : "Photo")}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

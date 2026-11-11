@@ -53,13 +53,13 @@ export default async function SuiviPage({ searchParams }) {
 
           <BookingLookupClient initialBooking={initialBooking} />
 
-          <div className="pt-4 border-t border-beige flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <Link href="/" className="text-stone-500 hover:text-brun underline">
+          <div className="pt-4 border-t border-beige flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <Link href="/" className="min-h-[44px] inline-flex items-center text-stone-500 hover:text-brun underline">
               Retour à l&apos;accueil
             </Link>
             <Link
               href="/reserver"
-              className="inline-flex items-center space-x-1.5 text-brun font-semibold hover:text-champagne-dark transition-colors"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 text-brun font-semibold hover:text-champagne-dark transition-colors"
             >
               <span>Prendre un autre rendez-vous</span>
               <ArrowRight className="w-3.5 h-3.5" />

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
-import { getUnavailabilities, addUnavailability } from "@/lib/store";
+import {
+  getUnavailabilities,
+  addUnavailability,
+  replaceDayUnavailabilities,
+} from "@/lib/store";
 import {
   expandDateRangeInclusive,
   isValidDateString,
@@ -121,6 +125,87 @@ export async function POST(request) {
       success: true,
       unavailabilities: createdList,
       unavailability: createdList[0],
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const date = String(body.date || "").trim();
+
+    if (!isValidDateString(date)) {
+      return NextResponse.json(
+        { success: false, error: "Format de date invalide (attendu : AAAA-MM-JJ)." },
+        { status: 400 }
+      );
+    }
+
+    const isAllDay = Boolean(body.isAllDay);
+    const defaultReason =
+      String(body.reason || "").trim() ||
+      (isAllDay ? "Journée fermée" : "Créneau masqué");
+
+    let nextEntries = [];
+    if (isAllDay) {
+      nextEntries = [
+        {
+          date,
+          isAllDay: true,
+          startTime: null,
+          endTime: null,
+          reason: defaultReason,
+        },
+      ];
+    } else if (Array.isArray(body.ranges)) {
+      for (const r of body.ranges) {
+        const startTime = String(r?.startTime || "").trim();
+        const endTime = String(r?.endTime || "").trim();
+        if (!isValidTimeString(startTime) || !isValidTimeString(endTime)) {
+          return NextResponse.json(
+            { success: false, error: "Un créneau de la sélection est invalide." },
+            { status: 400 }
+          );
+        }
+        if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "L'heure de fin d'un créneau doit être postérieure au début.",
+            },
+            { status: 400 }
+          );
+        }
+        nextEntries.push({
+          date,
+          isAllDay: false,
+          startTime,
+          endTime,
+          reason: String(r?.reason || "").trim() || defaultReason,
+        });
+      }
+      nextEntries.sort(
+        (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+      );
+    }
+
+    const unavailabilities = await replaceDayUnavailabilities(date, nextEntries);
+    revalidateUnavailabilityRoutes();
+
+    return NextResponse.json({
+      success: true,
+      date,
+      unavailabilities,
     });
   } catch (error) {
     return NextResponse.json(

@@ -22,6 +22,8 @@ import {
   isLengthOption,
   formatOptionChoiceDisplayLabel,
 } from "@/lib/servicePricing";
+import { getCalendarDayUnavailabilitySummary } from "@/lib/slotMasking";
+import QuickSlotMasker from "./admin/QuickSlotMasker";
 
 function buildManualFormDefaults(services, dateStr = getParisDateString()) {
   const svc = services[0] || null;
@@ -47,10 +49,19 @@ function buildManualFormDefaults(services, dateStr = getParisDateString()) {
   };
 }
 
-export default function AdminCalendarView({ initialBookings = [], services = [] }) {
+export default function AdminCalendarView({
+  initialBookings = [],
+  services = [],
+  initialAvailabilities = [],
+  initialUnavailabilities = [],
+}) {
   const router = useRouter();
   const [bookings, setBookings] = useState(() =>
     (initialBookings || []).map((b) => normalizeBookingStatus(b))
+  );
+  const [availabilities, setAvailabilities] = useState(initialAvailabilities || []);
+  const [unavailabilities, setUnavailabilities] = useState(
+    initialUnavailabilities || []
   );
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayStr, setSelectedDayStr] = useState(() => getParisDateString());
@@ -299,6 +310,14 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
   }, [initialBookings]);
 
   useEffect(() => {
+    setAvailabilities(initialAvailabilities || []);
+  }, [initialAvailabilities]);
+
+  useEffect(() => {
+    setUnavailabilities(initialUnavailabilities || []);
+  }, [initialUnavailabilities]);
+
+  useEffect(() => {
     if (!manualForm.serviceId && services.length > 0) {
       setManualForm(buildManualFormDefaults(services, selectedDayStr));
     }
@@ -454,7 +473,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
   return (
     <div className="space-y-6">
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
+        <div className="fixed top-20 lg:top-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -467,7 +486,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
             Planning & Calendrier
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            Touchez un jour pour consulter son agenda détaillé, valider un créneau ou ajouter un rendez-vous.
+            Touchez un jour pour voir ses rendez-vous, cocher des créneaux à masquer en 1 clic ou ajouter un rendez-vous.
           </p>
         </div>
 
@@ -475,7 +494,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
           <button
             type="button"
             onClick={() => openManualModalForDate(selectedDayStr)}
-            className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 text-champagne" />
             <span>Ajouter un rendez-vous direct</span>
@@ -520,7 +539,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 text-xs text-stone-600 border-t border-b border-stone-100 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-stone-600 border-t border-b border-stone-100 py-2.5">
           <span className="font-semibold text-stone-500">Légende :</span>
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
@@ -535,8 +554,12 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
             <span>Paiement en attente</span>
           </div>
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-stone-400" />
-            <span>Expiré</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+            <span>Jour fermé</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-300 border border-amber-500" />
+            <span>Créneaux masqués</span>
           </div>
         </div>
 
@@ -566,20 +589,30 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
             const todayStr = getParisDateString();
             const isToday = cell.dateStr === todayStr;
             const isSelected = cell.dateStr === selectedDayStr;
+            const daySummary = getCalendarDayUnavailabilitySummary({
+              dateStr: cell.dateStr,
+              availabilities,
+              unavailabilities,
+            });
 
             return (
               <div
                 key={cell.dateStr}
+                data-date={cell.dateStr}
                 onClick={() => setSelectedDayStr(cell.dateStr)}
-                className={`min-h-20 sm:min-h-28 rounded-2xl border p-1.5 sm:p-2 flex flex-col justify-between transition-all cursor-pointer ${
+                className={`min-h-20 sm:min-h-28 rounded-2xl border p-1.5 sm:p-2 flex flex-col justify-between transition-all cursor-pointer overflow-hidden ${
                   isSelected
                     ? "ring-2 ring-brun border-brun bg-champagne-light/30 shadow-xs"
+                    : daySummary.isAllDayBlocked
+                    ? "bg-red-50/75 border-red-200 hover:border-red-300"
+                    : daySummary.isWeeklyClosed
+                    ? "bg-stone-100/80 border-stone-200 text-stone-500 hover:border-stone-300"
                     : isToday
                     ? "bg-amber-50/40 border-champagne"
                     : "bg-white border-stone-200 hover:border-champagne"
                 }`}
               >
-                <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center justify-between gap-1 min-w-0">
                   <span
                     className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                       isToday
@@ -591,11 +624,34 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                   >
                     {cell.dayNumber}
                   </span>
-                  {cell.bookings.length > 0 && (
-                    <span className="text-[10px] text-stone-500 font-semibold">
-                      {cell.bookings.length} rdv
-                    </span>
-                  )}
+
+                  <div className="flex items-center gap-1 min-w-0">
+                    {daySummary.isAllDayBlocked ? (
+                      <>
+                        <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold truncate">
+                          Fermé
+                        </span>
+                        <span className="sm:hidden w-2 h-2 rounded-full bg-red-500 shrink-0" aria-label="Fermé" />
+                      </>
+                    ) : daySummary.partialRanges.length > 0 ? (
+                      <>
+                        <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold truncate">
+                          {daySummary.partialRanges.length} masq.
+                        </span>
+                        <span className="sm:hidden w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-label="Créneaux masqués" />
+                      </>
+                    ) : daySummary.isWeeklyClosed ? (
+                      <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 text-[10px] font-semibold truncate">
+                        Repos
+                      </span>
+                    ) : null}
+
+                    {cell.bookings.length > 0 && (
+                      <span className="hidden md:inline text-[10px] text-stone-500 font-semibold shrink-0">
+                        {cell.bookings.length} rdv
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Day Bookings Chips */}
@@ -638,7 +694,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
           <button
             type="button"
             onClick={() => openManualModalForDate(selectedDayStr)}
-            className="inline-flex items-center justify-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-2xs transition-colors cursor-pointer shrink-0"
+            className="min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-2xs transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Ajouter un rdv ce jour</span>
@@ -756,10 +812,23 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
             })}
           </div>
         ) : (
-          <div className="py-8 text-center text-xs sm:text-sm text-stone-500 font-light">
+          <div className="py-4 px-4 rounded-2xl bg-stone-50 border border-stone-100 text-center text-xs sm:text-sm text-stone-500 font-light">
             Aucun rendez-vous prévu le {formatDateFrench(selectedDayStr)}.
           </div>
         )}
+
+        {/* Masquage rapide des créneaux de la journée en 1 tap */}
+        <div className="pt-2">
+          <QuickSlotMasker
+            dateStr={selectedDayStr}
+            availabilities={availabilities}
+            unavailabilities={unavailabilities}
+            bookings={bookings}
+            onUnavailabilitiesChange={setUnavailabilities}
+            onToast={showToast}
+            showAvailabilityLink={true}
+          />
+        </div>
       </div>
 
       {/* BOOKING DETAILS MODAL */}
@@ -899,7 +968,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                       setRejectModalBooking(selectedBooking);
                       setRejectionReason("");
                     }}
-                    className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                    className="min-h-[44px] bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     Refuser
                   </button>
@@ -907,7 +976,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     type="button"
                     disabled={modalActionLoading}
                     onClick={() => handleApproveFromCalendar(selectedBooking)}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                    className="min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {modalActionLoading ? "Validation..." : "Valider demande"}
                   </button>
@@ -923,7 +992,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                         setDepositNotReceivedBooking(selectedBooking);
                         setDepositNotReceivedNote("");
                       }}
-                      className="bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                      className="min-h-[44px] bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       Acompte non reçu
                     </button>
@@ -932,7 +1001,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     type="button"
                     disabled={modalActionLoading}
                     onClick={() => handleMarkPaidFromCalendar(selectedBooking)}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                    className="min-h-[44px] bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {modalActionLoading
                       ? "Confirmation..."
@@ -945,7 +1014,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                   type="button"
                   disabled={modalActionLoading}
                   onClick={() => handleCancelFromCalendar(selectedBooking)}
-                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:text-red-700 hover:border-red-200 hover:bg-red-50 text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:text-red-700 hover:border-red-200 hover:bg-red-50 text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Annuler ce rdv
                 </button>
@@ -953,7 +1022,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               <button
                 type="button"
                 onClick={() => setSelectedBooking(null)}
-                className="bg-brun hover:bg-brun-dark text-creme px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer"
+                className="min-h-[44px] bg-brun hover:bg-brun-dark text-creme px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer"
               >
                 Fermer
               </button>
@@ -985,7 +1054,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 type="button"
                 onClick={() => setRejectModalBooking(null)}
                 aria-label="Fermer la fenêtre"
-                className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1000,7 +1069,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="Ex : Indisponibilité exceptionnelle sur cet horaire, n'hésitez pas à choisir un autre créneau..."
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-xs text-brun"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base xl:text-xs text-brun"
               />
             </div>
 
@@ -1008,7 +1077,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               <button
                 type="button"
                 onClick={() => setRejectModalBooking(null)}
-                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 cursor-pointer"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 cursor-pointer"
               >
                 Annuler
               </button>
@@ -1016,7 +1085,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 type="button"
                 disabled={modalActionLoading}
                 onClick={handleConfirmRejectFromCalendar}
-                className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer disabled:opacity-50"
               >
                 {modalActionLoading ? "Envoi..." : "Confirmer le refus"}
               </button>
@@ -1048,7 +1117,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 type="button"
                 onClick={() => setDepositNotReceivedBooking(null)}
                 aria-label="Fermer la fenêtre"
-                className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
+                className="w-11 h-11 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1063,7 +1132,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 value={depositNotReceivedNote}
                 onChange={(e) => setDepositNotReceivedNote(e.target.value)}
                 placeholder="Ex : Aucun virement reçu sur Wero ou Revolut pour le moment. Pensez à vérifier le libellé ou le destinataire..."
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base lg:text-xs text-brun"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-base xl:text-xs text-brun"
               />
             </div>
 
@@ -1071,7 +1140,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               <button
                 type="button"
                 onClick={() => setDepositNotReceivedBooking(null)}
-                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 cursor-pointer"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 cursor-pointer"
               >
                 Annuler
               </button>
@@ -1079,7 +1148,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 type="button"
                 disabled={modalActionLoading}
                 onClick={handleConfirmDepositNotReceivedFromCalendar}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs cursor-pointer disabled:opacity-50"
               >
                 {modalActionLoading ? "Envoi..." : "Envoyer la relance"}
               </button>
@@ -1131,7 +1200,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 <select
                   value={manualForm.serviceId}
                   onChange={(e) => handleSelectManualService(e.target.value)}
-                  className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                  className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
                 >
                   {services.map((s) => (
                     <option key={s.id || s._id} value={s.id || s._id}>
@@ -1151,7 +1220,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     <select
                       value={manualForm.lengthChoice}
                       onChange={(e) => handleSelectManualLength(e.target.value)}
-                      className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
                     >
                       {manualLengthOption.choices.map((c) => (
                         <option key={c.label} value={c.label}>
@@ -1179,7 +1248,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     onChange={(e) =>
                       setManualForm({ ...manualForm, totalPrice: e.target.value })
                     }
-                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
                 <div>
@@ -1194,7 +1263,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     onChange={(e) =>
                       setManualForm({ ...manualForm, duration: e.target.value })
                     }
-                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
                 <div>
@@ -1206,7 +1275,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     onChange={(e) =>
                       setManualForm({ ...manualForm, status: e.target.value })
                     }
-                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-base xl:text-sm text-brun"
                   >
                     <option value="CONFIRMED">Confirmé (déjà réglé)</option>
                     <option value="PENDING_PAYMENT">Acompte en attente</option>
@@ -1230,7 +1299,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                       })
                     }
                     placeholder="Aminata"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
                 <div>
@@ -1247,7 +1316,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                       })
                     }
                     placeholder="Diallo"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
               </div>
@@ -1268,7 +1337,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                       })
                     }
                     placeholder="06 12 34 56 78"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
                 <div>
@@ -1285,7 +1354,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                       })
                     }
                     placeholder="client@exemple.com"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
               </div>
@@ -1302,7 +1371,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     onChange={(e) =>
                       setManualForm({ ...manualForm, date: e.target.value })
                     }
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
                 <div>
@@ -1319,7 +1388,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                         startTime: e.target.value,
                       })
                     }
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                    className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                   />
                 </div>
               </div>
@@ -1335,7 +1404,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                     setManualForm({ ...manualForm, notes: e.target.value })
                   }
                   placeholder="Rdv pris par Instagram ou téléphone..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                 />
               </div>
             </form>
@@ -1344,7 +1413,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
               <button
                 type="button"
                 onClick={() => setShowManualModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-200/70 cursor-pointer"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-200/70 cursor-pointer"
               >
                 Annuler
               </button>
@@ -1352,7 +1421,7 @@ export default function AdminCalendarView({ initialBookings = [], services = [] 
                 type="submit"
                 form="admin-manual-booking-form"
                 disabled={manualSubmitting}
-                className="bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl text-sm font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
+                className="min-h-[44px] bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-xl text-sm font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {manualSubmitting ? "Ajout..." : "Enregistrer dans le planning"}
               </button>

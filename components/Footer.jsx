@@ -94,7 +94,7 @@ export default function Footer({ initialSettings = null }) {
                     href={`https://instagram.com/${igClean}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-full bg-brun flex items-center justify-center text-champagne hover:bg-champagne hover:text-brun transition-all"
+                    className="w-11 h-11 rounded-full bg-brun flex items-center justify-center text-champagne hover:bg-champagne hover:text-brun transition-all"
                     aria-label="Instagram"
                   >
                     <InstagramIcon className="w-4 h-4" />
@@ -201,17 +201,17 @@ export default function Footer({ initialSettings = null }) {
             ) : (
               <div />
             )}
-            <div className="flex flex-wrap items-center justify-center gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
               <Link
                 href="/suivi"
-                className="hover:text-champagne transition-colors"
+                className="min-h-[44px] inline-flex items-center hover:text-champagne transition-colors"
               >
                 Suivre ma réservation
               </Link>
               {showAPropos && (
                 <Link
                   href="/a-propos"
-                  className="hover:text-champagne transition-colors"
+                  className="min-h-[44px] inline-flex items-center hover:text-champagne transition-colors"
                 >
                   {linksLabels.aPropos}
                 </Link>
@@ -219,7 +219,7 @@ export default function Footer({ initialSettings = null }) {
               {showMentions && (
                 <Link
                   href="/mentions-legales"
-                  className="hover:text-champagne transition-colors"
+                  className="min-h-[44px] inline-flex items-center hover:text-champagne transition-colors"
                 >
                   {linksLabels.mentionsLegales}
                 </Link>
@@ -227,7 +227,7 @@ export default function Footer({ initialSettings = null }) {
               {showConfidentialite && (
                 <Link
                   href="/politique-confidentialite"
-                  className="hover:text-champagne transition-colors"
+                  className="min-h-[44px] inline-flex items-center hover:text-champagne transition-colors"
                 >
                   {linksLabels.confidentialite}
                 </Link>
@@ -235,7 +235,7 @@ export default function Footer({ initialSettings = null }) {
               {showReglement && (
                 <Link
                   href="/conditions-reservation"
-                  className="hover:text-champagne transition-colors"
+                  className="min-h-[44px] inline-flex items-center hover:text-champagne transition-colors"
                 >
                   {linksLabels.reglement}
                 </Link>
@@ -243,7 +243,7 @@ export default function Footer({ initialSettings = null }) {
               {showAdminLink && (
                 <a
                   href="/admin/login"
-                  className="text-champagne hover:underline font-medium border-l border-brun-light pl-4"
+                  className="min-h-[44px] inline-flex items-center text-champagne hover:underline font-medium md:border-l md:border-brun-light md:pl-4"
                 >
                   {linksLabels.admin}
                 </a>

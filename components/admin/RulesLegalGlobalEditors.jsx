@@ -670,7 +670,7 @@ export function GlobalEditorTab({
                     );
                     updateFooter({ conditionsItems: next });
                   }}
-                  className="flex-1 min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-base lg:text-sm text-brun"
+                  className="flex-1 min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-base xl:text-sm text-brun"
                 />
                 <div className="flex items-center gap-2 shrink-0">
                   <ToggleVisibilityButton
@@ -691,7 +691,7 @@ export function GlobalEditorTab({
                         conditionsItems: condItems.filter((_, i) => i !== idx),
                       })
                     }
-                    className="inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Supprimer</span>

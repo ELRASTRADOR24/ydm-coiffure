@@ -74,7 +74,7 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
             placeholder="Rechercher une cliente par nom, e-mail ou téléphone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-10 py-2.5 text-base lg:text-sm text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
+            className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-12 py-2.5 text-base xl:text-sm text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
           />
           <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           {search && (
@@ -82,7 +82,7 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
               type="button"
               onClick={() => setSearch("")}
               aria-label="Effacer la recherche"
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg text-stone-400 hover:text-brun cursor-pointer"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded-xl text-stone-400 hover:text-brun cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -90,12 +90,15 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
         </div>
       </div>
 
-      {/* Customers Cards (< lg / iPad Portrait) + Table (>= lg) */}
+      {/* Customers Cards (< xl / Tablette & Mobile) + Table (>= xl) */}
       <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs">
-        <div className="lg:hidden divide-y divide-stone-100">
+        <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5 bg-stone-50/40">
           {filteredCustomers.length > 0 ? (
             filteredCustomers.map((cust) => (
-              <div key={cust.id || cust._id} className="p-4 sm:p-5 space-y-3">
+              <div
+                key={cust.id || cust._id}
+                className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 space-y-3 shadow-2xs flex flex-col justify-between"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-champagne-light/60 flex items-center justify-center text-brun font-serif font-bold text-sm shrink-0">
@@ -152,13 +155,13 @@ export default function AdminCustomersView({ initialCustomers = [] }) {
               </div>
             ))
           ) : (
-            <div className="py-12 px-4 text-center text-sm text-stone-500 font-light">
+            <div className="md:col-span-2 py-12 px-4 text-center text-sm text-stone-500 font-light">
               Aucune fiche cliente pour le moment. Elles apparaîtront automatiquement lors de vos premières réservations.
             </div>
           )}
         </div>
 
-        <div className="hidden lg:block overflow-x-auto">
+        <div className="hidden xl:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 font-semibold uppercase tracking-wider">
               <tr>

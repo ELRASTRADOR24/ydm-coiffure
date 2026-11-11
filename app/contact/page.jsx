@@ -151,7 +151,7 @@ export default async function ContactPage() {
                                 href={`https://instagram.com/${igClean}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:text-champagne font-mono font-bold text-brun transition-colors"
+                                className="min-h-[44px] inline-flex items-center hover:text-champagne font-mono font-bold text-brun transition-colors"
                               >
                                 {igHandle}
                               </a>
@@ -221,7 +221,7 @@ export default async function ContactPage() {
                     <div className="pt-2 flex justify-end">
                       <Link
                         href="/reserver"
-                        className="inline-flex items-center space-x-1.5 bg-nude hover:bg-nude-dark text-white px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shadow-2xs"
+                        className="min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 bg-nude hover:bg-nude-dark text-white px-7 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shadow-2xs"
                       >
                         <span>{rulesCard.ctaText}</span>
                       </Link>

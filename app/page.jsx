@@ -182,7 +182,7 @@ export default async function HomePage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {popularServices.map((service, index) => (
                 <ServiceCard
                   key={service.id || service._id}
@@ -198,7 +198,7 @@ export default async function HomePage() {
                 <div className="mt-12 text-center">
                   <Link
                     href="/prestations"
-                    className="inline-flex items-center space-x-2 bg-creme hover:bg-beige text-brun border border-beige px-8 py-3.5 rounded-full text-sm sm:text-base font-semibold uppercase tracking-wider transition-colors shadow-2xs"
+                    className="min-h-[44px] inline-flex items-center space-x-2 bg-creme hover:bg-beige text-brun border border-beige px-8 py-3.5 rounded-full text-sm sm:text-base font-semibold uppercase tracking-wider transition-colors shadow-2xs"
                   >
                     <span>{popularCfg.ctaText}</span>
                     <ArrowRight className="w-4 h-4" />

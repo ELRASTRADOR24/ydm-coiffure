@@ -36,15 +36,16 @@ export default function FAQAccordion({ items = [] }) {
             }`}
           >
             <button
+              type="button"
               onClick={() => toggle(index)}
-              className="w-full py-5 px-6 flex items-center justify-between text-left group"
+              className="w-full min-h-[56px] py-4 sm:py-5 px-5 sm:px-6 flex items-center justify-between gap-3 text-left group cursor-pointer"
               aria-expanded={isOpen}
             >
-              <span className="font-serif text-lg font-medium text-brun group-hover:text-champagne-dark transition-colors">
+              <span className="flex-1 min-w-0 pr-2 font-serif text-base sm:text-lg font-medium text-brun group-hover:text-champagne-dark transition-colors">
                 {item.question}
               </span>
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center bg-beige-light transition-transform duration-300 ${
+                className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center bg-beige-light transition-transform duration-300 ${
                   isOpen ? "rotate-180 bg-champagne text-brun-dark" : "text-brun-muted"
                 }`}
               >

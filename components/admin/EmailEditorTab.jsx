@@ -60,7 +60,7 @@ function ColorControl({ label, value, onChange, fallback = "#FFFFFF" }) {
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={fallback}
-          className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-xs font-mono text-brun"
+          className="w-full min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base xl:text-xs font-mono text-brun"
         />
       </div>
     </div>
@@ -541,7 +541,7 @@ export default function EmailEditorTab({
               value={testEmailAddress}
               onChange={(e) => setTestEmailAddress(e.target.value)}
               placeholder="Adresse pour tester (optionnel)"
-              className="flex-1 sm:flex-none min-w-[200px] min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-base lg:text-sm text-brun sm:w-56"
+              className="flex-1 sm:flex-none min-w-[200px] min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-base xl:text-sm text-brun sm:w-56"
             />
             <button
               type="button"
@@ -585,7 +585,7 @@ export default function EmailEditorTab({
                       onChange={(e) =>
                         updateActiveTemplate({ subject: e.target.value })
                       }
-                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                     />
                   </div>
                   <div>
@@ -598,7 +598,7 @@ export default function EmailEditorTab({
                       onChange={(e) =>
                         updateActiveTemplate({ preheader: e.target.value })
                       }
-                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                     />
                   </div>
                 </div>
@@ -765,7 +765,7 @@ export default function EmailEditorTab({
                                 onChange={(e) =>
                                   updateBlock(bIdx, { eyebrow: e.target.value })
                                 }
-                                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-sm text-brun"
+                                className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                               />
                             </div>
                           )}
@@ -827,7 +827,7 @@ export default function EmailEditorTab({
                                   ],
                                 })
                               }
-                              className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-brun text-creme text-xs font-bold cursor-pointer"
+                              className="min-h-[44px] inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-brun text-creme text-xs font-bold cursor-pointer"
                             >
                               <Plus className="w-3.5 h-3.5 text-champagne" />
                               <span>Ajouter une ligne</span>
@@ -854,7 +854,7 @@ export default function EmailEditorTab({
                                       updateBlock(bIdx, { rows });
                                     }}
                                     placeholder="Libellé (ex: Coiffure)"
-                                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
+                                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base xl:text-sm text-brun"
                                   />
                                 </div>
                                 <div className="sm:col-span-5">
@@ -867,7 +867,7 @@ export default function EmailEditorTab({
                                       updateBlock(bIdx, { rows });
                                     }}
                                     placeholder="Valeur (ex: {coiffure})"
-                                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
+                                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base xl:text-sm text-brun"
                                   />
                                 </div>
                                 <div className="sm:col-span-3 flex items-center justify-end gap-1.5">
@@ -944,7 +944,7 @@ export default function EmailEditorTab({
                                   updateBlock(bIdx, { footerNoteHtml: e.target.value })
                                 }
                                 placeholder="Ex: Délai strict de {delai_heures}h..."
-                                className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-brun"
+                                className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                               />
                             )}
                           </div>
@@ -964,7 +964,7 @@ export default function EmailEditorTab({
                                 onChange={(e) =>
                                   updateBlock(bIdx, { text: e.target.value })
                                 }
-                                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-sm text-brun"
+                                className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                               />
                             </div>
                             <div>
@@ -984,7 +984,7 @@ export default function EmailEditorTab({
                                     updateBlock(bIdx, { urlToken: e.target.value });
                                   }
                                 }}
-                                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-sm text-brun"
+                                className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                               >
                                 {BUTTON_LINK_OPTIONS.map((o) => (
                                   <option key={o.value} value={o.value}>
@@ -1007,7 +1007,7 @@ export default function EmailEditorTab({
                                 onChange={(e) =>
                                   updateBlock(bIdx, { urlToken: e.target.value })
                                 }
-                                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-brun"
+                                className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-xs font-mono text-brun"
                               />
                             </div>
                             <ColorControl
@@ -1032,7 +1032,7 @@ export default function EmailEditorTab({
                                   key={al}
                                   type="button"
                                   onClick={() => updateBlock(bIdx, { align: al })}
-                                  className={`px-3 py-1 rounded-lg text-xs font-bold border cursor-pointer ${
+                                  className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold border cursor-pointer ${
                                     (block.align || "center") === al
                                       ? "bg-brun text-creme border-brun"
                                       : "bg-white text-brun border-stone-300"
@@ -1065,7 +1065,7 @@ export default function EmailEditorTab({
                       {block.type === "image" && (
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <label className="inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
+                            <label className="min-h-[44px] inline-flex items-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
                               {uploadingBlockIdx === bIdx ? (
                                 <Loader2 className="w-4 h-4 animate-spin text-champagne" />
                               ) : (
@@ -1090,7 +1090,7 @@ export default function EmailEditorTab({
                                 updateBlock(bIdx, { url: e.target.value })
                               }
                               placeholder="https://..."
-                              className="flex-1 min-w-[200px] bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-brun"
+                              className="flex-1 min-w-[200px] min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-xs font-mono text-brun"
                             />
                           </div>
 
@@ -1141,7 +1141,7 @@ export default function EmailEditorTab({
                                     key={al}
                                     type="button"
                                     onClick={() => updateBlock(bIdx, { align: al })}
-                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border cursor-pointer ${
+                                    className={`flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold border cursor-pointer ${
                                       (block.align || "center") === al
                                         ? "bg-brun text-creme border-brun"
                                         : "bg-white text-brun border-stone-300"
@@ -1214,7 +1214,7 @@ export default function EmailEditorTab({
                   <button
                     type="button"
                     onClick={() => addBlock("richtext")}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <Type className="w-4 h-4 text-champagne-dark" />
                     <span>+ Texte libre</span>
@@ -1222,7 +1222,7 @@ export default function EmailEditorTab({
                   <button
                     type="button"
                     onClick={() => addBlock("boxedText")}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <Square className="w-4 h-4 text-champagne-dark" />
                     <span>+ Encadré avec bordure</span>
@@ -1230,7 +1230,7 @@ export default function EmailEditorTab({
                   <button
                     type="button"
                     onClick={() => addBlock("summaryCard")}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <Box className="w-4 h-4 text-champagne-dark" />
                     <span>+ Fiche Détails / Tarif</span>
@@ -1238,7 +1238,7 @@ export default function EmailEditorTab({
                   <button
                     type="button"
                     onClick={() => addBlock("button")}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4 text-champagne-dark" />
                     <span>+ Bouton cliquable</span>
@@ -1246,7 +1246,7 @@ export default function EmailEditorTab({
                   <button
                     type="button"
                     onClick={() => addBlock("image")}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <ImageIcon className="w-4 h-4 text-champagne-dark" />
                     <span>+ Image</span>
@@ -1254,7 +1254,7 @@ export default function EmailEditorTab({
                   <button
                     type="button"
                     onClick={() => addBlock("divider")}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-champagne-light border border-stone-300 text-xs sm:text-sm font-bold text-brun cursor-pointer"
                   >
                     <Minus className="w-4 h-4 text-champagne-dark" />
                     <span>+ Trait séparateur</span>
@@ -1282,7 +1282,7 @@ export default function EmailEditorTab({
                     <select
                       value={design.fontFamily}
                       onChange={(e) => updateDesign({ fontFamily: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2.5 text-sm text-brun"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                     >
                       {EMAIL_FONT_CHOICES.map((f) => (
                         <option key={f.id} value={f.css}>
@@ -1301,7 +1301,7 @@ export default function EmailEditorTab({
                       onChange={(e) =>
                         updateDesign({ headingFontFamily: e.target.value })
                       }
-                      className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2.5 text-sm text-brun"
+                      className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                     >
                       {EMAIL_FONT_CHOICES.map((f) => (
                         <option key={f.id} value={f.css}>
@@ -1568,7 +1568,7 @@ export default function EmailEditorTab({
                             type="button"
                             disabled={uploadingLogo}
                             onClick={() => logoFileRef.current?.click()}
-                            className="inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2 rounded-xl text-xs sm:text-sm font-bold cursor-pointer disabled:opacity-50"
+                            className="min-h-[44px] inline-flex items-center space-x-1.5 bg-brun hover:bg-brun-dark text-creme px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold cursor-pointer disabled:opacity-50"
                           >
                             {uploadingLogo ? (
                               <Loader2 className="w-4 h-4 animate-spin text-champagne" />
@@ -1586,7 +1586,7 @@ export default function EmailEditorTab({
                             onClick={() =>
                               updateHeader({ logoUrl: DEFAULT_EMAIL_LOGO_URL })
                             }
-                            className="px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-100 cursor-pointer"
+                            className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-100 cursor-pointer"
                           >
                             Logo YDM officiel
                           </button>
@@ -1596,7 +1596,7 @@ export default function EmailEditorTab({
                           value={header.logoUrl || ""}
                           onChange={(e) => updateHeader({ logoUrl: e.target.value })}
                           placeholder="https://..."
-                          className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-brun"
+                          className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-xs font-mono text-brun"
                         />
                       </div>
                     </div>
@@ -1633,7 +1633,7 @@ export default function EmailEditorTab({
                               key={pos.id}
                               type="button"
                               onClick={() => updateHeader({ logoAlign: pos.id })}
-                              className={`flex-1 py-2 rounded-xl text-xs font-bold border cursor-pointer ${
+                              className={`flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold border cursor-pointer ${
                                 (header.logoAlign || "center") === pos.id
                                   ? "bg-brun text-creme border-brun"
                                   : "bg-stone-50 text-brun border-stone-300"
@@ -1708,7 +1708,7 @@ export default function EmailEditorTab({
                           updateHeader({ brandTitle: e.target.value })
                         }
                         placeholder="YDM COIFFURE"
-                        className="bg-white border border-stone-300 rounded-xl px-3 py-2 text-sm text-brun"
+                        className="min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
                       />
                       <ColorControl
                         label="Couleur du titre"

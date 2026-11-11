@@ -217,7 +217,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => runCmd("undo")}
             title="Annuler"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Undo2 className="w-4 h-4" />
           </button>
@@ -233,7 +233,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => runCmd("redo")}
             title="Rétablir"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Redo2 className="w-4 h-4" />
           </button>
@@ -249,7 +249,7 @@ export default function RichDocsEditor({
             e.target.value = "";
           }}
           defaultValue=""
-          className="min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
+          className="min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base xl:text-sm font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
         >
           <option value="" disabled>
             Police...
@@ -271,7 +271,7 @@ export default function RichDocsEditor({
             e.target.value = "";
           }}
           defaultValue=""
-          className="min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base lg:text-sm font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
+          className="min-h-[44px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-base xl:text-sm font-semibold text-brun cursor-pointer focus:outline-none focus:ring-2 focus:ring-champagne"
         >
           <option value="" disabled>
             Taille...
@@ -297,7 +297,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => runCmd("bold")}
             title="Gras"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Bold className="w-4 h-4" />
           </button>
@@ -313,7 +313,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => runCmd("italic")}
             title="Italique"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Italic className="w-4 h-4" />
           </button>
@@ -329,7 +329,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => runCmd("underline")}
             title="Souligné"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Underline className="w-4 h-4" />
           </button>
@@ -345,7 +345,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => runCmd("strikeThrough")}
             title="Barré"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Strikethrough className="w-4 h-4" />
           </button>
@@ -369,7 +369,7 @@ export default function RichDocsEditor({
               setShowLinkBar(false);
             }}
             title="Couleur du texte"
-            className="min-h-[40px] compact-chip inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 text-brun text-xs font-bold cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg hover:bg-stone-100 text-brun text-xs font-bold cursor-pointer"
           >
             <Palette className="w-4 h-4 text-champagne-dark" />
             <span className="hidden sm:inline">Couleur</span>
@@ -391,14 +391,14 @@ export default function RichDocsEditor({
               setShowLinkBar(false);
             }}
             title="Couleur de fond / Surlignage"
-            className="min-h-[40px] compact-chip inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg hover:bg-stone-100 text-brun text-xs font-bold cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg hover:bg-stone-100 text-brun text-xs font-bold cursor-pointer"
           >
             <Highlighter className="w-4 h-4 text-amber-600" />
             <span className="hidden sm:inline">Fond</span>
           </button>
 
           {showColorMenu && (
-            <div className="absolute top-full left-0 mt-1.5 z-30 bg-white border-2 border-stone-200 rounded-2xl shadow-xl p-3 space-y-2.5 w-64">
+            <div className="absolute top-full left-0 mt-1.5 z-30 bg-white border-2 border-stone-200 rounded-2xl shadow-xl p-3 space-y-2.5 w-64 max-w-[calc(100vw-3rem)]">
               <span className="text-xs font-bold text-brun block">
                 Couleur du texte sélectionné
               </span>
@@ -417,7 +417,7 @@ export default function RichDocsEditor({
                       setShowColorMenu(false);
                     }}
                     title={c.label}
-                    className="w-9 h-9 compact-chip rounded-full border border-stone-300 shadow-2xs cursor-pointer hover:scale-110 transition-transform"
+                    className="w-10 h-10 compact-chip rounded-full border border-stone-300 shadow-2xs cursor-pointer hover:scale-110 transition-transform"
                     style={{ backgroundColor: c.hex }}
                   />
                 ))}
@@ -428,14 +428,14 @@ export default function RichDocsEditor({
                   type="color"
                   defaultValue="#8C7B70"
                   onChange={(e) => runCmd("foreColor", e.target.value)}
-                  className="w-10 h-9 rounded cursor-pointer border border-stone-200"
+                  className="w-11 h-10 rounded cursor-pointer border border-stone-200"
                 />
               </label>
             </div>
           )}
 
           {showHiliteMenu && (
-            <div className="absolute top-full left-0 mt-1.5 z-30 bg-white border-2 border-stone-200 rounded-2xl shadow-xl p-3 space-y-2.5 w-64">
+            <div className="absolute top-full left-0 mt-1.5 z-30 bg-white border-2 border-stone-200 rounded-2xl shadow-xl p-3 space-y-2.5 w-64 max-w-[calc(100vw-3rem)]">
               <span className="text-xs font-bold text-brun block">
                 Surlignage derrière le texte
               </span>
@@ -454,7 +454,7 @@ export default function RichDocsEditor({
                       setShowHiliteMenu(false);
                     }}
                     title={c.label}
-                    className="w-9 h-9 compact-chip rounded-lg border border-stone-300 shadow-2xs cursor-pointer hover:scale-110 transition-transform flex items-center justify-center text-xs"
+                    className="w-10 h-10 compact-chip rounded-lg border border-stone-300 shadow-2xs cursor-pointer hover:scale-110 transition-transform flex items-center justify-center text-xs"
                     style={{ backgroundColor: c.hex === "transparent" ? "#fff" : c.hex }}
                   >
                     {c.hex === "transparent" ? "Ø" : ""}
@@ -467,7 +467,7 @@ export default function RichDocsEditor({
                   type="color"
                   defaultValue="#FAF8F5"
                   onChange={(e) => runCmd("hiliteColor", e.target.value)}
-                  className="w-10 h-9 rounded cursor-pointer border border-stone-200"
+                  className="w-11 h-10 rounded cursor-pointer border border-stone-200"
                 />
               </label>
             </div>
@@ -485,7 +485,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("justifyLeft")}
             title="Aligner à gauche"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <AlignLeft className="w-4 h-4" />
           </button>
@@ -498,7 +498,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("justifyCenter")}
             title="Centrer"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <AlignCenter className="w-4 h-4" />
           </button>
@@ -511,7 +511,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("justifyRight")}
             title="Aligner à droite"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <AlignRight className="w-4 h-4" />
           </button>
@@ -524,7 +524,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("justifyFull")}
             title="Justifier"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <AlignJustify className="w-4 h-4" />
           </button>
@@ -541,7 +541,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("insertUnorderedList")}
             title="Liste à puces"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <List className="w-4 h-4" />
           </button>
@@ -554,7 +554,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("insertOrderedList")}
             title="Liste numérotée"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <ListOrdered className="w-4 h-4" />
           </button>
@@ -574,7 +574,7 @@ export default function RichDocsEditor({
               setShowHiliteMenu(false);
             }}
             title="Ajouter un lien"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Link2 className="w-4 h-4" />
           </button>
@@ -591,7 +591,7 @@ export default function RichDocsEditor({
             }}
             onClick={() => fileInputRef.current?.click()}
             title="Insérer une image depuis l'appareil"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer disabled:opacity-50"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer disabled:opacity-50"
           >
             {uploadingImg ? (
               <Loader2 className="w-4 h-4 animate-spin text-champagne-dark" />
@@ -612,7 +612,7 @@ export default function RichDocsEditor({
               )
             }
             title="Insérer un trait séparateur"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-brun cursor-pointer"
           >
             <Minus className="w-4 h-4" />
           </button>
@@ -625,7 +625,7 @@ export default function RichDocsEditor({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => runCmd("removeFormat")}
             title="Enlever le style"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-600 cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg hover:bg-stone-100 text-stone-600 cursor-pointer"
           >
             <RemoveFormatting className="w-4 h-4" />
           </button>
@@ -637,7 +637,7 @@ export default function RichDocsEditor({
             type="button"
             onClick={() => setShowHtmlSource(!showHtmlSource)}
             title="Voir / modifier le code HTML"
-            className={`min-h-[40px] compact-chip inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer ${
+            className={`min-h-[44px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer ${
               showHtmlSource
                 ? "bg-brun text-creme border-brun"
                 : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
@@ -653,7 +653,7 @@ export default function RichDocsEditor({
               if (editorRef.current) editorRef.current.innerHTML = "";
             }}
             title="Effacer tout le contenu du bloc"
-            className="w-10 h-10 compact-chip inline-flex items-center justify-center rounded-xl text-xs font-semibold bg-white hover:bg-red-50 text-stone-600 hover:text-red-700 border border-stone-200 cursor-pointer"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-xl text-xs font-semibold bg-white hover:bg-red-50 text-stone-600 hover:text-red-700 border border-stone-200 cursor-pointer"
           >
             <Eraser className="w-4 h-4" />
           </button>
@@ -676,7 +676,7 @@ export default function RichDocsEditor({
             value={linkUrlInput}
             onChange={(e) => setLinkUrlInput(e.target.value)}
             placeholder="https://instagram.com/ydm_coiffure"
-            className="flex-1 min-w-[200px] min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base lg:text-sm text-brun"
+            className="flex-1 min-w-[200px] min-h-[44px] bg-white border border-stone-300 rounded-xl px-3 py-2 text-base xl:text-sm text-brun"
           />
           <button
             type="button"
@@ -715,7 +715,7 @@ export default function RichDocsEditor({
                 saveSelection();
               }}
               onClick={() => handleInsertVariable(v.token)}
-              className="min-h-[40px] compact-chip px-3 py-1.5 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-xs font-semibold text-brun transition-colors cursor-pointer"
+              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white hover:bg-champagne-light border border-stone-300 text-xs font-semibold text-brun transition-colors cursor-pointer"
               title={`Insère ${v.token} (ex: ${v.sample})`}
             >
               + {v.label}
@@ -730,7 +730,7 @@ export default function RichDocsEditor({
           rows={6}
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full p-4 font-mono text-base lg:text-sm bg-stone-900 text-emerald-300 focus:outline-none resize-y"
+          className="w-full p-4 font-mono text-base xl:text-sm bg-stone-900 text-emerald-300 focus:outline-none resize-y"
         />
       ) : (
         <div
@@ -746,7 +746,7 @@ export default function RichDocsEditor({
           onTouchEnd={saveSelection}
           onKeyUp={saveSelection}
           data-placeholder={placeholder}
-          className="w-full p-4 sm:p-5 text-base lg:text-sm focus:outline-none overflow-auto prose-sm max-w-none"
+          className="w-full p-4 sm:p-5 text-base xl:text-sm focus:outline-none overflow-auto prose-sm max-w-none"
           style={{
             minHeight: `${minHeight}px`,
             backgroundColor: cardBgColor || "#FFFFFF",

@@ -121,18 +121,18 @@ export default function GalleryPreview({
                   </div>
                 )}
               {item.type === "video" && (
-                <div className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-brun/85 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/40 shadow-md">
+                <div className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-brun/85 backdrop-blur-md flex items-center justify-center text-champagne border border-champagne/40 shadow-md">
                   <Play className="w-4 h-4 fill-champagne ml-0.5" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-brun-dark/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 text-creme">
-                <span className="text-xs uppercase tracking-wider text-champagne font-semibold mb-1">
+              <div className="absolute inset-0 bg-gradient-to-t from-brun-dark/85 via-brun-dark/25 to-transparent lg:bg-none lg:bg-brun-dark/50 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 sm:p-5 text-creme">
+                <span className="text-[11px] sm:text-xs uppercase tracking-wider text-champagne font-semibold mb-1">
                   {item.category}
                 </span>
-                <h4 className="font-serif text-lg font-bold leading-tight">
+                <h4 className="font-serif text-sm sm:text-lg font-bold leading-tight">
                   {item.title}
                 </h4>
-                <div className="mt-3 flex items-center space-x-1 text-xs text-champagne-light">
+                <div className="mt-2 sm:mt-3 flex items-center space-x-1 text-xs text-champagne-light">
                   {item.type === "video" ? (
                     <>
                       <Film className="w-3.5 h-3.5" />
@@ -156,7 +156,7 @@ export default function GalleryPreview({
         <div className="mt-10 text-center">
           <Link
             href="/galerie"
-            className="inline-flex items-center space-x-2 text-brun hover:text-champagne-dark font-medium text-sm group"
+            className="min-h-[44px] inline-flex items-center space-x-2 text-brun hover:text-champagne-dark font-medium text-sm px-4 py-2 group"
           >
             <span>{ctaText}</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

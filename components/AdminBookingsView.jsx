@@ -235,8 +235,8 @@ export default function AdminBookingsView({ initialBookings = [] }) {
   return (
     <div className="space-y-6">
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
-          <CheckCircle2 className="w-4 h-4 text-champagne" />
+        <div className="fixed top-20 lg:top-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -290,7 +290,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
               placeholder="Rechercher par nom, téléphone ou référence (ex: YDM-2026-9482)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-10 py-2.5 text-base lg:text-sm text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
+              className="w-full min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-12 py-2.5 text-base xl:text-sm text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
             />
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             {search && (
@@ -298,7 +298,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                 type="button"
                 onClick={() => setSearch("")}
                 aria-label="Effacer la recherche"
-                className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 compact-chip inline-flex items-center justify-center rounded-lg text-stone-400 hover:text-brun cursor-pointer"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded-xl text-stone-400 hover:text-brun cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -310,7 +310,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="flex-1 sm:flex-none min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+              className="flex-1 sm:flex-none min-h-[44px] bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
             />
             {dateFilter && (
               <button
@@ -325,10 +325,10 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         </div>
       </div>
 
-      {/* Bookings Cards (< lg / iPad Portrait) + Table (>= lg) */}
+      {/* Bookings Cards (< xl / Mobile & Tablette) + Table (>= xl) */}
       <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs">
-        {/* Version Cartes Tactiles sur Tablette Portrait / Mobile */}
-        <div className="lg:hidden divide-y divide-stone-100">
+        {/* Version Cartes Tactiles sur Tablette & Mobile */}
+        <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5 bg-stone-50/40">
           {filteredBookings.length > 0 ? (
             filteredBookings.map((b) => {
               const bId = b.id || b._id;
@@ -336,7 +336,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
               const isLoading = actionLoading === bId;
 
               return (
-                <div key={bId} className="p-4 sm:p-5 space-y-3.5">
+                <div key={bId} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 space-y-3.5 shadow-2xs flex flex-col justify-between">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <span className="text-[11px] font-mono font-bold text-champagne-dark uppercase tracking-wider block">
@@ -510,14 +510,14 @@ export default function AdminBookingsView({ initialBookings = [] }) {
               );
             })
           ) : (
-            <div className="py-12 px-4 text-center text-sm text-stone-500 font-light">
+            <div className="md:col-span-2 py-12 px-4 text-center text-sm text-stone-500 font-light">
               Aucune réservation ne correspond à vos critères de recherche.
             </div>
           )}
         </div>
 
-        {/* Version Tableau sur Grand Écran / iPad Paysage */}
-        <div className="hidden lg:block overflow-x-auto">
+        {/* Version Tableau sur Grand Écran Desktop (>= xl) */}
+        <div className="hidden xl:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 font-semibold uppercase tracking-wider">
               <tr>
@@ -583,7 +583,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-medium text-brun">{b.date}</div>
+                        <div className="font-medium text-brun">{formatDateFrench(b.date)}</div>
                         <div className="text-[11px] text-stone-500">
                           {b.startTime} - {b.endTime}
                         </div>
@@ -754,7 +754,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Motif (ex: indisponibilité de dernière minute)..."
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
               />
             </div>
 
@@ -816,7 +816,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                 value={depositNotReceivedNote}
                 onChange={(e) => setDepositNotReceivedNote(e.target.value)}
                 placeholder="Note optionnelle (ex: Vérifiez le numéro 07 67 66 38 69 ou envoyez une capture sur Instagram)..."
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
               />
             </div>
 

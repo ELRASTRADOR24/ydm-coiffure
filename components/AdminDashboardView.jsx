@@ -256,7 +256,7 @@ export default function AdminDashboardView({
     <div className="space-y-10">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs font-medium animate-fadeIn">
+        <div className="fixed top-20 lg:top-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-brun text-creme px-5 py-3 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2 text-xs sm:text-sm font-medium animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-champagne shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -354,7 +354,7 @@ export default function AdminDashboardView({
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Link
               href="/admin/site-editor?tab=maintenance"
-              className="min-h-[40px] inline-flex items-center px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-brun text-xs font-semibold transition-colors"
+              className="min-h-[44px] inline-flex items-center px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-brun text-xs font-semibold transition-colors"
             >
               Message maintenance
             </Link>
@@ -362,7 +362,7 @@ export default function AdminDashboardView({
               href="/?preview_maintenance=1"
               target="_blank"
               rel="noopener noreferrer"
-              className="min-h-[40px] inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 text-stone-700 border border-stone-300 text-xs font-semibold transition-colors"
+              className="min-h-[44px] inline-flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-700 border border-stone-300 text-xs font-semibold transition-colors"
             >
               <span>Aperçu</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -371,7 +371,7 @@ export default function AdminDashboardView({
               type="button"
               disabled={togglingMaintenance}
               onClick={handleToggleMaintenance}
-              className="min-h-[40px] inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-colors cursor-pointer disabled:opacity-60"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-colors cursor-pointer disabled:opacity-60"
             >
               {togglingMaintenance ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -750,7 +750,7 @@ export default function AdminDashboardView({
                     </div>
                   </div>
 
-                  <div className="text-right sm:self-center">
+                  <div className="text-left sm:text-right sm:self-center">
                     <div className="text-sm font-bold font-serif text-brun">
                       Solde restant : {formatPrice(b.remainingBalance)}
                     </div>
@@ -797,7 +797,7 @@ export default function AdminDashboardView({
 
             <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-4">
               <p className="text-sm text-stone-600 font-light">
-                Le créneau du {rejectModalBooking.date} à {rejectModalBooking.startTime} sera libéré et la cliente sera notifiée poliment par e-mail.
+                Le créneau du {formatDateFrench(rejectModalBooking.date)} à {rejectModalBooking.startTime} sera libéré et la cliente sera notifiée poliment par e-mail.
               </p>
 
               <div>
@@ -809,7 +809,7 @@ export default function AdminDashboardView({
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Ex : Indisponibilité exceptionnelle ce jour-là, ou créneau déjà réservé en direct."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
                 />
               </div>
             </div>
@@ -877,7 +877,7 @@ export default function AdminDashboardView({
                   value={depositNotReceivedNote}
                   onChange={(e) => setDepositNotReceivedNote(e.target.value)}
                   placeholder="Ex : Aucun virement reçu sur Wero/Revolut/PayPal. Merci de vérifier le 07 67 66 38 69."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base lg:text-sm text-brun focus:outline-none focus:border-champagne"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
                 />
               </div>
             </div>

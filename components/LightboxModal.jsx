@@ -59,7 +59,7 @@ export default function LightboxModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/80 text-creme hover:text-champagne hover:scale-105 active:scale-95 flex items-center justify-center transition-all shadow-xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-champagne"
+          className="absolute top-3 right-3 z-40 w-11 h-11 rounded-full bg-black/80 text-creme hover:text-champagne hover:scale-105 active:scale-95 flex items-center justify-center transition-all shadow-xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-champagne cursor-pointer"
           aria-label="Fermer la vue agrandie"
           title="Fermer (Échap)"
         >
@@ -118,7 +118,7 @@ export default function LightboxModal({
           <Link
             href={reserveUrl || "/reserver"}
             onClick={onClose}
-            className="inline-flex items-center justify-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors shadow-xs shrink-0"
+            className="min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-champagne hover:bg-champagne-dark text-brun-dark px-4 py-2.5 sm:px-5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors shadow-xs shrink-0"
           >
             <Calendar className="w-3.5 h-3.5 text-brun shrink-0" />
             <span>Réserver</span>

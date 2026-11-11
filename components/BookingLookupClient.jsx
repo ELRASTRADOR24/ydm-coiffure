@@ -260,7 +260,7 @@ export default function BookingLookupClient({ initialBooking = null }) {
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <Link
                       href={`/reserver/statut/${item.bookingReference}`}
-                      className="flex-1 sm:flex-initial min-h-[42px] inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-2 rounded-full text-xs font-semibold transition-colors"
+                      className="flex-1 sm:flex-initial min-h-[44px] inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-full text-xs font-semibold transition-colors"
                     >
                       <span>
                         {item.status === "PENDING_PAYMENT" && !item.depositDeclared
@@ -275,7 +275,7 @@ export default function BookingLookupClient({ initialBooking = null }) {
                       onClick={() => handleForgetBooking(item.bookingReference)}
                       title="Retirer de cet appareil"
                       aria-label={`Retirer ${item.bookingReference} de cet appareil`}
-                      className="p-2 rounded-full text-stone-400 hover:text-red-600 hover:bg-white transition-colors cursor-pointer"
+                      className="w-11 h-11 inline-flex items-center justify-center rounded-full text-stone-400 hover:text-red-600 hover:bg-white transition-colors cursor-pointer shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -310,10 +310,14 @@ export default function BookingLookupClient({ initialBooking = null }) {
             <input
               id="booking-reference-lookup"
               type="text"
+              autoCorrect="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              enterKeyHint="search"
               value={refInput}
               onChange={(e) => setRefInput(e.target.value)}
               placeholder="Ex : YDM-2026-1234"
-              className="w-full min-h-[44px] pl-10 pr-4 py-2.5 rounded-xl border border-beige bg-creme/50 focus:bg-white focus:border-champagne focus:outline-none text-sm font-mono uppercase text-brun"
+              className="w-full min-h-[44px] pl-10 pr-4 py-2.5 rounded-xl border border-beige bg-creme/50 focus:bg-white focus:border-champagne focus:outline-none text-base xl:text-sm font-mono uppercase text-brun"
             />
           </div>
           <button

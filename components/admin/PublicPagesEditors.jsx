@@ -200,7 +200,7 @@ export function HomeEditorTab({
                   );
                   updateHero({ reassuranceItems: next });
                 }}
-                className="flex-1 bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-brun"
+                className="flex-1 min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
               <ToggleVisibilityButton
                 visible={item.visible}
@@ -709,7 +709,7 @@ export function ServicesEditorTab({
                     keyRulesBanner: { ...banner, items: next },
                   });
                 }}
-                className="flex-1 bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-sm text-brun"
+                className="flex-1 min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun"
               />
               <div className="flex items-center gap-2 shrink-0">
                 <ToggleVisibilityButton
@@ -904,7 +904,7 @@ export function ServicesEditorTab({
                     type="button"
                     disabled={idx === 0}
                     onClick={() => moveLengthItem(idx, "up")}
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-white border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
                     <span>Monter</span>
@@ -913,7 +913,7 @@ export function ServicesEditorTab({
                     type="button"
                     disabled={idx === lengthItems.length - 1}
                     onClick={() => moveLengthItem(idx, "down")}
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-white border border-stone-300 text-sm font-semibold text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
                     <span>Descendre</span>

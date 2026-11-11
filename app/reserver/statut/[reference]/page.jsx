@@ -276,47 +276,47 @@ export default async function BookingStatusPage({ params }) {
             </span>
 
             <div className="p-4 rounded-xl bg-creme border border-beige space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-beige/60">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60">
                 <span className="text-stone-500">Prestation :</span>
-                <span className="font-semibold text-brun">{booking.service.name}</span>
+                <span className="font-semibold text-brun text-right">{booking.service.name}</span>
               </div>
               {booking.selectedOptions && booking.selectedOptions.length > 0 && (
                 <div className="py-1.5 border-b border-beige/60 space-y-1">
                   {booking.selectedOptions.map((opt, i) => (
-                    <div key={i} className="flex justify-between text-stone-600">
+                    <div key={i} className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-stone-600">
                       <span>{opt.name} :</span>
-                      <span className="font-medium text-brun">{opt.choice}</span>
+                      <span className="font-medium text-brun text-right">{opt.choice}</span>
                     </div>
                   ))}
                 </div>
               )}
-              <div className="flex justify-between py-1 border-b border-beige/60">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60">
                 <span className="text-stone-500">Date :</span>
-                <span className="font-semibold text-brun">
+                <span className="font-semibold text-brun text-right">
                   {formatDateFrench(booking.date)}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-beige/60">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60">
                 <span className="text-stone-500">Heure de début :</span>
-                <span className="font-semibold text-brun">
+                <span className="font-semibold text-brun text-right">
                   {booking.startTime}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-beige/60">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60">
                 <span className="text-stone-500">Prix total :</span>
-                <span className="font-serif font-bold text-brun">
+                <span className="font-serif font-bold text-brun text-right">
                   {formatPrice(booking.totalPrice)}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-beige/60">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60">
                 <span className="text-stone-500">Acompte :</span>
-                <span className="font-bold text-champagne-dark">
+                <span className="font-bold text-champagne-dark text-right">
                   {formattedDeposit}
                 </span>
               </div>
-              <div className="flex justify-between py-1">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1">
                 <span className="text-stone-500">Solde restant sur place :</span>
-                <span className="font-semibold text-brun">
+                <span className="font-semibold text-brun text-right">
                   {formatPrice(booking.remainingBalance)} (Wero, Revolut, PayPal, virement, espèces)
                 </span>
               </div>
@@ -324,23 +324,23 @@ export default async function BookingStatusPage({ params }) {
           </div>
 
           <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Link
                 href="/"
-                className="text-stone-500 hover:text-brun underline"
+                className="min-h-[44px] inline-flex items-center text-stone-500 hover:text-brun underline"
               >
                 Retour à l&apos;accueil
               </Link>
               <Link
                 href="/suivi"
-                className="text-stone-500 hover:text-brun underline"
+                className="min-h-[44px] inline-flex items-center text-stone-500 hover:text-brun underline"
               >
                 Mes réservations
               </Link>
             </div>
             <Link
               href="/reserver"
-              className="bg-stone-100 hover:bg-stone-200 text-brun px-4 py-2 rounded-full font-medium transition-colors"
+              className="min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-brun px-5 py-2.5 rounded-full font-medium transition-colors"
             >
               Nouveau rendez-vous
             </Link>

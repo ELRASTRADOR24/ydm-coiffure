@@ -177,7 +177,7 @@ export default function ServiceCard({ service, priority = false }) {
 
           {/* Action Button */}
           <div className="pt-1 sm:pt-2">
-            <div className="w-full flex items-center justify-center space-x-2 bg-brun group-hover:bg-brun-dark text-white py-2.5 sm:py-3.5 rounded-xl text-xs sm:text-sm font-semibold uppercase tracking-wider transition-all shadow-xs">
+            <div className="w-full min-h-[44px] flex items-center justify-center space-x-2 bg-brun group-hover:bg-brun-dark text-white py-3 sm:py-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold uppercase tracking-wider transition-all shadow-xs">
               <span>Réserver cette prestation</span>
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-champagne group-hover:translate-x-1 transition-transform" />
             </div>

@@ -203,7 +203,7 @@ export default function DepositPaymentOptions({
 
       {/* Toast de copie */}
       {copiedText && (
-        <div className="fixed bottom-6 right-6 z-50 bg-brun text-creme text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg border border-champagne/40 animate-fadeIn">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] inset-x-4 sm:inset-x-auto sm:right-6 z-50 bg-brun text-creme text-xs font-semibold px-4 py-3 rounded-2xl sm:rounded-full shadow-lg border border-champagne/40 text-center animate-fadeIn">
           {copiedText} copié dans le presse-papier !
         </div>
       )}
@@ -222,7 +222,7 @@ export default function DepositPaymentOptions({
               <button
                 type="button"
                 onClick={() => router.refresh()}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-full transition-colors cursor-pointer"
+                className="min-h-[44px] inline-flex items-center gap-1.5 text-xs font-semibold bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 px-3.5 py-2 rounded-full transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3" />
                 <span>Actualiser le statut</span>
@@ -283,7 +283,7 @@ export default function DepositPaymentOptions({
                 <button
                   type="button"
                   onClick={() => copyToClipboard(bookingReference, "Le motif")}
-                  className="font-mono text-sm font-bold text-brun bg-white border border-beige hover:border-champagne px-2.5 py-1 rounded-lg inline-flex items-center space-x-1.5 transition-colors cursor-pointer"
+                  className="min-h-[44px] font-mono text-sm font-bold text-brun bg-white border border-beige hover:border-champagne px-3 py-2 rounded-lg inline-flex items-center space-x-1.5 transition-colors cursor-pointer"
                   title="Cliquer pour copier la référence"
                 >
                   <span>{bookingReference}</span>
@@ -310,7 +310,7 @@ export default function DepositPaymentOptions({
                   onClick={() =>
                     copyToClipboard(transferPhoneDigits, `Le numéro ${transferPhone}`)
                   }
-                  className="min-h-[40px] font-mono text-sm font-bold text-brun bg-white border border-champagne/60 hover:border-brun px-3 py-1.5 rounded-xl inline-flex items-center justify-center space-x-2 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  className="min-h-[44px] font-mono text-sm font-bold text-brun bg-white border border-champagne/60 hover:border-brun px-3.5 py-2 rounded-xl inline-flex items-center justify-center space-x-2 transition-colors shrink-0 cursor-pointer shadow-2xs"
                 >
                   <span>{transferPhone}</span>
                   <Copy className="w-3.5 h-3.5 text-champagne-dark" />
@@ -350,7 +350,7 @@ export default function DepositPaymentOptions({
             {/* 1. WERO / PAYLIB */}
             {accounts.weroEnabled && (
               <div className="p-4 rounded-2xl bg-white border-2 border-emerald-200 hover:border-emerald-400 transition-all shadow-2xs space-y-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
                       W
@@ -372,7 +372,7 @@ export default function DepositPaymentOptions({
                   <button
                     type="button"
                     onClick={() => copyToClipboard(accounts.weroDigits, "Le numéro Wero")}
-                    className="text-[11px] font-mono font-bold text-brun bg-stone-100 hover:bg-stone-200 px-2 py-1 rounded border border-stone-200 inline-flex items-center space-x-1 shrink-0 cursor-pointer"
+                    className="min-h-[44px] text-xs font-mono font-bold text-brun bg-stone-100 hover:bg-stone-200 px-3 py-2 rounded-xl border border-stone-200 inline-flex items-center space-x-1.5 shrink-0 cursor-pointer"
                   >
                     <span>{accounts.weroPhone}</span>
                     <Copy className="w-3 h-3" />
@@ -414,7 +414,7 @@ export default function DepositPaymentOptions({
             {/* 2. REVOLUT */}
             {accounts.revolutEnabled && (
               <div className="p-4 rounded-2xl bg-white border border-stone-200 hover:border-brun/40 transition-all shadow-2xs space-y-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-8 h-8 rounded-xl bg-stone-900 text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
                       R
@@ -431,7 +431,7 @@ export default function DepositPaymentOptions({
                   <button
                     type="button"
                     onClick={() => copyToClipboard(accounts.revolutTag, "Le Revtag")}
-                    className="text-[11px] font-mono text-stone-500 hover:text-brun inline-flex items-center space-x-1 bg-stone-50 px-2 py-1 rounded border border-stone-200 shrink-0 cursor-pointer"
+                    className="min-h-[44px] text-xs font-mono text-stone-600 hover:text-brun inline-flex items-center space-x-1.5 bg-stone-50 px-3 py-2 rounded-xl border border-stone-200 shrink-0 cursor-pointer"
                   >
                     <span>{accounts.revolutTag}</span>
                     <Copy className="w-3 h-3" />
@@ -469,7 +469,7 @@ export default function DepositPaymentOptions({
             {/* 3. PAYPAL */}
             {accounts.paypalEnabled && (
               <div className="p-4 rounded-2xl bg-white border border-stone-200 hover:border-blue-300 transition-all shadow-2xs space-y-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-xs shrink-0">
                       P
@@ -486,7 +486,7 @@ export default function DepositPaymentOptions({
                   <button
                     type="button"
                     onClick={() => copyToClipboard(paypalUrl, "Le lien PayPal")}
-                    className="text-[11px] font-mono text-stone-500 hover:text-brun inline-flex items-center space-x-1 bg-stone-50 px-2 py-1 rounded border border-stone-200 shrink-0 cursor-pointer"
+                    className="min-h-[44px] text-xs font-mono text-stone-600 hover:text-brun inline-flex items-center space-x-1.5 bg-stone-50 px-3 py-2 rounded-xl border border-stone-200 shrink-0 cursor-pointer"
                   >
                     <span>Copier lien</span>
                     <Copy className="w-3 h-3" />

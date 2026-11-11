@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -114,6 +114,11 @@ export default function BookingWizard({
     } else {
       setSelectedMixColors([...selectedMixColors, colorName]);
     }
+  };
+
+  const wizardTopRef = useRef(null);
+  const scrollToWizardTop = () => {
+    wizardTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const [selectedDate, setSelectedDate] = useState("");
@@ -330,7 +335,7 @@ export default function BookingWizard({
     setSelectedTime("");
     setIsStudent(false);
     setCurrentStep(2);
-    window.scrollTo({ top: 120, behavior: "smooth" });
+    scrollToWizardTop();
   };
 
   const handleOptionChange = (optionName, choice) => {
@@ -410,7 +415,7 @@ export default function BookingWizard({
             `/reserver?ref=${encodeURIComponent(data.booking.bookingReference)}`
           );
         }
-        window.scrollTo({ top: 100, behavior: "smooth" });
+        scrollToWizardTop();
       } else {
         setSubmitError(data.error || "Nous n'avons pas pu valider votre demande. Merci de vérifier vos informations.");
       }
@@ -500,8 +505,15 @@ export default function BookingWizard({
   const currentStepLabel = stepsConfig[currentStepConfigIndex]?.label || "";
   const totalDisplaySteps = stepsConfig.length;
 
+  const missingStep5Items = [];
+  if (!customer.firstName.trim()) missingStep5Items.push("Prénom");
+  if (!customer.lastName.trim()) missingStep5Items.push("Nom");
+  if (!isEmailValid) missingStep5Items.push("E-mail valide");
+  if (!isPhoneValid) missingStep5Items.push("Téléphone valide");
+  if (!acceptedTerms) missingStep5Items.push("Accepter le règlement");
+
   return (
-    <div className="max-w-3xl mx-auto">
+    <div ref={wizardTopRef} className="max-w-3xl mx-auto scroll-mt-24 sm:scroll-mt-28">
       {/* Persisted tracking banner if user already has a saved reference on this browser */}
       {currentStep < 7 && savedShortcut?.bookingReference && (
         <div className="mb-6 max-w-xl mx-auto px-4">
@@ -608,7 +620,10 @@ export default function BookingWizard({
                       Acompte {formatPrice(service.depositAmount ?? 10)}
                     </div>
                   </div>
-                  <button className="bg-creme group-hover:bg-champagne text-brun group-hover:text-brun-dark px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center space-x-1 border border-beige">
+                  <button
+                    type="button"
+                    className="min-h-[44px] bg-creme group-hover:bg-champagne text-brun group-hover:text-brun-dark px-4 py-2 rounded-full text-xs font-semibold transition-colors flex items-center space-x-1 border border-beige"
+                  >
                     <span>Choisir</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -621,8 +636,8 @@ export default function BookingWizard({
 
       {/* STEP 2: LENGTH & OPTIONS */}
       {currentStep === 2 && selectedService && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-beige pb-4">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-beige shadow-xs space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b border-beige pb-4">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
                 Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
@@ -632,8 +647,9 @@ export default function BookingWizard({
               </h2>
             </div>
             <button
+              type="button"
               onClick={() => setCurrentStep(1)}
-              className="text-xs text-stone-500 hover:text-brun underline"
+              className="min-h-[44px] px-2 text-xs text-stone-500 hover:text-brun underline cursor-pointer shrink-0"
             >
               Changer de coiffure
             </button>
@@ -736,12 +752,12 @@ export default function BookingWizard({
           {/* Student Discount Toggle (only for hair included) */}
           {selectedService.includesHair && (
             <div className="p-3.5 rounded-xl bg-champagne-light/50 border border-champagne/40">
-              <label className="flex items-start space-x-2.5 cursor-pointer">
+              <label className="min-h-[44px] flex items-start space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isStudent}
                   onChange={(e) => setIsStudent(e.target.checked)}
-                  className="mt-0.5 rounded border-stone-300 text-brun focus:ring-champagne"
+                  className="mt-0.5 w-5 h-5 shrink-0 rounded border-stone-300 text-brun focus:ring-champagne cursor-pointer"
                 />
                 <div className="text-xs">
                   <span className="font-bold text-brun block">
@@ -757,30 +773,35 @@ export default function BookingWizard({
 
           {/* Footer recap */}
           <div className="pt-4 border-t border-beige flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
+            <div className="w-full sm:w-auto flex items-center justify-between sm:block">
               <div className="text-[11px] text-stone-400">Total estimé :</div>
               <div className="text-lg font-serif font-bold text-brun">
                 {formatPrice(totalPrice)}
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col-reverse sm:flex-row items-center gap-3 w-full sm:w-auto">
               <button
-                onClick={() => setCurrentStep(1)}
-                className="w-full sm:w-auto px-4 py-3 text-sm font-semibold text-stone-600 hover:text-brun text-center"
+                type="button"
+                onClick={() => {
+                  setCurrentStep(1);
+                  scrollToWizardTop();
+                }}
+                className="w-full sm:w-auto min-h-[44px] px-4 py-3 text-sm font-semibold text-stone-600 hover:text-brun text-center cursor-pointer"
               >
                 ← Changer de coiffure
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (selectedService.includesHair) {
                     setCurrentStep(3);
                   } else {
                     setCurrentStep(4);
                   }
-                  window.scrollTo({ top: 120, behavior: "smooth" });
+                  scrollToWizardTop();
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-nude hover:bg-nude-dark text-white px-8 py-4 rounded-full text-sm sm:text-base font-bold uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+                className="w-full sm:w-auto min-h-[48px] inline-flex items-center justify-center space-x-2 bg-nude hover:bg-nude-dark text-white px-8 py-3.5 rounded-full text-sm sm:text-base font-bold uppercase tracking-wider transition-all shadow-md active:scale-[0.98] cursor-pointer"
               >
                 <span>
                   {selectedService.includesHair
@@ -796,8 +817,8 @@ export default function BookingWizard({
 
       {/* STEP 3: COULEUR DES MÈCHES FOURNIES (UNIQUEMENT FORMULE MÈCHES INCLUSES) */}
       {currentStep === 3 && selectedService && selectedService.includesHair && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-beige pb-4">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-beige shadow-xs space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b border-beige pb-4">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
                 Étape 3 sur {totalDisplaySteps} • Mèches incluses
@@ -806,15 +827,16 @@ export default function BookingWizard({
                 Teinte des Mèches Fournies
               </h2>
               <p className="text-xs text-stone-500 font-light mt-0.5">
-                Maydie s'occupe de l'achat de vos mèches. Choisissez votre teinte de base, un mélange bicolore ou indiquez votre nuance sur-mesure.
+                Maydie s&apos;occupe de l&apos;achat de vos mèches. Choisissez votre teinte de base, un mélange bicolore ou indiquez votre nuance sur-mesure.
               </p>
             </div>
             <button
+              type="button"
               onClick={() => {
                 setCurrentStep(2);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="text-xs text-stone-500 hover:text-brun underline"
+              className="min-h-[44px] px-2 text-xs text-stone-500 hover:text-brun underline cursor-pointer shrink-0"
             >
               ← Modifier longueur
             </button>
@@ -1007,7 +1029,7 @@ export default function BookingWizard({
                     value={customColorText}
                     onChange={(e) => setCustomColorText(e.target.value)}
                     placeholder="Ex: Bordeaux foncé #99J, Cuivré flamboyant, Blond polaire 613, Bleu nuit..."
-                    className="w-full bg-white border border-stone-300 rounded-xl p-2.5 text-xs text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                    className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                   />
                   <p className="text-[10px] text-stone-500 font-light">
                     Maydie vérifiera la disponibilité de cette référence auprès de ses fournisseurs avant de confirmer.
@@ -1018,22 +1040,22 @@ export default function BookingWizard({
           </div>
 
           {/* Récapitulatif du choix de mèche */}
-          <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs">
+          <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="text-stone-600">Teinte de mèches retenue :</span>
-            <span className="font-serif font-bold text-brun">
+            <span className="font-serif font-bold text-brun text-right">
               {getFinalHairColorChoice()}
             </span>
           </div>
 
           {/* Footer Navigation */}
-          <div className="pt-4 border-t border-beige flex items-center justify-between">
+          <div className="pt-4 border-t border-beige flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
                 setCurrentStep(2);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-brun"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 text-xs font-semibold text-stone-600 hover:text-brun text-center cursor-pointer"
             >
               ← Retour (Longueur)
             </button>
@@ -1041,9 +1063,9 @@ export default function BookingWizard({
               type="button"
               onClick={() => {
                 setCurrentStep(4);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="inline-flex items-center space-x-2 bg-nude hover:bg-nude-dark text-white px-7 py-3 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-2 bg-nude hover:bg-nude-dark text-white px-7 py-3 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider transition-all shadow-md active:scale-[0.98] cursor-pointer"
             >
               <span>Continuer vers les créneaux</span>
               <ArrowRight className="w-4 h-4 text-white" />
@@ -1054,8 +1076,8 @@ export default function BookingWizard({
 
       {/* STEP 4: DATE & TIME */}
       {currentStep === 4 && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-beige pb-4">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-beige shadow-xs space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b border-beige pb-4">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
                 Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
@@ -1065,14 +1087,16 @@ export default function BookingWizard({
               </h2>
             </div>
             <button
+              type="button"
               onClick={() => {
                 if (selectedService?.includesHair) {
                   setCurrentStep(3);
                 } else {
                   setCurrentStep(2);
                 }
+                scrollToWizardTop();
               }}
-              className="text-xs text-stone-500 hover:text-brun underline"
+              className="min-h-[44px] px-2 text-xs text-stone-500 hover:text-brun underline cursor-pointer shrink-0"
             >
               {selectedService?.includesHair ? "Modifier couleur mèches" : "Modifier longueur"}
             </button>
@@ -1095,7 +1119,7 @@ export default function BookingWizard({
             <label className="text-xs font-semibold text-brun block">
               1. Choisissez une date disponible :
             </label>
-            <div className="flex space-x-2.5 overflow-x-auto pb-2 scrollbar-thin">
+            <div className="flex space-x-2.5 overflow-x-auto pb-2 snap-x">
               {availableDateOptions.map((item) => {
                 const isSelected = selectedDate === item.dateStr;
                 const isDisabled = item.isClosedDay || item.isBlocked;
@@ -1105,7 +1129,7 @@ export default function BookingWizard({
                     type="button"
                     disabled={isDisabled}
                     onClick={() => setSelectedDate(item.dateStr)}
-                    className={`shrink-0 min-w-14 py-2.5 px-2 rounded-xl flex flex-col items-center justify-center text-xs transition-all ${
+                    className={`snap-start shrink-0 min-w-14 min-h-[68px] py-2.5 px-2.5 rounded-xl flex flex-col items-center justify-center text-xs transition-all cursor-pointer ${
                       isSelected
                         ? "bg-brun text-creme shadow-xs ring-2 ring-champagne"
                         : isDisabled
@@ -1145,7 +1169,7 @@ export default function BookingWizard({
                   <span>{slotError}</span>
                 </div>
               ) : availableSlots.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-1">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
                   {availableSlots.map((slot) => {
                     const isSelected = selectedTime === slot;
                     return (
@@ -1153,7 +1177,7 @@ export default function BookingWizard({
                         key={slot}
                         type="button"
                         onClick={() => setSelectedTime(slot)}
-                        className={`py-2 px-1 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                        className={`min-h-[44px] py-2.5 px-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
                           isSelected
                             ? "bg-champagne text-brun-dark ring-2 ring-champagne-dark"
                             : "bg-creme text-brun border border-beige hover:border-champagne"
@@ -1177,27 +1201,29 @@ export default function BookingWizard({
           )}
 
           {/* Navigation */}
-          <div className="pt-4 border-t border-beige flex items-center justify-between">
+          <div className="pt-4 border-t border-beige flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
             <button
+              type="button"
               onClick={() => {
                 if (selectedService?.includesHair) {
                   setCurrentStep(3);
                 } else {
                   setCurrentStep(2);
                 }
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-brun"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 text-xs font-medium text-stone-600 hover:text-brun text-center cursor-pointer"
             >
               Retour
             </button>
             <button
+              type="button"
               disabled={!selectedDate || !selectedTime}
               onClick={() => {
                 setCurrentStep(5);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="inline-flex items-center space-x-1.5 bg-champagne disabled:opacity-40 disabled:cursor-not-allowed hover:bg-champagne-dark text-brun-dark px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-champagne disabled:opacity-40 disabled:cursor-not-allowed hover:bg-champagne-dark text-brun-dark px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
             >
               <span>Continuer</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -1208,7 +1234,7 @@ export default function BookingWizard({
 
       {/* STEP 5: CLIENT CONTACT */}
       {currentStep === 5 && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-beige shadow-xs space-y-6">
           <div className="border-b border-beige pb-4">
             <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
               Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
@@ -1217,87 +1243,100 @@ export default function BookingWizard({
               Vos Coordonnées
             </h2>
             <p className="text-xs text-stone-500 font-light mt-1">
-              Prénom, nom, e-mail et numéro pour la validation et l'adresse.
+              Prénom, nom, e-mail et numéro pour la validation et l&apos;adresse.
             </p>
           </div>
 
           <div className="space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="text-xs font-semibold text-brun block mb-1">
+                <label className="text-xs font-semibold text-brun block mb-1.5">
                   Prénom *
                 </label>
                 <input
                   type="text"
                   required
+                  autoComplete="given-name"
+                  enterKeyHint="next"
                   placeholder="Votre prénom"
                   value={customer.firstName}
                   onChange={(e) =>
                     setCustomer({ ...customer, firstName: e.target.value })
                   }
-                  className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+                  className="w-full min-h-[44px] bg-creme border border-beige rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-brun block mb-1">
+                <label className="text-xs font-semibold text-brun block mb-1.5">
                   Nom *
                 </label>
                 <input
                   type="text"
                   required
+                  autoComplete="family-name"
+                  enterKeyHint="next"
                   placeholder="Votre nom"
                   value={customer.lastName}
                   onChange={(e) =>
                     setCustomer({ ...customer, lastName: e.target.value })
                   }
-                  className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+                  className="w-full min-h-[44px] bg-creme border border-beige rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="text-xs font-semibold text-brun block mb-1">
+                <label className="text-xs font-semibold text-brun block mb-1.5">
                   Adresse e-mail *
                 </label>
                 <input
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  enterKeyHint="next"
                   required
                   placeholder="email@exemple.com"
                   value={customer.email}
                   onChange={(e) =>
                     setCustomer({ ...customer, email: e.target.value })
                   }
-                  className={`w-full bg-creme border rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne ${
+                  className={`w-full min-h-[44px] bg-creme border rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne ${
                     trimmedEmail && !isEmailValid ? "border-red-400" : "border-beige"
                   }`}
                 />
                 {trimmedEmail && !isEmailValid && (
-                  <p className="text-[10px] text-red-600 mt-1">
+                  <p className="text-[11px] text-red-600 mt-1">
                     Merci de saisir une adresse e-mail complète (ex: nom@domaine.fr).
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-brun block mb-1">
+                <label className="text-xs font-semibold text-brun block mb-1.5">
                   Numéro de téléphone *
                 </label>
                 <input
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  enterKeyHint="next"
                   required
                   placeholder="06 12 34 56 78"
                   value={customer.phone}
                   onChange={(e) =>
                     setCustomer({ ...customer, phone: e.target.value })
                   }
-                  className={`w-full bg-creme border rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne ${
+                  className={`w-full min-h-[44px] bg-creme border rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne ${
                     trimmedPhone && !isPhoneValid ? "border-red-400" : "border-beige"
                   }`}
                 />
                 {trimmedPhone && !isPhoneValid && (
-                  <p className="text-[10px] text-red-600 mt-1">
+                  <p className="text-[11px] text-red-600 mt-1">
                     Indiquez un numéro joignable à au moins 8 chiffres.
                   </p>
                 )}
@@ -1305,22 +1344,26 @@ export default function BookingWizard({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-brun block mb-1">
+              <label className="text-xs font-semibold text-brun block mb-1.5">
                 Compte Instagram (recommandé pour le suivi)
               </label>
               <input
                 type="text"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="next"
                 placeholder="@votre_pseudo_instagram"
                 value={customer.instagram}
                 onChange={(e) =>
                   setCustomer({ ...customer, instagram: e.target.value })
                 }
-                className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+                className="w-full min-h-[44px] bg-creme border border-beige rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-brun block mb-1">
+              <label className="text-xs font-semibold text-brun block mb-1.5">
                 Remarques éventuelles (facultatif)
               </label>
               <textarea
@@ -1330,21 +1373,21 @@ export default function BookingWizard({
                 onChange={(e) =>
                   setCustomer({ ...customer, notes: e.target.value })
                 }
-                className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2 text-xs text-brun focus:outline-none focus:border-champagne"
+                className="w-full bg-creme border border-beige rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:border-champagne"
               />
             </div>
 
             {/* Checkbox Terms with strict 2h notice */}
             <div className="pt-2 p-3.5 rounded-xl bg-creme border border-beige space-y-2">
-              <label className="flex items-start space-x-2.5 cursor-pointer">
+              <label className="min-h-[44px] flex items-start space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="mt-0.5 rounded border-stone-300 text-brun focus:ring-champagne"
+                  className="mt-0.5 w-5 h-5 shrink-0 rounded border-stone-300 text-brun focus:ring-champagne cursor-pointer"
                 />
-                <span className="text-[11px] text-stone-600 leading-relaxed">
-                  J'accepte le{" "}
+                <span className="text-xs text-stone-600 leading-relaxed">
+                  J&apos;accepte le{" "}
                   <Link
                     href="/conditions-reservation"
                     target="_blank"
@@ -1358,29 +1401,31 @@ export default function BookingWizard({
             </div>
           </div>
 
-          <div className="pt-4 border-t border-beige flex items-center justify-between">
+          {missingStep5Items.length > 0 && (
+            <p className="text-[11px] text-stone-500 text-right">
+              À compléter pour continuer : {missingStep5Items.join(" • ")}
+            </p>
+          )}
+
+          <div className="pt-4 border-t border-beige flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
             <button
+              type="button"
               onClick={() => {
                 setCurrentStep(4);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-brun"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 text-xs font-medium text-stone-600 hover:text-brun text-center cursor-pointer"
             >
               Retour
             </button>
             <button
-              disabled={
-                !customer.firstName.trim() ||
-                !customer.lastName.trim() ||
-                !isEmailValid ||
-                !isPhoneValid ||
-                !acceptedTerms
-              }
+              type="button"
+              disabled={missingStep5Items.length > 0}
               onClick={() => {
                 setCurrentStep(6);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="inline-flex items-center space-x-1.5 bg-nude disabled:opacity-40 disabled:cursor-not-allowed hover:bg-nude-dark text-white px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shadow-2xs"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-1.5 bg-nude disabled:opacity-40 disabled:cursor-not-allowed hover:bg-nude-dark text-white px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
             >
               <span>Vérifier le récapitulatif</span>
               <ArrowRight className="w-3.5 h-3.5 text-white" />
@@ -1391,7 +1436,7 @@ export default function BookingWizard({
 
       {/* STEP 6: SUMMARY & SUBMIT */}
       {currentStep === 6 && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-beige shadow-xs space-y-6">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-beige shadow-xs space-y-6">
           <div className="border-b border-beige pb-4">
             <span className="text-[10px] uppercase tracking-wider text-champagne-dark font-bold">
               Étape {currentStepConfigIndex + 1} sur {totalDisplaySteps}
@@ -1434,9 +1479,9 @@ export default function BookingWizard({
               {Object.keys(selectedOptions).length > 0 && (
                 <div className="pt-2 border-t border-beige/60 space-y-1">
                   {Object.entries(selectedOptions).map(([name, choice]) => (
-                    <div key={name} className="flex justify-between text-stone-600">
+                    <div key={name} className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-stone-600">
                       <span>{name} :</span>
-                      <span className="font-medium text-brun">
+                      <span className="font-medium text-brun text-right">
                         {formatOptionChoiceDisplayLabel(
                           choice,
                           selectedService.price,
@@ -1448,13 +1493,13 @@ export default function BookingWizard({
                 </div>
               )}
               {selectedService.includesHair && (
-                <div className="pt-2 border-t border-beige/60 flex justify-between text-stone-700">
+                <div className="pt-2 border-t border-beige/60 flex flex-wrap justify-between gap-x-3 gap-y-1 text-stone-700">
                   <span className="font-semibold text-brun">Mèches fournies :</span>
-                  <span className="font-bold text-champagne-dark">{getFinalHairColorChoice()}</span>
+                  <span className="font-bold text-champagne-dark text-right">{getFinalHairColorChoice()}</span>
                 </div>
               )}
               {isStudent && selectedService.includesHair && (
-                <div className="pt-2 border-t border-beige/60 flex justify-between text-emerald-700 font-medium">
+                <div className="pt-2 border-t border-beige/60 flex flex-wrap justify-between gap-x-3 gap-y-1 text-emerald-700 font-medium">
                   <span>Réduction Étudiante :</span>
                   <span>-5 €</span>
                 </div>
@@ -1464,27 +1509,27 @@ export default function BookingWizard({
             {/* Financial & Time */}
             <div className="p-4 rounded-xl bg-creme border border-beige space-y-2">
               <span className="font-bold text-brun uppercase tracking-wider block text-[10px]">
-                Date & Règlements
+                Date &amp; Règlements
               </span>
               <div className="text-brun font-medium">
                 {formatDateFrench(selectedDate)} à {selectedTime}
               </div>
               <div className="pt-2 border-t border-beige/60 space-y-1.5">
-                <div className="flex justify-between">
+                <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                   <span className="text-stone-600">Montant total :</span>
-                  <span className="font-serif font-bold text-brun text-sm">
+                  <span className="font-serif font-bold text-brun text-sm text-right">
                     {formatPrice(totalPrice)}
                   </span>
                 </div>
-                <div className="flex justify-between p-2 rounded-lg bg-champagne-light border border-champagne/40">
+                <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 p-2 rounded-lg bg-champagne-light border border-champagne/40">
                   <span className="font-medium text-brun">Acompte exigé sous {holdShort} :</span>
-                  <span className="font-bold text-champagne-dark">
+                  <span className="font-bold text-champagne-dark text-right">
                     {formatPrice(depositAmount)}
                   </span>
                 </div>
-                <div className="flex justify-between text-stone-600">
+                <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-stone-600">
                   <span>Solde restant le jour J :</span>
-                  <span className="font-semibold text-brun">
+                  <span className="font-semibold text-brun text-right">
                     {formatPrice(remainingBalance)}
                   </span>
                 </div>
@@ -1503,20 +1548,22 @@ export default function BookingWizard({
             </div>
           </div>
 
-          <div className="pt-3 flex items-center justify-between">
+          <div className="pt-3 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
             <button
+              type="button"
               onClick={() => {
                 setCurrentStep(5);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                scrollToWizardTop();
               }}
-              className="px-4 py-2 text-xs font-medium text-stone-600 hover:text-brun"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 text-xs font-medium text-stone-600 hover:text-brun text-center cursor-pointer"
             >
               Modifier
             </button>
             <button
+              type="button"
               disabled={submitting}
               onClick={handleSubmitBooking}
-              className="inline-flex items-center space-x-2 bg-nude hover:bg-nude-dark text-white px-7 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50 shadow-xs"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center space-x-2 bg-nude hover:bg-nude-dark text-white px-7 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50 shadow-xs cursor-pointer"
             >
               {submitting ? (
                 <span>Envoi en cours...</span>
@@ -1533,7 +1580,7 @@ export default function BookingWizard({
 
       {/* STEP 7: SUCCESS CONFIRMATION */}
       {currentStep === 7 && submissionResult && (
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-champagne text-center space-y-6">
+        <div className="bg-white rounded-3xl p-5 sm:p-10 border border-champagne text-center space-y-6">
           <div className="w-12 h-12 rounded-full bg-champagne-light text-champagne-dark flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
@@ -1558,15 +1605,15 @@ export default function BookingWizard({
             <div className="text-xl font-mono font-bold text-brun">
               {submissionResult.bookingReference}
             </div>
-            <div className="pt-2 border-t border-beige flex justify-between text-stone-600">
+            <div className="pt-2 border-t border-beige flex flex-wrap justify-between gap-x-3 gap-y-1 text-stone-600">
               <span>Date souhaitée :</span>
-              <span className="font-medium text-brun">
-                {submissionResult.date} à {submissionResult.startTime}
+              <span className="font-medium text-brun text-right">
+                {formatDateFrench(submissionResult.date)} à {submissionResult.startTime}
               </span>
             </div>
-            <div className="flex justify-between text-stone-600">
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-stone-600">
               <span>Acompte après validation :</span>
-              <span className="font-medium text-brun">
+              <span className="font-medium text-brun text-right">
                 {formatPrice(submissionResult.depositAmount ?? depositAmount)}
               </span>
             </div>
@@ -1585,7 +1632,7 @@ export default function BookingWizard({
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href={`/reserver/statut/${submissionResult.bookingReference}`}
-              className="w-full sm:w-auto inline-flex items-center justify-center bg-champagne hover:bg-champagne-dark text-brun-dark px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center bg-champagne hover:bg-champagne-dark text-brun-dark px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors"
             >
               Suivre l&apos;état de ma demande
             </Link>
@@ -1598,11 +1645,12 @@ export default function BookingWizard({
                 setSelectedDate("");
                 setSelectedTime("");
                 setCurrentStep(1);
+                scrollToWizardTop();
                 if (typeof window !== "undefined") {
                   window.history.replaceState(null, "", "/reserver");
                 }
               }}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-full text-xs font-medium text-stone-600 hover:text-brun border border-beige cursor-pointer"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center px-5 py-2.5 rounded-full text-xs font-medium text-stone-600 hover:text-brun border border-beige cursor-pointer"
             >
               Nouveau rendez-vous
             </button>

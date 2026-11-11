@@ -16,6 +16,7 @@ import {
 import { cloneValue, DEFAULT_SITE_CONTENT, getResolvedSiteContent } from "@/lib/siteContent";
 import { DEFAULT_SALON_SETTINGS } from "@/lib/seedData";
 import { GalleryEditorTab } from "./admin/GalleryAndFaqEditors";
+import { useVirtualKeyboard } from "@/lib/useVirtualKeyboard";
 
 function resolveGalleryItems(settingsObj) {
   const galleryTouched = Boolean(
@@ -45,6 +46,7 @@ export default function AdminGalleryStudioPage({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const isKeyboardOpen = useVirtualKeyboard();
 
   useEffect(() => {
     if (hasUnsavedChanges || !initialSettings) return;
@@ -125,7 +127,7 @@ export default function AdminGalleryStudioPage({
   return (
     <div className="space-y-6 max-w-6xl pb-10">
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-brun text-creme px-5 py-3.5 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2.5 text-sm font-semibold animate-fadeIn">
+        <div className="fixed top-20 lg:top-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-brun text-creme px-5 py-3.5 rounded-2xl shadow-xl border border-champagne flex items-center space-x-2.5 text-sm font-semibold animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -231,7 +233,13 @@ export default function AdminGalleryStudioPage({
       />
 
       {hasUnsavedChanges && (
-        <div className="sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]">
+        <div
+          className={
+            isKeyboardOpen
+              ? "relative z-10"
+              : "sticky bottom-3 z-40 pb-[env(safe-area-inset-bottom)]"
+          }
+        >
           <div className="bg-brun text-creme rounded-2xl p-4 sm:px-6 shadow-2xl border-2 border-champagne flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-sm sm:text-base font-semibold">
               Vos nouvelles vidéos / modifications de galerie sont prêtes à être publiées.

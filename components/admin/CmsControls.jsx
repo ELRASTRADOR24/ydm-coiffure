@@ -237,7 +237,7 @@ export function TextField({
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-stone-50 border border-stone-300 rounded-xl p-3.5 text-base lg:text-sm text-brun leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne resize-y"
+          className="w-full bg-stone-50 border border-stone-300 rounded-xl p-3.5 text-base xl:text-sm text-brun leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne resize-y"
         />
       ) : (
         <input
@@ -245,7 +245,7 @@ export function TextField({
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-3 text-base lg:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne"
+          className="w-full min-h-[44px] bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-3 text-base xl:text-sm text-brun focus:bg-white focus:outline-none focus:ring-2 focus:ring-champagne focus:border-champagne"
         />
       )}
 
@@ -360,7 +360,7 @@ export function ImageSelectorField({
             <button
               type="button"
               onClick={() => setShowManualUrl((prev) => !prev)}
-              className="inline-flex items-center space-x-1.5 text-xs font-semibold text-brun hover:text-champagne-dark underline cursor-pointer"
+              className="min-h-[44px] inline-flex items-center space-x-1.5 px-2.5 text-xs font-semibold text-brun hover:text-champagne-dark underline cursor-pointer"
             >
               <Link2 className="w-3.5 h-3.5" />
               <span>
@@ -376,7 +376,7 @@ export function ImageSelectorField({
               value={imageUrl || ""}
               onChange={(e) => onChangeUrl(e.target.value)}
               placeholder="/images/realisations/..."
-              className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+              className="w-full min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm font-mono text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
             />
           )}
         </div>
@@ -488,7 +488,7 @@ export function RichArticleListEditor({
           <button
             type="button"
             onClick={addItem}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-brun hover:bg-brun-dark text-creme text-sm font-semibold cursor-pointer"
+            className="min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-brun hover:bg-brun-dark text-creme text-sm font-semibold cursor-pointer"
           >
             <Plus className="w-4 h-4 text-champagne" />
             <span>{addLabel}</span>
@@ -529,7 +529,7 @@ export function RichArticleListEditor({
                     disabled={idx === 0}
                     onClick={() => moveItem(idx, "up")}
                     title="Monter"
-                    className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>
@@ -538,7 +538,7 @@ export function RichArticleListEditor({
                     disabled={idx === list.length - 1}
                     onClick={() => moveItem(idx, "down")}
                     title="Descendre"
-                    className="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-brun disabled:opacity-35 cursor-pointer"
                   >
                     <ArrowDown className="w-4 h-4" />
                   </button>
@@ -626,7 +626,7 @@ export function RichArticleListEditor({
                         nextP[pIdx] = e.target.value;
                         updateItem(idx, { paragraphs: nextP });
                       }}
-                      className="flex-1 w-full bg-white border border-stone-300 rounded-xl p-3 text-base lg:text-sm text-brun leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
+                      className="flex-1 w-full bg-white border border-stone-300 rounded-xl p-3 text-base xl:text-sm text-brun leading-relaxed focus:outline-none focus:ring-2 focus:ring-champagne"
                     />
                     <button
                       type="button"
@@ -674,7 +674,7 @@ export function RichArticleListEditor({
                         nextB[bIdx] = e.target.value;
                         updateItem(idx, { bullets: nextB });
                       }}
-                      className="flex-1 min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base lg:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
+                      className="flex-1 min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-base xl:text-sm text-brun focus:outline-none focus:ring-2 focus:ring-champagne"
                     />
                     <button
                       type="button"

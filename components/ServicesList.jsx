@@ -88,9 +88,10 @@ export default function ServicesList({ initialServices = [], studentPromo = null
             const isActive = selectedCategory === cat.id;
             return (
               <button
+                type="button"
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`text-xs px-3.5 py-2 rounded-xl font-medium transition-all ${
+                className={`min-h-[44px] text-xs sm:text-sm px-4 py-2 rounded-xl font-medium transition-all cursor-pointer ${
                   isActive
                     ? "bg-brun text-white shadow-xs font-semibold"
                     : "bg-white text-stone-600 hover:text-brun border border-beige hover:border-champagne/60"
@@ -108,9 +109,9 @@ export default function ServicesList({ initialServices = [], studentPromo = null
             placeholder="Rechercher une coiffure..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-beige rounded-full pl-9 pr-4 py-2 text-xs text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
+            className="w-full min-h-[44px] bg-white border border-beige rounded-full pl-10 pr-4 py-2 text-base md:text-sm text-brun placeholder:text-stone-400 focus:outline-none focus:border-champagne"
           />
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         </div>
       </div>
 
@@ -134,11 +135,12 @@ export default function ServicesList({ initialServices = [], studentPromo = null
             Aucun modèle ne correspond à votre recherche actuelle. Réinitialisez les filtres pour découvrir tout le menu.
           </p>
           <button
+            type="button"
             onClick={() => {
               setSelectedCategory("ALL");
               setSearchQuery("");
             }}
-            className="text-xs font-semibold text-brun bg-creme hover:bg-beige border border-beige px-4 py-2 rounded-full transition-colors"
+            className="min-h-[44px] inline-flex items-center justify-center text-xs font-semibold text-brun bg-creme hover:bg-beige border border-beige px-5 py-2.5 rounded-full transition-colors cursor-pointer"
           >
             Afficher toutes les prestations
           </button>
