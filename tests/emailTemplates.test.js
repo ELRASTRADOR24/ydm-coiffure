@@ -14,7 +14,8 @@ import {
 } from "../lib/uploadMedia.js";
 import { buildPublicSettings, cloneValue } from "../lib/siteContent.js";
 
-test("renderEmailFromTemplate renders all 6 transactional email templates cleanly", () => {
+test("renderEmailFromTemplate renders all 7 transactional email templates cleanly", () => {
+  assert.equal(EMAIL_TEMPLATE_META.length, 7);
   const vars = buildSamplePreviewVariables({ paymentHoldHours: 2 });
 
   for (const meta of EMAIL_TEMPLATE_META) {
@@ -27,7 +28,20 @@ test("renderEmailFromTemplate renders all 6 transactional email templates cleanl
     assert.ok(out.html.includes("<!DOCTYPE html>"), `HTML root missing for ${meta.key}`);
     assert.ok(out.html.includes("Sarah"), `Variable substitution missing for ${meta.key}`);
     assert.ok(!out.html.includes("{prenom}"), `Unreplaced token for ${meta.key}`);
+    assert.ok(!out.html.includes("{ancienne_date}"), `Unreplaced token for ${meta.key}`);
+    assert.ok(!out.html.includes("{lien_accepter_proposition}"), `Unreplaced token for ${meta.key}`);
+    assert.ok(!out.html.includes("{lien_refuser_proposition}"), `Unreplaced token for ${meta.key}`);
   }
+
+  const propOut = renderEmailFromTemplate({
+    templateKey: "rescheduleProposed",
+    emailSettings: DEFAULT_EMAIL_SETTINGS,
+    variables: vars,
+  });
+  assert.ok(propOut.html.includes("?proposition=accepter"));
+  assert.ok(propOut.html.includes("?proposition=refuser"));
+  assert.ok(propOut.html.includes("16/11/2026"));
+  assert.ok(propOut.html.includes("18/11/2026"));
 });
 
 test("Email card supports removing frames, custom fonts, colors, and hiding/resizing logo", () => {

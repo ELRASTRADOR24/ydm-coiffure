@@ -11,6 +11,7 @@ import {
   X,
   AlertCircle,
   Ban,
+  CalendarClock,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/servicePricing";
 import { getCalendarDayUnavailabilitySummary } from "@/lib/slotMasking";
 import QuickSlotMasker from "./admin/QuickSlotMasker";
+import ProposeDateModal from "./admin/ProposeDateModal";
 
 function buildManualFormDefaults(services, dateStr = getParisDateString()) {
   const svc = services[0] || null;
@@ -74,6 +76,7 @@ export default function AdminCalendarView({
   const [rejectionReason, setRejectionReason] = useState("");
   const [depositNotReceivedBooking, setDepositNotReceivedBooking] = useState(null);
   const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
+  const [proposeDateBooking, setProposeDateBooking] = useState(null);
 
   // Manual booking form state
   const [manualForm, setManualForm] = useState(() =>
@@ -430,6 +433,8 @@ export default function AdminCalendarView({
         return "bg-emerald-100 text-emerald-900 border-emerald-300";
       case "PENDING_APPROVAL":
         return "bg-amber-100 text-amber-900 border-amber-300";
+      case "RESCHEDULE_PROPOSED":
+        return "bg-indigo-100 text-indigo-900 border-indigo-300";
       case "PENDING_PAYMENT":
         return "bg-blue-100 text-blue-900 border-blue-300";
       case "EXPIRED":
@@ -548,6 +553,10 @@ export default function AdminCalendarView({
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
             <span>À valider</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+            <span>Date proposée</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
@@ -727,6 +736,21 @@ export default function AdminCalendarView({
                         {b.service.name} ({formatDuration(b.totalDuration)}) •{" "}
                         <strong>{formatPrice(b.totalPrice)}</strong>
                       </div>
+                      {b.previousDate && (b.previousDate !== b.date || b.previousStartTime !== b.startTime) && (
+                        <div className="text-[11px] text-stone-500 line-through mt-0.5">
+                          Ancien créneau : {formatDateFrench(b.previousDate)} à {b.previousStartTime}
+                        </div>
+                      )}
+                      {b.status === "RESCHEDULE_PROPOSED" && b.proposalMessage && (
+                        <div className="text-[11px] text-indigo-900 italic mt-1">
+                          Note envoyée : &quot;{b.proposalMessage}&quot;
+                        </div>
+                      )}
+                      {b.proposalDeclineReason && (
+                        <div className="text-[11px] text-indigo-900 italic mt-1">
+                          Note cliente : &quot;{b.proposalDeclineReason}&quot;
+                        </div>
+                      )}
                       {b.customer.phone && (
                         <a
                           href={`tel:${b.customer.phone}`}
@@ -795,7 +819,24 @@ export default function AdminCalendarView({
                         )}
                       </>
                     )}
-                    {["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                    {(b.status === "PENDING_APPROVAL" ||
+                      b.status === "RESCHEDULE_PROPOSED" ||
+                      (b.status === "PENDING_PAYMENT" && !b.depositDeclared)) && (
+                      <button
+                        type="button"
+                        disabled={modalActionLoading}
+                        onClick={() => setProposeDateBooking(b)}
+                        className="min-h-[44px] px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <CalendarClock className="w-3.5 h-3.5" />
+                        <span>
+                          {b.status === "RESCHEDULE_PROPOSED"
+                            ? "Modifier date"
+                            : "Proposer autre date"}
+                        </span>
+                      </button>
+                    )}
+                    {["PENDING_PAYMENT", "CONFIRMED", "RESCHEDULE_PROPOSED"].includes(b.status) && (
                       <button
                         type="button"
                         disabled={modalActionLoading}
@@ -897,6 +938,16 @@ export default function AdminCalendarView({
                     {formatDateFrench(selectedBooking.date)} de {selectedBooking.startTime} à {selectedBooking.endTime}
                   </span>
                 </div>
+                {selectedBooking.previousDate &&
+                  (selectedBooking.previousDate !== selectedBooking.date ||
+                    selectedBooking.previousStartTime !== selectedBooking.startTime) && (
+                    <div className="flex justify-between gap-2 py-1.5 border-b border-stone-100">
+                      <span className="text-stone-500">Ancien créneau :</span>
+                      <span className="text-stone-400 line-through text-right">
+                        {formatDateFrench(selectedBooking.previousDate)} à {selectedBooking.previousStartTime}
+                      </span>
+                    </div>
+                  )}
                 <div className="flex justify-between gap-2 py-1.5 border-b border-stone-100">
                   <span className="text-stone-500">Durée :</span>
                   <span className="font-bold text-brun">
@@ -950,6 +1001,18 @@ export default function AdminCalendarView({
                   </span>
                 </div>
               </div>
+
+              {selectedBooking.proposalMessage && (
+                <div className="p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-xs sm:text-sm text-indigo-950">
+                  <strong>Proposition envoyée :</strong> {selectedBooking.proposalMessage}
+                </div>
+              )}
+
+              {selectedBooking.proposalDeclineReason && (
+                <div className="p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-xs sm:text-sm text-indigo-950">
+                  <strong>Note cliente (contre-proposition) :</strong> {selectedBooking.proposalDeclineReason}
+                </div>
+              )}
 
               {selectedBooking.customer.notes && (
                 <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs sm:text-sm text-stone-600">
@@ -1009,7 +1072,24 @@ export default function AdminCalendarView({
                   </button>
                 </>
               )}
-              {["PENDING_PAYMENT", "CONFIRMED"].includes(selectedBooking.status) && (
+              {(selectedBooking.status === "PENDING_APPROVAL" ||
+                selectedBooking.status === "RESCHEDULE_PROPOSED" ||
+                (selectedBooking.status === "PENDING_PAYMENT" && !selectedBooking.depositDeclared)) && (
+                <button
+                  type="button"
+                  disabled={modalActionLoading}
+                  onClick={() => setProposeDateBooking(selectedBooking)}
+                  className="min-h-[44px] inline-flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <CalendarClock className="w-4 h-4" />
+                  <span>
+                    {selectedBooking.status === "RESCHEDULE_PROPOSED"
+                      ? "Modifier date proposée"
+                      : "Proposer autre date"}
+                  </span>
+                </button>
+              )}
+              {["PENDING_PAYMENT", "CONFIRMED", "RESCHEDULE_PROPOSED"].includes(selectedBooking.status) && (
                 <button
                   type="button"
                   disabled={modalActionLoading}
@@ -1429,6 +1509,21 @@ export default function AdminCalendarView({
           </div>
         </div>
       )}
+      <ProposeDateModal
+        booking={proposeDateBooking}
+        onClose={() => setProposeDateBooking(null)}
+        onSuccess={(updatedBooking, msg) => {
+          if (updatedBooking) {
+            syncUpdatedBooking(updatedBooking);
+            setSelectedDayStr(updatedBooking.date || selectedDayStr);
+          }
+          setProposeDateBooking(null);
+          router.refresh();
+          showToast(
+            msg || "Nouvelle date proposée et envoyée à la cliente par e-mail et SMS !"
+          );
+        }}
+      />
     </div>
   );
 }

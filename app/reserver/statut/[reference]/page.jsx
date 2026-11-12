@@ -8,6 +8,7 @@ import {
   XCircle,
   MapPin,
   Calendar,
+  CalendarClock,
   CreditCard,
   ArrowRight,
   ShieldCheck,
@@ -16,6 +17,7 @@ import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { resolvePaymentAccounts } from "@/lib/adminHelpers";
 import DepositPaymentOptions from "@/components/DepositPaymentOptions";
 import BookingRefPersister from "@/components/BookingRefPersister";
+import RescheduleProposalCard from "@/components/RescheduleProposalCard";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +28,9 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function BookingStatusPage({ params }) {
+export default async function BookingStatusPage({ params, searchParams }) {
   const { reference } = await params;
+  const resolvedSearch = await searchParams;
   const booking = await getBookingByReference(reference);
 
   if (!booking) {
@@ -63,6 +66,12 @@ export default async function BookingStatusPage({ params }) {
           label: "En attente de validation manuelle",
           color: "bg-stone-100 text-stone-800 border-stone-300",
           icon: <Clock className="w-3.5 h-3.5 text-stone-600" />,
+        };
+      case "RESCHEDULE_PROPOSED":
+        return {
+          label: "Nouvelle date proposée",
+          color: "bg-indigo-50 text-indigo-900 border-indigo-300",
+          icon: <CalendarClock className="w-3.5 h-3.5 text-indigo-700" />,
         };
       case "PENDING_PAYMENT":
         return {
@@ -135,12 +144,32 @@ export default async function BookingStatusPage({ params }) {
           {/* STATUS NOTICES */}
           {effectiveStatus === "PENDING_APPROVAL" && (
             <div className="p-4 rounded-xl bg-creme border border-beige text-xs text-stone-700 space-y-2">
-              <span className="font-semibold text-brun block">
-                Examen manuel par la coiffeuse en cours
-              </span>
-              <p className="font-light leading-relaxed">
-                Votre demande a bien été transmise. Dès que Maydie valide le créneau, vous disposerez d&apos;un <strong>délai strict de {holdLong}</strong> pour régler l&apos;acompte obligatoire de {formattedDeposit} et finaliser votre réservation.
-              </p>
+              {booking.proposalResponse === "COUNTER_PROPOSED" ? (
+                <>
+                  <span className="font-semibold text-brun block">
+                    Votre nouvelle date a bien été transmise à la coiffeuse
+                  </span>
+                  <p className="font-light leading-relaxed">
+                    Maydie examine actuellement votre contre-proposition pour le{" "}
+                    <strong className="capitalize">{formatDateFrench(booking.date)}</strong> à{" "}
+                    <strong>{booking.startTime}</strong>. Dès qu&apos;elle valide ce créneau, vous disposerez d&apos;un <strong>délai strict de {holdLong}</strong> pour régler l&apos;acompte obligatoire de {formattedDeposit}.
+                  </p>
+                  {booking.proposalDeclineReason && (
+                    <div className="p-2.5 rounded-lg bg-white border border-beige text-[11px] text-stone-600 italic">
+                      Votre note : &quot;{booking.proposalDeclineReason}&quot;
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-brun block">
+                    Examen manuel par la coiffeuse en cours
+                  </span>
+                  <p className="font-light leading-relaxed">
+                    Votre demande a bien été transmise. Dès que Maydie valide le créneau, vous disposerez d&apos;un <strong>délai strict de {holdLong}</strong> pour régler l&apos;acompte obligatoire de {formattedDeposit} et finaliser votre réservation.
+                  </p>
+                </>
+              )}
               <div className="pt-2 border-t border-beige text-[11px] text-stone-500 flex flex-wrap gap-2 items-center">
                 <span className="font-medium text-brun">Moyens acceptés :</span>
                 {(enabledMethodLabels.length > 0
@@ -156,6 +185,15 @@ export default async function BookingStatusPage({ params }) {
                 ))}
               </div>
             </div>
+          )}
+
+          {effectiveStatus === "RESCHEDULE_PROPOSED" && (
+            <RescheduleProposalCard
+              booking={booking}
+              initialIntent={resolvedSearch?.proposition || ""}
+              holdLong={holdLong}
+              formattedDeposit={formattedDeposit}
+            />
           )}
 
           {effectiveStatus === "PENDING_PAYMENT" && (
@@ -290,6 +328,17 @@ export default async function BookingStatusPage({ params }) {
                   ))}
                 </div>
               )}
+              {booking.previousDate &&
+                (booking.previousDate !== booking.date ||
+                  booking.previousStartTime !== booking.startTime) && (
+                  <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60 text-stone-400">
+                    <span>Ancien créneau :</span>
+                    <span className="line-through text-right">
+                      {formatDateFrench(booking.previousDate)}
+                      {booking.previousStartTime ? ` à ${booking.previousStartTime}` : ""}
+                    </span>
+                  </div>
+                )}
               <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 border-b border-beige/60">
                 <span className="text-stone-500">Date :</span>
                 <span className="font-semibold text-brun text-right">

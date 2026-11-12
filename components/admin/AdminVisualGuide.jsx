@@ -394,7 +394,7 @@ export function AdminWorkflowGuideBar() {
       num: "1",
       emoji: "📥",
       title: "Demande reçue",
-      desc: "Vous acceptez ou refusez le créneau.",
+      desc: "Vous acceptez, proposez une date ou refusez.",
       tone: "bg-amber-50 border-amber-200 text-amber-950",
     },
     {

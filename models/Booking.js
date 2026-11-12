@@ -43,7 +43,8 @@ const BookingSchema = new mongoose.Schema(
       type: String,
       enum: [
         "PENDING_APPROVAL", // Demande soumise par la cliente, en attente d'approbation
-        "PENDING_PAYMENT",  // Approuvée par la coiffeuse, lien direct Wero/Revolut/PayPal envoyé, créneau verrouillé temporairement
+        "RESCHEDULE_PROPOSED", // La coiffeuse propose une autre date, en attente de réponse cliente
+        "PENDING_PAYMENT",  // Approuvée par la coiffeuse (ou contre-proposition acceptée), lien acompte envoyé, créneau verrouillé temporairement
         "CONFIRMED",        // Acompte validé (Wero, Revolut, PayPal ou espèces)
         "REJECTED",         // Refusée par la coiffeuse
         "CANCELLED",        // Annulée
@@ -54,6 +55,21 @@ const BookingSchema = new mongoose.Schema(
       index: true,
     },
     holdExpiresAt: { type: Date }, // Expiration du créneau réservé lors de PENDING_PAYMENT
+    originalDate: { type: String }, // Date initialement demandée par la cliente
+    originalStartTime: { type: String },
+    originalEndTime: { type: String },
+    previousDate: { type: String }, // Créneau précédent avant contre-proposition
+    previousStartTime: { type: String },
+    previousEndTime: { type: String },
+    proposedDate: { type: String }, // Date proposée par la coiffeuse
+    proposedStartTime: { type: String },
+    proposedEndTime: { type: String },
+    proposalMessage: { type: String, default: "" },
+    proposedAt: { type: Date },
+    proposalResponse: { type: String, default: "" }, // "", "ACCEPTED", "COUNTER_PROPOSED", "DECLINED"
+    proposalRespondedAt: { type: Date },
+    proposalDeclineReason: { type: String, default: "" },
+    proposalRound: { type: Number, default: 0 },
     stripeSessionId: { type: String },
     stripePaymentIntentId: { type: String },
     stripePaymentUrl: { type: String },

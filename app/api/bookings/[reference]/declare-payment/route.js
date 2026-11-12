@@ -52,6 +52,17 @@ export async function POST(request, { params }) {
       );
     }
 
+    if (booking.status === "RESCHEDULE_PROPOSED") {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Veuillez d'abord accepter la nouvelle date proposée (ou en choisir une autre) avant de déclarer un acompte.",
+        },
+        { status: 409 }
+      );
+    }
+
     if (
       booking.status === "PENDING_PAYMENT" &&
       !booking.depositDeclared &&

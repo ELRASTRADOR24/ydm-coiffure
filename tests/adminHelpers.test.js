@@ -194,8 +194,11 @@ test("matchesBookingStatusFilter and getBookingStatusLabel handle CANCELLED/REJE
   assert.equal(matchesBookingStatusFilter("REJECTED", "ALL"), true);
 
   assert.equal(getBookingStatusLabel("PENDING_APPROVAL"), "À valider");
+  assert.equal(getBookingStatusLabel("RESCHEDULE_PROPOSED"), "Nouvelle date proposée");
   assert.equal(getBookingStatusLabel("PENDING_PAYMENT"), "En attente de paiement");
   assert.equal(getBookingStatusLabel("CONFIRMED"), "Confirmé");
+  assert.equal(matchesBookingStatusFilter("RESCHEDULE_PROPOSED", "RESCHEDULE_PROPOSED"), true);
+  assert.equal(matchesBookingStatusFilter("RESCHEDULE_PROPOSED", "PENDING_APPROVAL"), false);
 });
 
 test("ensureUniqueServiceSlug avoids duplicate slugs on creation or rename", () => {

@@ -52,6 +52,16 @@ export async function GET(request, { params }) {
         depositDeclaredMethod: booking.depositDeclaredMethod || "",
         depositRejectionReason: booking.depositRejectionReason || "",
         stripePaymentUrl: resolvedPaymentUrl,
+        originalDate: booking.originalDate || "",
+        originalStartTime: booking.originalStartTime || "",
+        previousDate: booking.previousDate || "",
+        previousStartTime: booking.previousStartTime || "",
+        proposedDate: booking.proposedDate || "",
+        proposedStartTime: booking.proposedStartTime || "",
+        proposedEndTime: booking.proposedEndTime || "",
+        proposalMessage: booking.proposalMessage || "",
+        proposalResponse: booking.proposalResponse || "",
+        proposalDeclineReason: booking.proposalDeclineReason || "",
       },
     });
   } catch (error) {

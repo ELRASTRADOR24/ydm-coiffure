@@ -13,6 +13,7 @@ import {
   XCircle,
   Trash2,
   Calendar,
+  CalendarClock,
 } from "lucide-react";
 import {
   getTrackedBookings,
@@ -31,6 +32,12 @@ function getBadgeVisual(status, depositDeclared) {
         label: "En attente de validation coiffeuse",
         style: "bg-stone-100 text-stone-800 border-stone-300",
         icon: <Clock className="w-3.5 h-3.5 text-stone-600" />,
+      };
+    case "RESCHEDULE_PROPOSED":
+      return {
+        label: "Nouvelle date proposée",
+        style: "bg-indigo-50 text-indigo-900 border-indigo-300",
+        icon: <CalendarClock className="w-3.5 h-3.5 text-indigo-700" />,
       };
     case "PENDING_PAYMENT":
       return {
@@ -263,7 +270,9 @@ export default function BookingLookupClient({ initialBooking = null }) {
                       className="flex-1 sm:flex-initial min-h-[44px] inline-flex items-center justify-center space-x-2 bg-brun hover:bg-brun-dark text-creme px-5 py-2.5 rounded-full text-xs font-semibold transition-colors"
                     >
                       <span>
-                        {item.status === "PENDING_PAYMENT" && !item.depositDeclared
+                        {item.status === "RESCHEDULE_PROPOSED"
+                          ? "Répondre à la date proposée"
+                          : item.status === "PENDING_PAYMENT" && !item.depositDeclared
                           ? `Payer & valider l'acompte (${formatPrice(item.depositAmount ?? 10)})`
                           : "Ouvrir mon suivi complet"}
                       </span>

@@ -70,6 +70,8 @@ function ColorControl({ label, value, onChange, fallback = "#FFFFFF" }) {
 const BUTTON_LINK_OPTIONS = [
   { label: "Lien paiement acompte ({lien_paiement})", value: "{lien_paiement}" },
   { label: "Page suivi client ({lien_suivi})", value: "{lien_suivi}" },
+  { label: "Oui, accepter la date ({lien_accepter_proposition})", value: "{lien_accepter_proposition}" },
+  { label: "Non, choisir autre date ({lien_refuser_proposition})", value: "{lien_refuser_proposition}" },
   { label: "Page réservation ({lien_reservation})", value: "{lien_reservation}" },
   { label: "Espace Admin ({lien_admin})", value: "{lien_admin}" },
   { label: "Lien Instagram YDM", value: "https://instagram.com/ydm_coiffure" },
@@ -441,12 +443,12 @@ export default function EmailEditorTab({
           </div>
         </div>
 
-        {/* Sélecteur des 6 e-mails */}
+        {/* Sélecteur des 7 e-mails */}
         <div className="space-y-2">
           <span className="text-xs font-bold uppercase tracking-wider text-stone-500 block">
             1. Choisissez l&apos;e-mail à modifier :
           </span>
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {EMAIL_TEMPLATE_META.map((meta) => {
               const active = selectedTemplateKey === meta.key;
               return (

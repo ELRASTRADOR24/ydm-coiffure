@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
+  CalendarClock,
   CheckCircle2,
   Phone,
   Mail,
   ArrowRight,
   Check,
   X,
+  Ban,
   Power,
   AlertTriangle,
   ExternalLink,
@@ -23,6 +25,7 @@ import { DEFAULT_MAINTENANCE } from "@/lib/siteContent";
 import { getParisDateString, normalizeBookingStatus } from "@/lib/adminHelpers";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 import { AdminWorkflowGuideBar } from "./admin/AdminVisualGuide";
+import ProposeDateModal from "./admin/ProposeDateModal";
 
 export default function AdminDashboardView({
   initialStats,
@@ -42,6 +45,7 @@ export default function AdminDashboardView({
   const [rejectionReason, setRejectionReason] = useState("");
   const [depositNotReceivedBooking, setDepositNotReceivedBooking] = useState(null);
   const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
+  const [proposeDateBooking, setProposeDateBooking] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
@@ -66,6 +70,9 @@ export default function AdminDashboardView({
 
   const pendingApprovals = bookings.filter(
     (b) => b.status === "PENDING_APPROVAL"
+  );
+  const rescheduleProposals = bookings.filter(
+    (b) => b.status === "RESCHEDULE_PROPOSED"
   );
   const pendingPayments = bookings.filter(
     (b) => b.status === "PENDING_PAYMENT"
@@ -241,6 +248,33 @@ export default function AdminDashboardView({
       }
     } catch (e) {
       showToast("Problème de connexion lors du refus de la demande.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Cancel Booking
+  const handleCancel = async (bookingId) => {
+    if (!confirm("Voulez-vous vraiment annuler cette demande ?")) return;
+    setActionLoading(bookingId);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/cancel`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            (b.id || b._id) === bookingId ? data.booking : b
+          )
+        );
+        router.refresh();
+        showToast("Demande annulée et créneau libéré.");
+      } else {
+        showToast(data.error || "Impossible d'annuler cette demande.");
+      }
+    } catch (_) {
+      showToast("Problème de connexion lors de l'annulation.");
     } finally {
       setActionLoading(null);
     }
@@ -477,9 +511,17 @@ export default function AdminDashboardView({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
-                        Réf : {b.bookingReference}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
+                          Réf : {b.bookingReference}
+                        </span>
+                        {b.proposalResponse === "COUNTER_PROPOSED" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
+                            <CalendarClock className="w-3 h-3" />
+                            <span>Nouvelle date choisie par la cliente</span>
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-serif text-lg font-bold text-brun truncate">
                         {b.customer.firstName} {b.customer.lastName}
                       </h3>
@@ -523,6 +565,19 @@ export default function AdminDashboardView({
                       Date souhaitée : <strong>{formatDateFrench(b.date)}</strong> de{" "}
                       <strong>{b.startTime}</strong> à <strong>{b.endTime}</strong>
                     </div>
+                    {b.proposalResponse === "COUNTER_PROPOSED" && b.previousDate && (
+                      <div className="text-indigo-800 text-[11px]">
+                        Créneau proposé refusé :{" "}
+                        <span className="line-through">
+                          {formatDateFrench(b.previousDate)} à {b.previousStartTime}
+                        </span>
+                      </div>
+                    )}
+                    {b.proposalDeclineReason && (
+                      <div className="text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 italic">
+                        Note cliente : &quot;{b.proposalDeclineReason}&quot;
+                      </div>
+                    )}
                     {b.customer.notes && (
                       <div className="text-stone-500 italic pt-1 border-t border-stone-200/60">
                         &quot;{b.customer.notes}&quot;
@@ -545,6 +600,16 @@ export default function AdminDashboardView({
                     <button
                       type="button"
                       disabled={isLoading}
+                      onClick={() => setProposeDateBooking(b)}
+                      className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <CalendarClock className="w-4 h-4 shrink-0" />
+                      <span>Proposer date</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isLoading}
                       onClick={() => setRejectModalBooking(b)}
                       className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
                     >
@@ -561,6 +626,117 @@ export default function AdminDashboardView({
           </div>
         )}
       </div>
+
+      {/* RESCHEDULE PROPOSALS WAITING FOR CLIENT */}
+      {rescheduleProposals.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h2 className="font-serif text-xl font-bold text-brun">
+                Nouvelles dates proposées (en attente client)
+              </h2>
+              <span className="bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                {rescheduleProposals.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {rescheduleProposals.map((b) => {
+              const bId = b.id || b._id;
+              const isLoading = actionLoading === bId;
+
+              return (
+                <div
+                  key={bId}
+                  className="bg-white rounded-2xl p-5 border border-indigo-200 shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
+                        Réf : {b.bookingReference}
+                      </span>
+                      <h3 className="font-serif text-lg font-bold text-brun truncate">
+                        {b.customer.firstName} {b.customer.lastName}
+                      </h3>
+                      {b.customer.phone && (
+                        <div className="text-xs text-stone-600 mt-0.5">
+                          <a
+                            href={`tel:${b.customer.phone}`}
+                            className="inline-flex items-center gap-1 underline decoration-stone-300 hover:text-brun"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                            <span>{b.customer.phone}</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-900 border border-indigo-200 text-[11px] font-bold px-2.5 py-1 rounded-full">
+                        <CalendarClock className="w-3.5 h-3.5 text-indigo-700" />
+                        <span>En attente réponse cliente</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-xs space-y-1">
+                    <div className="font-semibold text-brun">
+                      {b.service.name} ({formatDuration(b.totalDuration)})
+                    </div>
+                    {b.previousDate && (
+                      <div className="text-stone-500 line-through">
+                        Créneau précédent : {formatDateFrench(b.previousDate)} à {b.previousStartTime}
+                      </div>
+                    )}
+                    <div className="text-indigo-950 font-medium">
+                      Date proposée : <strong>{formatDateFrench(b.date)}</strong> de{" "}
+                      <strong>{b.startTime}</strong> à <strong>{b.endTime}</strong>
+                    </div>
+                    {b.proposalMessage && (
+                      <div className="text-stone-600 italic pt-1 border-t border-indigo-100">
+                        Message envoyé : &quot;{b.proposalMessage}&quot;
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between pt-1 gap-2.5">
+                    <Link
+                      href={`/reserver/statut/${b.bookingReference}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[44px] inline-flex items-center text-xs font-medium text-stone-600 hover:text-brun underline"
+                    >
+                      Voir fiche cliente
+                    </Link>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => setProposeDateBooking(b)}
+                        className="min-h-[44px] inline-flex items-center justify-center gap-1.5 bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <CalendarClock className="w-4 h-4 shrink-0" />
+                        <span>Modifier la date</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleCancel(bId)}
+                        className="min-h-[44px] inline-flex items-center justify-center gap-1.5 border border-stone-200 text-stone-600 hover:text-red-700 hover:border-red-200 hover:bg-red-50 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <Ban className="w-4 h-4 shrink-0" />
+                        <span>Annuler</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* DIRECT DEPOSITS TO VERIFY / MARK PAID */}
       {sortedPendingPayments.length > 0 && (
@@ -590,9 +766,17 @@ export default function AdminDashboardView({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
-                        Réf : {b.bookingReference}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold text-champagne-dark uppercase tracking-wider">
+                          Réf : {b.bookingReference}
+                        </span>
+                        {b.proposalResponse === "COUNTER_PROPOSED" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
+                            <CalendarClock className="w-3 h-3" />
+                            <span>Nouvelle date choisie par la cliente</span>
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-serif text-lg font-bold text-brun truncate">
                         {b.customer.firstName} {b.customer.lastName}
                       </h3>
@@ -908,6 +1092,26 @@ export default function AdminDashboardView({
           </div>
         </div>
       )}
+      <ProposeDateModal
+        booking={proposeDateBooking}
+        onClose={() => setProposeDateBooking(null)}
+        onSuccess={(updatedBooking, msg) => {
+          if (updatedBooking) {
+            setBookings((prev) =>
+              prev.map((b) =>
+                (b.id || b._id) === (updatedBooking.id || updatedBooking._id)
+                  ? normalizeBookingStatus(updatedBooking)
+                  : b
+              )
+            );
+          }
+          setProposeDateBooking(null);
+          router.refresh();
+          showToast(
+            msg || "Nouvelle date proposée et envoyée à la cliente par e-mail et SMS !"
+          );
+        }}
+      />
     </div>
   );
 }

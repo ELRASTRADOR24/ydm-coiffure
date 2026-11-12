@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Phone,
   Calendar,
+  CalendarClock,
   Copy,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/adminHelpers";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 import { AdminWorkflowGuideBar } from "./admin/AdminVisualGuide";
+import ProposeDateModal from "./admin/ProposeDateModal";
 
 export default function AdminBookingsView({ initialBookings = [] }) {
   const router = useRouter();
@@ -38,6 +40,8 @@ export default function AdminBookingsView({ initialBookings = [] }) {
   // Deposit not received modal
   const [depositNotReceivedBooking, setDepositNotReceivedBooking] = useState(null);
   const [depositNotReceivedNote, setDepositNotReceivedNote] = useState("");
+  // Propose another date modal
+  const [proposeDateBooking, setProposeDateBooking] = useState(null);
 
   useEffect(() => {
     setBookings((initialBookings || []).map((b) => normalizeBookingStatus(b)));
@@ -219,6 +223,8 @@ export default function AdminBookingsView({ initialBookings = [] }) {
         return { label: "Confirmé", color: "bg-emerald-100 text-emerald-800" };
       case "PENDING_APPROVAL":
         return { label: "À valider", color: "bg-amber-100 text-amber-900 font-bold" };
+      case "RESCHEDULE_PROPOSED":
+        return { label: "Date proposée", color: "bg-indigo-100 text-indigo-900 font-bold" };
       case "PENDING_PAYMENT":
         return { label: "Attente paiement", color: "bg-blue-100 text-blue-900" };
       case "REJECTED":
@@ -260,6 +266,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
           {[
             { id: "ALL", label: "Toutes" },
             { id: "PENDING_APPROVAL", label: "À valider" },
+            { id: "RESCHEDULE_PROPOSED", label: "Dates proposées" },
             { id: "PENDING_PAYMENT", label: "Paiement en attente" },
             { id: "CONFIRMED", label: "Confirmées" },
             { id: "CANCELLED", label: "Annulées / Refusées" },
@@ -384,6 +391,13 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                     </div>
                   )}
 
+                  {b.status === "PENDING_APPROVAL" && b.proposalResponse === "COUNTER_PROPOSED" && (
+                    <div className="text-xs text-indigo-900 font-bold bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 inline-flex items-center gap-1.5">
+                      <CalendarClock className="w-3.5 h-3.5 text-indigo-700" />
+                      <span>Contre-proposition cliente</span>
+                    </div>
+                  )}
+
                   <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs space-y-1.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-bold text-brun text-sm">
@@ -401,6 +415,24 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         {formatDateFrench(b.date)} &bull; {b.startTime} - {b.endTime}
                       </span>
                     </div>
+
+                    {b.previousDate && (b.previousDate !== b.date || b.previousStartTime !== b.startTime) && (
+                      <div className="text-[11px] text-stone-500 line-through">
+                        Ancienne date : {formatDateFrench(b.previousDate)} à {b.previousStartTime}
+                      </div>
+                    )}
+
+                    {b.status === "RESCHEDULE_PROPOSED" && b.proposalMessage && (
+                      <div className="text-[11px] text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 italic">
+                        Proposition envoyée : &quot;{b.proposalMessage}&quot;
+                      </div>
+                    )}
+
+                    {b.proposalDeclineReason && (
+                      <div className="text-[11px] text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 italic">
+                        Note cliente : &quot;{b.proposalDeclineReason}&quot;
+                      </div>
+                    )}
 
                     {b.selectedOptions && b.selectedOptions.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
@@ -420,7 +452,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                     )}
                   </div>
 
-                  {["PENDING_APPROVAL", "PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                  {["PENDING_APPROVAL", "RESCHEDULE_PROPOSED", "PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {b.status === "PENDING_APPROVAL" && (
                         <>
@@ -443,6 +475,24 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                             <span>Refuser</span>
                           </button>
                         </>
+                      )}
+
+                      {(b.status === "PENDING_APPROVAL" ||
+                        b.status === "RESCHEDULE_PROPOSED" ||
+                        (b.status === "PENDING_PAYMENT" && !b.depositDeclared)) && (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => setProposeDateBooking(b)}
+                          className="min-h-[44px] bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <CalendarClock className="w-4 h-4" />
+                          <span>
+                            {b.status === "RESCHEDULE_PROPOSED"
+                              ? "Modifier date proposée"
+                              : "Proposer une date"}
+                          </span>
+                        </button>
                       )}
 
                       {b.status === "PENDING_PAYMENT" && (
@@ -493,7 +543,7 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         </>
                       )}
 
-                      {["CONFIRMED", "PENDING_PAYMENT"].includes(b.status) && (
+                      {["CONFIRMED", "PENDING_PAYMENT", "RESCHEDULE_PROPOSED"].includes(b.status) && (
                         <button
                           type="button"
                           disabled={isLoading}
@@ -587,6 +637,11 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         <div className="text-[11px] text-stone-500">
                           {b.startTime} - {b.endTime}
                         </div>
+                        {b.previousDate && (b.previousDate !== b.date || b.previousStartTime !== b.startTime) && (
+                          <div className="text-[10px] text-stone-400 line-through mt-0.5">
+                            Ancienne : {formatDateFrench(b.previousDate)} {b.previousStartTime}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-brun">
@@ -602,6 +657,21 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         >
                           {badge.label}
                         </span>
+                        {b.status === "PENDING_APPROVAL" && b.proposalResponse === "COUNTER_PROPOSED" && (
+                          <div className="text-[10px] text-indigo-800 font-bold mt-1 bg-indigo-50 px-2 py-0.5 rounded-md inline-block border border-indigo-200">
+                            Contre-proposition cliente
+                          </div>
+                        )}
+                        {b.status === "RESCHEDULE_PROPOSED" && b.proposalMessage && (
+                          <div className="text-[10px] text-indigo-900 mt-1 max-w-[200px] truncate" title={b.proposalMessage}>
+                            &quot;{b.proposalMessage}&quot;
+                          </div>
+                        )}
+                        {b.proposalDeclineReason && (
+                          <div className="text-[10px] text-stone-600 italic mt-1 max-w-[200px] truncate" title={b.proposalDeclineReason}>
+                            Note : &quot;{b.proposalDeclineReason}&quot;
+                          </div>
+                        )}
                         {b.depositDeclared && b.status === "PENDING_PAYMENT" && (
                           <div className="text-[10px] text-emerald-700 font-bold mt-1 bg-emerald-50 px-2 py-0.5 rounded-md inline-block border border-emerald-200">
                             Acompte reçu déclaré ({b.depositDeclaredMethod || "Virement"})
@@ -621,6 +691,26 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                             >
                               <Check className="w-3.5 h-3.5" />
                               <span>Valider</span>
+                            </button>
+                          )}
+
+                          {/* Propose another date */}
+                          {(b.status === "PENDING_APPROVAL" ||
+                            b.status === "RESCHEDULE_PROPOSED" ||
+                            (b.status === "PENDING_PAYMENT" && !b.depositDeclared)) && (
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => setProposeDateBooking(b)}
+                              title="Proposer une autre date par e-mail et SMS"
+                              className="min-h-[44px] bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3 py-2 rounded-xl text-[11px] font-semibold transition-colors inline-flex items-center space-x-1 cursor-pointer"
+                            >
+                              <CalendarClock className="w-3.5 h-3.5" />
+                              <span>
+                                {b.status === "RESCHEDULE_PROPOSED"
+                                  ? "Modifier date"
+                                  : "Proposer date"}
+                              </span>
                             </button>
                           )}
 
@@ -689,8 +779,8 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                             </>
                           )}
 
-                          {/* Cancel (if CONFIRMED or PENDING_PAYMENT) */}
-                          {["CONFIRMED", "PENDING_PAYMENT"].includes(b.status) && (
+                          {/* Cancel (if CONFIRMED, PENDING_PAYMENT or RESCHEDULE_PROPOSED) */}
+                          {["CONFIRMED", "PENDING_PAYMENT", "RESCHEDULE_PROPOSED"].includes(b.status) && (
                             <button
                               type="button"
                               disabled={isLoading}
@@ -846,6 +936,26 @@ export default function AdminBookingsView({ initialBookings = [] }) {
           </div>
         </div>
       )}
+      <ProposeDateModal
+        booking={proposeDateBooking}
+        onClose={() => setProposeDateBooking(null)}
+        onSuccess={(updatedBooking, msg) => {
+          if (updatedBooking) {
+            setBookings((prev) =>
+              prev.map((b) =>
+                (b.id || b._id) === (updatedBooking.id || updatedBooking._id)
+                  ? normalizeBookingStatus(updatedBooking)
+                  : b
+              )
+            );
+          }
+          setProposeDateBooking(null);
+          router.refresh();
+          showToast(
+            msg || "Nouvelle date proposée et envoyée à la cliente par e-mail et SMS."
+          );
+        }}
+      />
     </div>
   );
 }
