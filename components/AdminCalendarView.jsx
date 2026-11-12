@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Ban,
   CalendarClock,
+  RotateCcw,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import {
@@ -303,6 +304,34 @@ export default function AdminCalendarView({
       }
     } catch (_) {
       showToast("Erreur réseau lors de l'annulation.");
+    } finally {
+      setModalActionLoading(false);
+    }
+  };
+
+  const handleUnvalidateFromCalendar = async (booking) => {
+    const bId = booking?.id || booking?._id;
+    if (!bId) return;
+    const confirmMsg =
+      booking.status === "CONFIRMED"
+        ? "Annuler la confirmation de l'acompte et remettre ce rendez-vous en attente de paiement ?"
+        : "Dévalider cette demande et la remettre « À valider » ?";
+    if (!confirm(confirmMsg)) return;
+    setModalActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bId}/unvalidate`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        syncUpdatedBooking(data.booking);
+        router.refresh();
+        showToast(data.message || "Réservation dévalidée.");
+      } else {
+        showToast(data.error || "Impossible de dévalider cette réservation.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors de la dévalidation.");
     } finally {
       setModalActionLoading(false);
     }
@@ -836,6 +865,22 @@ export default function AdminCalendarView({
                         </span>
                       </button>
                     )}
+                    {["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                      <button
+                        type="button"
+                        disabled={modalActionLoading}
+                        onClick={() => handleUnvalidateFromCalendar(b)}
+                        title={
+                          b.status === "CONFIRMED"
+                            ? "Annuler la confirmation de l'acompte et remettre en attente de paiement"
+                            : "Annuler la validation et remettre « À valider »"
+                        }
+                        className="min-h-[44px] px-3 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Dévalider</span>
+                      </button>
+                    )}
                     {["PENDING_PAYMENT", "CONFIRMED", "RESCHEDULE_PROPOSED"].includes(b.status) && (
                       <button
                         type="button"
@@ -1087,6 +1132,22 @@ export default function AdminCalendarView({
                       ? "Modifier date proposée"
                       : "Proposer autre date"}
                   </span>
+                </button>
+              )}
+              {["PENDING_PAYMENT", "CONFIRMED"].includes(selectedBooking.status) && (
+                <button
+                  type="button"
+                  disabled={modalActionLoading}
+                  onClick={() => handleUnvalidateFromCalendar(selectedBooking)}
+                  title={
+                    selectedBooking.status === "CONFIRMED"
+                      ? "Annuler la confirmation de l'acompte et remettre en attente de paiement"
+                      : "Annuler la validation et remettre « À valider »"
+                  }
+                  className="min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Dévalider</span>
                 </button>
               )}
               {["PENDING_PAYMENT", "CONFIRMED", "RESCHEDULE_PROPOSED"].includes(selectedBooking.status) && (

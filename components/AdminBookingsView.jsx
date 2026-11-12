@@ -13,6 +13,7 @@ import {
   Calendar,
   CalendarClock,
   Copy,
+  RotateCcw,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import {
@@ -130,6 +131,36 @@ export default function AdminBookingsView({ initialBookings = [] }) {
       }
     } catch (_) {
       showToast("Erreur réseau lors de l'annulation du rendez-vous.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnvalidate = async (id, currentStatus) => {
+    const confirmMsg =
+      currentStatus === "CONFIRMED"
+        ? "Annuler la confirmation de l'acompte et remettre ce rendez-vous en attente de paiement ?"
+        : "Dévalider cette demande et la remettre « À valider » ?";
+    if (!confirm(confirmMsg)) return;
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}/unvalidate`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            (b.id || b._id) === id ? normalizeBookingStatus(data.booking) : b
+          )
+        );
+        router.refresh();
+        showToast(data.message || "Réservation dévalidée.");
+      } else {
+        showToast(data.error || "Impossible de dévalider cette réservation.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors de la dévalidation.");
     } finally {
       setActionLoading(null);
     }
@@ -543,6 +574,23 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         </>
                       )}
 
+                      {["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => handleUnvalidate(bId, b.status)}
+                          title={
+                            b.status === "CONFIRMED"
+                              ? "Annuler la confirmation de l'acompte et remettre en attente de paiement"
+                              : "Annuler la validation et remettre « À valider »"
+                          }
+                          className="min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Dévalider</span>
+                        </button>
+                      )}
+
                       {["CONFIRMED", "PENDING_PAYMENT", "RESCHEDULE_PROPOSED"].includes(b.status) && (
                         <button
                           type="button"
@@ -777,6 +825,24 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                                 </button>
                               )}
                             </>
+                          )}
+
+                          {/* Unvalidate (if PENDING_PAYMENT or CONFIRMED) */}
+                          {["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => handleUnvalidate(bId, b.status)}
+                              title={
+                                b.status === "CONFIRMED"
+                                  ? "Annuler la confirmation de l'acompte et remettre en attente de paiement"
+                                  : "Annuler la validation et remettre « À valider »"
+                              }
+                              className="min-h-[44px] border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 px-3 py-2 rounded-xl text-[11px] font-semibold transition-colors inline-flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Dévalider</span>
+                            </button>
                           )}
 
                           {/* Cancel (if CONFIRMED, PENDING_PAYMENT or RESCHEDULE_PROPOSED) */}

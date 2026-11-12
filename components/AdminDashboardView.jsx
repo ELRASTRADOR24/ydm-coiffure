@@ -19,6 +19,7 @@ import {
   Loader2,
   Copy,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { DEFAULT_MAINTENANCE } from "@/lib/siteContent";
@@ -275,6 +276,39 @@ export default function AdminDashboardView({
       }
     } catch (_) {
       showToast("Problème de connexion lors de l'annulation.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Unvalidate Booking (revert step backwards)
+  const handleUnvalidate = async (bookingId, currentStatus) => {
+    const confirmMsg =
+      currentStatus === "CONFIRMED"
+        ? "Annuler la confirmation de l'acompte et remettre ce rendez-vous en attente de paiement ?"
+        : "Dévalider cette demande et la remettre « À valider » ?";
+    if (!confirm(confirmMsg)) return;
+    setActionLoading(bookingId);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/unvalidate`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            (b.id || b._id) === bookingId
+              ? normalizeBookingStatus(data.booking)
+              : b
+          )
+        );
+        router.refresh();
+        showToast(data.message || "Réservation dévalidée.");
+      } else {
+        showToast(data.error || "Impossible de dévalider cette réservation.");
+      }
+    } catch (_) {
+      showToast("Problème de connexion lors de la dévalidation.");
     } finally {
       setActionLoading(null);
     }
@@ -850,6 +884,16 @@ export default function AdminDashboardView({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleUnvalidate(bId, b.status)}
+                        title="Annuler la validation et remettre la demande « À valider »"
+                        className="min-h-[44px] inline-flex items-center justify-center gap-1.5 border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                        <span>Dévalider</span>
+                      </button>
                       {b.depositDeclared && (
                         <button
                           type="button"
@@ -894,9 +938,12 @@ export default function AdminDashboardView({
         {upcomingConfirmed.length > 0 ? (
           <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
             <div className="divide-y divide-stone-100">
-              {upcomingConfirmed.map((b) => (
+              {upcomingConfirmed.map((b) => {
+                const bId = b.id || b._id;
+                const isLoading = actionLoading === bId;
+                return (
                 <div
-                  key={b.id || b._id}
+                  key={bId}
                   className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50 transition-colors"
                 >
                   <div className="flex items-start space-x-4">
@@ -934,16 +981,29 @@ export default function AdminDashboardView({
                     </div>
                   </div>
 
-                  <div className="text-left sm:text-right sm:self-center">
-                    <div className="text-sm font-bold font-serif text-brun">
-                      Solde restant : {formatPrice(b.remainingBalance)}
+                  <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:self-center">
+                    <div className="text-left sm:text-right">
+                      <div className="text-sm font-bold font-serif text-brun">
+                        Solde restant : {formatPrice(b.remainingBalance)}
+                      </div>
+                      <div className="text-[11px] text-emerald-700 font-medium">
+                        Acompte de {formatPrice(b.depositAmount)} réglé
+                      </div>
                     </div>
-                    <div className="text-[11px] text-emerald-700 font-medium">
-                      Acompte de {formatPrice(b.depositAmount)} réglé
-                    </div>
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => handleUnvalidate(bId, b.status)}
+                      title="Annuler la confirmation de l'acompte et remettre en attente de paiement"
+                      className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                      <span>Dévalider</span>
+                    </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (
