@@ -6,6 +6,7 @@ import {
   doIntervalsOverlap,
   calculateAvailableSlots,
   isSpecificSlotAvailable,
+  computeBlockedDates,
   parisWallTimeToUtcMs,
 } from "../lib/availabilityEngine.js";
 
@@ -91,14 +92,14 @@ test("calculateAvailableSlots blocks conflicting existing confirmed booking", ()
     },
   ];
 
-  // Try to find slots for a 2-hour (120 min) appointment
+  // Try to find slots for a 2-hour (120 min) appointment when daily limit is unlimited (0)
   const slots = calculateAvailableSlots({
     dateStr: "2026-12-02",
     totalDuration: 120,
     weeklyAvailability,
     existingBookings,
     unavailabilities: [],
-    settings: { minNoticeHours: 0, maxDaysInAdvance: 60 },
+    settings: { minNoticeHours: 0, maxDaysInAdvance: 60, maxBookingsPerDay: 0 },
     now: new Date("2026-11-20T08:00:00Z"),
   });
 
@@ -110,6 +111,18 @@ test("calculateAvailableSlots blocks conflicting existing confirmed booking", ()
 
   // 13:15 -> with buffer 15min after 13:00, 13:15 is the earliest safe start => 13:30 slot should be free
   assert.ok(slots.includes("13:30"));
+
+  // With default maxBookingsPerDay (1), the entire day is locked once 1 validated booking exists
+  const lockedDaySlots = calculateAvailableSlots({
+    dateStr: "2026-12-02",
+    totalDuration: 120,
+    weeklyAvailability,
+    existingBookings,
+    unavailabilities: [],
+    settings: { minNoticeHours: 0, maxDaysInAdvance: 60 },
+    now: new Date("2026-11-20T08:00:00Z"),
+  });
+  assert.deepEqual(lockedDaySlots, []);
 });
 
 test("isSpecificSlotAvailable correctly identifies slot availability", () => {
@@ -171,7 +184,7 @@ test("calculateAvailableSlots keeps depositDeclared PENDING_PAYMENT blocked even
     weeklyAvailability,
     existingBookings,
     unavailabilities: [],
-    settings: { minNoticeHours: 24, maxDaysInAdvance: 60 },
+    settings: { minNoticeHours: 24, maxDaysInAdvance: 60, maxBookingsPerDay: 0 },
     now: new Date("2026-12-05T14:00:00.000Z"),
   });
 
@@ -180,6 +193,106 @@ test("calculateAvailableSlots keeps depositDeclared PENDING_PAYMENT blocked even
   assert.ok(!slots.includes("11:00"));
   // 15:00 reopened because hold expired without declaration
   assert.ok(slots.includes("15:00"));
+});
+
+test("PENDING_APPROVAL keeps slots open for multiple clients while validated bookings lock the entire day (unless reopened)", () => {
+  const weeklyAvailability = {
+    dayOfWeek: 2,
+    isOpen: true,
+    startTime: "09:00",
+    endTime: "18:00",
+    breaks: [],
+    bufferTimeMinutes: 15,
+  };
+  const now = new Date("2026-11-20T08:00:00Z");
+
+  // Two competing PENDING_APPROVAL requests on 2026-12-08 at 10:00 -> day & slot stay open for more clients
+  const pendingOnly = [
+    { id: "p1", date: "2026-12-08", startTime: "10:00", endTime: "12:00", status: "PENDING_APPROVAL" },
+    { id: "p2", date: "2026-12-08", startTime: "10:00", endTime: "12:00", status: "PENDING_APPROVAL" },
+  ];
+
+  const openSlots = calculateAvailableSlots({
+    dateStr: "2026-12-08",
+    totalDuration: 120,
+    weeklyAvailability,
+    existingBookings: pendingOnly,
+    unavailabilities: [],
+    settings: { minNoticeHours: 0, maxDaysInAdvance: 60, maxBookingsPerDay: 1 },
+    now,
+  });
+  assert.ok(openSlots.includes("10:00"));
+  assert.deepEqual(
+    computeBlockedDates({
+      unavailabilities: [],
+      existingBookings: pendingOnly,
+      settings: { maxBookingsPerDay: 1 },
+      now,
+    }),
+    []
+  );
+
+  // One request is validated -> PENDING_PAYMENT (2h hold active) -> ENTIRE day locks immediately
+  const validatedOne = [
+    {
+      id: "p1",
+      date: "2026-12-08",
+      startTime: "10:00",
+      endTime: "12:00",
+      status: "PENDING_PAYMENT",
+      depositDeclared: false,
+      holdExpiresAt: "2026-11-20T10:00:00Z",
+    },
+    pendingOnly[1],
+  ];
+  assert.deepEqual(
+    calculateAvailableSlots({
+      dateStr: "2026-12-08",
+      totalDuration: 120,
+      weeklyAvailability,
+      existingBookings: validatedOne,
+      unavailabilities: [],
+      settings: { minNoticeHours: 0, maxDaysInAdvance: 60, maxBookingsPerDay: 1 },
+      now,
+    }),
+    []
+  );
+  assert.deepEqual(
+    computeBlockedDates({
+      unavailabilities: [],
+      existingBookings: validatedOne,
+      settings: { maxBookingsPerDay: 1 },
+      now,
+    }),
+    ["2026-12-08"]
+  );
+
+  // Admin reopens 2026-12-08 manually -> 10:00 remains blocked, 13:00 opens!
+  const reopenedSlots = calculateAvailableSlots({
+    dateStr: "2026-12-08",
+    totalDuration: 120,
+    weeklyAvailability,
+    existingBookings: validatedOne,
+    unavailabilities: [],
+    settings: {
+      minNoticeHours: 0,
+      maxDaysInAdvance: 60,
+      maxBookingsPerDay: 1,
+      reopenedDates: ["2026-12-08"],
+    },
+    now,
+  });
+  assert.ok(!reopenedSlots.includes("10:00"));
+  assert.ok(reopenedSlots.includes("13:00"));
+  assert.deepEqual(
+    computeBlockedDates({
+      unavailabilities: [],
+      existingBookings: validatedOne,
+      settings: { maxBookingsPerDay: 1, reopenedDates: ["2026-12-08"] },
+      now,
+    }),
+    []
+  );
 });
 
 test("parisWallTimeToUtcMs handles CET (+1) and CEST (+2) transitions accurately", () => {

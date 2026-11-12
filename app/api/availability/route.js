@@ -5,7 +5,10 @@ import {
   getBookings,
   getSettings,
 } from "@/lib/store";
-import { calculateAvailableSlots } from "@/lib/availabilityEngine";
+import {
+  calculateAvailableSlots,
+  computeBlockedDates,
+} from "@/lib/availabilityEngine";
 import { isValidDateString } from "@/lib/adminHelpers";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +20,18 @@ export async function GET(request) {
 
     // Mode pour récupérer les dates entièrement bloquées, jours fermés et règles d'avance
     if (mode === "blocked") {
-      const [unavailabilities, weekly, settings] = await Promise.all([
-        getUnavailabilities(),
-        getAvailabilities(),
-        getSettings(),
-      ]);
-      const blockedDates = unavailabilities
-        .filter((u) => u.isAllDay)
-        .map((u) => u.date);
+      const [unavailabilities, weekly, existingBookings, settings] =
+        await Promise.all([
+          getUnavailabilities(),
+          getAvailabilities(),
+          getBookings(),
+          getSettings(),
+        ]);
+      const blockedDates = computeBlockedDates({
+        unavailabilities,
+        existingBookings,
+        settings,
+      });
       const closedDayOfWeeks = weekly
         .filter((w) => !w.isOpen)
         .map((w) => w.dayOfWeek);

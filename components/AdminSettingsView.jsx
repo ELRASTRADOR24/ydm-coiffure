@@ -60,6 +60,7 @@ export default function AdminSettingsView({ initialSettings }) {
     minNoticeHours: String(initialSettings?.minNoticeHours ?? 24),
     maxDaysInAdvance: String(initialSettings?.maxDaysInAdvance ?? 60),
     paymentHoldHours: String(initialSettings?.paymentHoldHours ?? 2),
+    maxBookingsPerDay: String(initialSettings?.maxBookingsPerDay ?? 1),
   });
   const [submitting, setSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -75,6 +76,7 @@ export default function AdminSettingsView({ initialSettings }) {
         minNoticeHours: String(initialSettings.minNoticeHours ?? 24),
         maxDaysInAdvance: String(initialSettings.maxDaysInAdvance ?? 60),
         paymentHoldHours: String(initialSettings.paymentHoldHours ?? 2),
+        maxBookingsPerDay: String(initialSettings.maxBookingsPerDay ?? 1),
       });
       setHasUnsavedChanges(false);
     }
@@ -92,6 +94,7 @@ export default function AdminSettingsView({ initialSettings }) {
     const minNotice = Number(numInputs.minNoticeHours);
     const maxDays = Number(numInputs.maxDaysInAdvance);
     const holdHours = Number(numInputs.paymentHoldHours);
+    const maxPerDay = Number(numInputs.maxBookingsPerDay);
 
     if (
       numInputs.minNoticeHours.trim() === "" ||
@@ -115,6 +118,14 @@ export default function AdminSettingsView({ initialSettings }) {
       holdHours < 1
     ) {
       showToast("Veuillez saisir un délai de paiement d'acompte valide.");
+      return;
+    }
+    if (
+      numInputs.maxBookingsPerDay.trim() === "" ||
+      !Number.isFinite(maxPerDay) ||
+      maxPerDay < 0
+    ) {
+      showToast("Veuillez saisir une capacité journalière valide (0 = illimité).");
       return;
     }
 
@@ -153,6 +164,7 @@ export default function AdminSettingsView({ initialSettings }) {
         minNoticeHours: Math.round(minNotice),
         maxDaysInAdvance: Math.round(maxDays),
         paymentHoldHours: Math.round(holdHours),
+        maxBookingsPerDay: Math.round(maxPerDay),
       };
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
@@ -168,6 +180,7 @@ export default function AdminSettingsView({ initialSettings }) {
           minNoticeHours: String(data.settings.minNoticeHours ?? Math.round(minNotice)),
           maxDaysInAdvance: String(data.settings.maxDaysInAdvance ?? Math.round(maxDays)),
           paymentHoldHours: String(data.settings.paymentHoldHours ?? Math.round(holdHours)),
+          maxBookingsPerDay: String(data.settings.maxBookingsPerDay ?? Math.round(maxPerDay)),
         });
         router.refresh();
         setHasUnsavedChanges(false);
@@ -618,6 +631,33 @@ export default function AdminSettingsView({ initialSettings }) {
                 Temps accordé pour régler l&apos;acompte
               </span>
             </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <label className="font-semibold text-brun block text-xs sm:text-sm">
+                Verrouillage automatique de la journée après validation (interne)
+              </label>
+              <span className="text-[11px] text-stone-500 block mt-0.5">
+                Dès qu&apos;une journée atteint ce nombre de rendez-vous validés (attente paiement ou confirmés), elle se ferme automatiquement aux autres clientes (0 = illimité). Non communiqué aux clientes.
+              </span>
+            </div>
+            <select
+              value={numInputs.maxBookingsPerDay}
+              onChange={(e) => {
+                setNumInputs((prev) => ({
+                  ...prev,
+                  maxBookingsPerDay: e.target.value,
+                }));
+                setHasUnsavedChanges(true);
+              }}
+              className="min-h-[44px] bg-white border border-stone-300 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold text-brun focus:outline-none focus:ring-2 focus:ring-champagne shrink-0 cursor-pointer"
+            >
+              <option value="1">1 cliente max / jour (Recommandé)</option>
+              <option value="2">2 clientes max / jour</option>
+              <option value="3">3 clientes max / jour</option>
+              <option value="0">Aucune limite journalière</option>
+            </select>
           </div>
 
           <div>

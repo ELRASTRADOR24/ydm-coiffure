@@ -82,7 +82,7 @@ test("RESCHEDULE_PROPOSED holds proposed slot, frees previous slot, and transiti
   assert.equal(doc.validateSync(), undefined);
   assert.equal(getEffectiveBookingStatus(proposedBooking), "RESCHEDULE_PROPOSED");
 
-  // Initial slot (09:30) is freed immediately
+  // Initial slot (09:30) is freed immediately (when daily cap is multi-client 0)
   assert.equal(
     isSpecificSlotAvailable({
       dateStr: initialDate,
@@ -91,7 +91,7 @@ test("RESCHEDULE_PROPOSED holds proposed slot, frees previous slot, and transiti
       weeklyAvailability: weeklyAvail,
       existingBookings: [proposedBooking],
       unavailabilities: [],
-      settings,
+      settings: { ...settings, maxBookingsPerDay: 0 },
       now,
     }),
     true

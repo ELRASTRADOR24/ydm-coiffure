@@ -35,6 +35,8 @@ const SalonSettingsSchema = new mongoose.Schema(
     minNoticeHours: { type: Number, default: 24 },
     maxDaysInAdvance: { type: Number, default: 60 },
     paymentHoldHours: { type: Number, default: 2 }, // 2h pour régler l'acompte de 10 €
+    maxBookingsPerDay: { type: Number, default: 1 }, // Privé admin : verrouille la journée dès N rdv validés (0 = illimité)
+    reopenedDates: { type: [String], default: [] }, // Privé admin : dates réouvertes manuellement malgré le plafond journalier
     depositAmount: { type: Number, default: 10 },
     cancellationPolicyText: {
       type: String,

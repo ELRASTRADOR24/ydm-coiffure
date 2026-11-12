@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { buildUnvalidateBookingTransition } from "../lib/adminHelpers.js";
+import {
+  buildUnvalidateBookingTransition,
+  findManualBookingConflict,
+  getPendingApprovalConflictContext,
+} from "../lib/adminHelpers.js";
 import { isSpecificSlotAvailable } from "../lib/availabilityEngine.js";
 
 test("buildUnvalidateBookingTransition handles PENDING_PAYMENT, CONFIRMED, and disallows non-validated statuses", () => {
@@ -142,7 +146,7 @@ test("Unvalidate workflow in isolated store preserves slot hold and accurately r
       depositDeclaredAt: "2026-12-01T09:00:00.000Z",
     });
 
-    // 3. Revert PENDING_PAYMENT -> PENDING_APPROVAL (no stats rollback)
+    // 3. Revert PENDING_PAYMENT -> PENDING_APPROVAL (no stats rollback; slot & day reopen because unapproved requests don't block)
     const t1 = buildUnvalidateBookingTransition(booking, { now: checkNow });
     assert.equal(t1.allowed, true);
     assert.equal(t1.shouldRollbackStats, false);
@@ -160,8 +164,8 @@ test("Unvalidate workflow in isolated store preserves slot hold and accurately r
         settings,
         now: checkNow,
       }),
-      false,
-      "Reverted PENDING_APPROVAL booking must keep holding its slot"
+      true,
+      "Reverted PENDING_APPROVAL booking frees slot/day for competing requests until re-validated"
     );
 
     // 4. Approve & confirm deposit -> CONFIRMED + customer stats (+1, +65)
@@ -204,7 +208,52 @@ test("Unvalidate workflow in isolated store preserves slot hold and accurately r
         now: checkNow,
       }),
       false,
-      "Reverted PENDING_PAYMENT booking must keep holding its slot"
+      "Reverted PENDING_PAYMENT booking must keep holding its slot and day"
+    );
+
+    // 6. Competing PENDING_APPROVAL request context & manual conflict check
+    const competingReq = await createBooking({
+      customer: { ...customer, firstName: "Sonia", email: "sonia@example.com" },
+      service: { id: "srv_1", name: "Knotless", price: 65, duration: 180, depositAmount: 10 },
+      selectedOptions: [],
+      date: "2026-12-22",
+      startTime: "14:00",
+      endTime: "17:00",
+      totalDuration: 180,
+      totalPrice: 65,
+      depositAmount: 10,
+      remainingBalance: 55,
+      status: "PENDING_APPROVAL",
+    });
+    const ctxWhileValidated = getPendingApprovalConflictContext(
+      competingReq,
+      [booking, competingReq],
+      checkNow
+    );
+    assert.equal(ctxWhileValidated.overlappingValidatedCount, 1);
+    assert.equal(ctxWhileValidated.dayValidatedCount, 1);
+    assert.equal(
+      findManualBookingConflict({
+        date: "2026-12-22",
+        startTime: "14:00",
+        duration: 180,
+        existingBookings: [booking, competingReq],
+        excludeBookingId: competingReq.id || competingReq._id,
+        now: checkNow,
+      }).conflict,
+      true
+    );
+    // If both are PENDING_APPROVAL, neither blocks the other from being approved by admin
+    assert.equal(
+      findManualBookingConflict({
+        date: "2026-12-22",
+        startTime: "14:00",
+        duration: 180,
+        existingBookings: [{ ...booking, status: "PENDING_APPROVAL" }, competingReq],
+        excludeBookingId: competingReq.id || competingReq._id,
+        now: checkNow,
+      }).conflict,
+      false
     );
   } finally {
     process.chdir(origCwd);

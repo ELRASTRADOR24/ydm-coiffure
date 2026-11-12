@@ -13,8 +13,11 @@ import {
   Ban,
   CalendarClock,
   RotateCcw,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
+import { isValidatedHoldingBooking } from "@/lib/availabilityEngine";
 import {
   getParisDateString,
   getBookingStatusLabel,
@@ -57,6 +60,7 @@ export default function AdminCalendarView({
   services = [],
   initialAvailabilities = [],
   initialUnavailabilities = [],
+  initialSettings = { maxBookingsPerDay: 1, reopenedDates: [] },
 }) {
   const router = useRouter();
   const [bookings, setBookings] = useState(() =>
@@ -66,6 +70,16 @@ export default function AdminCalendarView({
   const [unavailabilities, setUnavailabilities] = useState(
     initialUnavailabilities || []
   );
+  const [reopenedDates, setReopenedDates] = useState(
+    Array.isArray(initialSettings?.reopenedDates)
+      ? initialSettings.reopenedDates
+      : []
+  );
+  const [togglingReopenDay, setTogglingReopenDay] = useState(false);
+  const maxBookingsPerDay =
+    initialSettings?.maxBookingsPerDay === undefined
+      ? 1
+      : Number(initialSettings.maxBookingsPerDay);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayStr, setSelectedDayStr] = useState(() => getParisDateString());
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -350,6 +364,37 @@ export default function AdminCalendarView({
   }, [initialUnavailabilities]);
 
   useEffect(() => {
+    setReopenedDates(
+      Array.isArray(initialSettings?.reopenedDates)
+        ? initialSettings.reopenedDates
+        : []
+    );
+  }, [initialSettings?.reopenedDates]);
+
+  const handleToggleReopenDay = async (dateStr, nextReopened) => {
+    setTogglingReopenDay(true);
+    try {
+      const res = await fetch("/api/admin/availability/reopen-day", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateStr, reopened: nextReopened }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setReopenedDates(Array.isArray(data.reopenedDates) ? data.reopenedDates : []);
+        router.refresh();
+        showToast(data.message || "Paramètre de la journée mis à jour.");
+      } else {
+        showToast(data.error || "Impossible de modifier l'état de cette journée.");
+      }
+    } catch (_) {
+      showToast("Erreur réseau lors de la mise à jour de la journée.");
+    } finally {
+      setTogglingReopenDay(false);
+    }
+  };
+
+  useEffect(() => {
     if (!manualForm.serviceId && services.length > 0) {
       setManualForm(buildManualFormDefaults(services, selectedDayStr));
     }
@@ -503,6 +548,14 @@ export default function AdminCalendarView({
   const selectedDayBookings = (bookingsByDate[selectedDayStr] || [])
     .slice()
     .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+  const selectedDayValidatedCount = selectedDayBookings.filter((b) =>
+    isValidatedHoldingBooking(b)
+  ).length;
+  const isSelectedDayCapReached =
+    Number.isFinite(maxBookingsPerDay) &&
+    maxBookingsPerDay > 0 &&
+    selectedDayValidatedCount >= maxBookingsPerDay;
+  const isSelectedDayReopened = reopenedDates.includes(selectedDayStr);
 
   return (
     <div className="space-y-6">
@@ -738,6 +791,59 @@ export default function AdminCalendarView({
             <span>Ajouter un rdv ce jour</span>
           </button>
         </div>
+
+        {(isSelectedDayCapReached || isSelectedDayReopened) && (
+          <div
+            className={`rounded-2xl p-3.5 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+              isSelectedDayReopened
+                ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+                : "bg-amber-50 border-amber-200 text-amber-950"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {isSelectedDayReopened ? (
+                <Unlock className="w-4 h-4 text-emerald-700 shrink-0" />
+              ) : (
+                <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+              )}
+              <span>
+                {isSelectedDayReopened ? (
+                  <>
+                    <strong>Journée réouverte aux clientes :</strong> les créneaux horaires encore libres restent ouverts en ligne malgré {selectedDayValidatedCount} rdv validé(s).
+                  </>
+                ) : (
+                  <>
+                    <strong>Journée automatiquement verrouillée aux clientes</strong> ({selectedDayValidatedCount} rdv validé). Vous pouvez la rouvrir ici si vous souhaitez accepter un autre rendez-vous ce jour-là.
+                  </>
+                )}
+              </span>
+            </div>
+            <button
+              type="button"
+              disabled={togglingReopenDay}
+              onClick={() =>
+                handleToggleReopenDay(selectedDayStr, !isSelectedDayReopened)
+              }
+              className={`min-h-[44px] px-4 py-2 rounded-xl font-semibold transition-colors cursor-pointer disabled:opacity-50 shrink-0 inline-flex items-center gap-1.5 ${
+                isSelectedDayReopened
+                  ? "bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100"
+                  : "bg-brun text-creme hover:bg-brun-dark"
+              }`}
+            >
+              {isSelectedDayReopened ? (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Reverrouiller ce jour</span>
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>Rouvrir ce jour aux clientes</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {selectedDayBookings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">

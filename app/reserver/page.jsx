@@ -4,8 +4,10 @@ import {
   getSettings,
   getAvailabilities,
   getUnavailabilities,
+  getBookings,
   getBookingByReference,
 } from "@/lib/store";
+import { computeBlockedDates } from "@/lib/availabilityEngine";
 import { buildPublicSettings } from "@/lib/siteContent";
 import {
   isValidBookingReference,
@@ -32,18 +34,21 @@ export default async function ReserverPage({ searchParams }) {
       ? await getBookingByReference(queryRef).catch(() => null)
       : null;
 
-  const [services, rawSettings, availabilities, unavailabilities] =
+  const [services, rawSettings, availabilities, unavailabilities, existingBookings] =
     await Promise.all([
       getServices(true),
       getSettings(),
       getAvailabilities(),
       getUnavailabilities(),
+      getBookings(),
     ]);
 
   const initialBookingRules = {
-    blockedDates: unavailabilities
-      .filter((u) => u.isAllDay)
-      .map((u) => u.date),
+    blockedDates: computeBlockedDates({
+      unavailabilities,
+      existingBookings,
+      settings: rawSettings,
+    }),
     closedDayOfWeeks: availabilities
       .filter((w) => !w.isOpen)
       .map((w) => w.dayOfWeek),

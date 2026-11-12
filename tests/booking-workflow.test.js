@@ -76,9 +76,9 @@ test("End-to-End Booking Lifecycle Workflow", async () => {
   assert.ok(booking.bookingReference.startsWith("YDM-2026-"));
   assert.equal(booking.status, "PENDING_APPROVAL");
 
-  // 3. Verify collision check: a second client attempting the same slot gets rejected
+  // 3. PENDING_APPROVAL leaves the slot open for competing client requests until braider validates one
   const updatedExistingBookings = [booking];
-  const slotStillFree = isSpecificSlotAvailable({
+  const slotStillOpenForRequests = isSpecificSlotAvailable({
     dateStr: testDate,
     startTime: testTime,
     totalDuration: duration,
@@ -88,19 +88,38 @@ test("End-to-End Booking Lifecycle Workflow", async () => {
     settings,
     now: new Date("2026-11-20T08:00:00Z"),
   });
-  assert.equal(slotStillFree, false, "Slot must be blocked once requested");
+  assert.equal(
+    slotStillOpenForRequests,
+    true,
+    "PENDING_APPROVAL request must allow other clients to request the same slot before braider validation"
+  );
 
-  // 4. Braider approves booking -> PENDING_PAYMENT (direct tracking link)
+  // 4. Braider approves booking -> PENDING_PAYMENT (direct tracking link) -> locks the slot & day
   const bookingId = booking.id || booking._id;
   const holdHours = settings.paymentHoldHours || 5;
+  const refNow = new Date("2026-11-20T08:00:00Z");
   const approved = await updateBooking(bookingId, {
     status: "PENDING_PAYMENT",
-    holdExpiresAt: new Date(Date.now() + holdHours * 3600 * 1000).toISOString(),
+    holdExpiresAt: new Date(refNow.getTime() + holdHours * 3600 * 1000).toISOString(),
     stripePaymentUrl: buildBookingStatusUrl(booking.bookingReference),
   });
   assert.equal(approved.status, "PENDING_PAYMENT");
   assert.ok(
     approved.stripePaymentUrl.startsWith("https://www.ydmcoiffure.com/reserver/statut/")
+  );
+  assert.equal(
+    isSpecificSlotAvailable({
+      dateStr: testDate,
+      startTime: testTime,
+      totalDuration: duration,
+      weeklyAvailability: weeklyAvail,
+      existingBookings: [approved],
+      unavailabilities: [],
+      settings,
+      now: refNow,
+    }),
+    false,
+    "Approved PENDING_PAYMENT booking must lock the slot"
   );
 
   // 5. Direct deposit confirmed by braider (Wero / Revolut / PayPal) -> CONFIRMED

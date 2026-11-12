@@ -23,7 +23,11 @@ import {
 } from "lucide-react";
 import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import { DEFAULT_MAINTENANCE } from "@/lib/siteContent";
-import { getParisDateString, normalizeBookingStatus } from "@/lib/adminHelpers";
+import {
+  getParisDateString,
+  normalizeBookingStatus,
+  getPendingApprovalConflictContext,
+} from "@/lib/adminHelpers";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 import { AdminWorkflowGuideBar } from "./admin/AdminVisualGuide";
 import ProposeDateModal from "./admin/ProposeDateModal";
@@ -537,6 +541,7 @@ export default function AdminDashboardView({
             {pendingApprovals.map((b) => {
               const bId = b.id || b._id;
               const isLoading = actionLoading === bId;
+              const conflictCtx = getPendingApprovalConflictContext(b, bookings);
 
               return (
                 <div
@@ -553,6 +558,21 @@ export default function AdminDashboardView({
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
                             <CalendarClock className="w-3 h-3" />
                             <span>Nouvelle date choisie par la cliente</span>
+                          </span>
+                        )}
+                        {conflictCtx.overlappingValidatedCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>Créneau déjà occupé</span>
+                          </span>
+                        ) : conflictCtx.dayValidatedCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <span>{conflictCtx.dayValidatedCount} rdv déjà validé ce jour</span>
+                          </span>
+                        ) : null}
+                        {conflictCtx.competingPendingCount > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-brun border border-stone-300">
+                            <span>{conflictCtx.competingPendingCount + 1} demandes sur ce créneau</span>
                           </span>
                         )}
                       </div>

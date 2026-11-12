@@ -19,6 +19,7 @@ import { formatPrice, formatDuration, formatDateFrench } from "@/lib/utils";
 import {
   matchesBookingStatusFilter,
   normalizeBookingStatus,
+  getPendingApprovalConflictContext,
 } from "@/lib/adminHelpers";
 import { normalizeBookingPaymentUrl } from "@/lib/appUrl";
 import { AdminWorkflowGuideBar } from "./admin/AdminVisualGuide";
@@ -372,6 +373,10 @@ export default function AdminBookingsView({ initialBookings = [] }) {
               const bId = b.id || b._id;
               const badge = getStatusBadge(b.status);
               const isLoading = actionLoading === bId;
+              const conflictCtx =
+                b.status === "PENDING_APPROVAL"
+                  ? getPendingApprovalConflictContext(b, bookings)
+                  : null;
 
               return (
                 <div key={bId} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 space-y-3.5 shadow-2xs flex flex-col justify-between">
@@ -426,6 +431,25 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                     <div className="text-xs text-indigo-900 font-bold bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 inline-flex items-center gap-1.5">
                       <CalendarClock className="w-3.5 h-3.5 text-indigo-700" />
                       <span>Contre-proposition cliente</span>
+                    </div>
+                  )}
+
+                  {conflictCtx && (conflictCtx.overlappingValidatedCount > 0 || conflictCtx.dayValidatedCount > 0 || conflictCtx.competingPendingCount > 0) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {conflictCtx.overlappingValidatedCount > 0 ? (
+                        <span className="text-[11px] text-red-800 font-bold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
+                          Créneau déjà occupé
+                        </span>
+                      ) : conflictCtx.dayValidatedCount > 0 ? (
+                        <span className="text-[11px] text-amber-900 font-bold bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                          {conflictCtx.dayValidatedCount} rdv déjà validé ce jour
+                        </span>
+                      ) : null}
+                      {conflictCtx.competingPendingCount > 0 && (
+                        <span className="text-[11px] text-brun font-bold bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200">
+                          {conflictCtx.competingPendingCount + 1} demandes sur ce créneau
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -634,6 +658,10 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                   const bId = b.id || b._id;
                   const badge = getStatusBadge(b.status);
                   const isLoading = actionLoading === bId;
+                  const conflictCtx =
+                    b.status === "PENDING_APPROVAL"
+                      ? getPendingApprovalConflictContext(b, bookings)
+                      : null;
 
                   return (
                     <tr key={bId} className="hover:bg-stone-50/70 transition-colors">
@@ -708,6 +736,21 @@ export default function AdminBookingsView({ initialBookings = [] }) {
                         {b.status === "PENDING_APPROVAL" && b.proposalResponse === "COUNTER_PROPOSED" && (
                           <div className="text-[10px] text-indigo-800 font-bold mt-1 bg-indigo-50 px-2 py-0.5 rounded-md inline-block border border-indigo-200">
                             Contre-proposition cliente
+                          </div>
+                        )}
+                        {conflictCtx && conflictCtx.overlappingValidatedCount > 0 && (
+                          <div className="text-[10px] text-red-800 font-bold mt-1 bg-red-50 px-2 py-0.5 rounded-md inline-block border border-red-200">
+                            Créneau déjà occupé
+                          </div>
+                        )}
+                        {conflictCtx && conflictCtx.overlappingValidatedCount === 0 && conflictCtx.dayValidatedCount > 0 && (
+                          <div className="text-[10px] text-amber-900 font-bold mt-1 bg-amber-50 px-2 py-0.5 rounded-md inline-block border border-amber-200">
+                            {conflictCtx.dayValidatedCount} rdv déjà validé ce jour
+                          </div>
+                        )}
+                        {conflictCtx && conflictCtx.competingPendingCount > 0 && (
+                          <div className="text-[10px] text-brun font-bold mt-1 bg-stone-100 px-2 py-0.5 rounded-md inline-block border border-stone-200">
+                            {conflictCtx.competingPendingCount + 1} demandes sur ce créneau
                           </div>
                         )}
                         {b.status === "RESCHEDULE_PROPOSED" && b.proposalMessage && (
