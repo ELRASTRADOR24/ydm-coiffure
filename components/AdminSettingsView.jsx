@@ -115,9 +115,9 @@ export default function AdminSettingsView({ initialSettings }) {
     if (
       numInputs.paymentHoldHours.trim() === "" ||
       !Number.isFinite(holdHours) ||
-      holdHours < 1
+      holdHours < 0
     ) {
-      showToast("Veuillez saisir un délai de paiement d'acompte valide.");
+      showToast("Veuillez saisir un délai de paiement d'acompte valide (0 pour désactiver le décompte).");
       return;
     }
     if (
