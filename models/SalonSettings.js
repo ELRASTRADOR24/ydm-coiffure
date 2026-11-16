@@ -157,11 +157,9 @@ const SalonSettingsSchema = new mongoose.Schema(
     footerConditions: {
       type: [String],
       default: [
-        "Acompte : 10 € obligatoire sous 2h pour confirmer",
-        "Paiements : Wero, Revolut, PayPal, virement ou espèces",
-        "Retard max : 20 min (1h = rdv annulé)",
-        "Mèches incluses : prévenir 1 semaine à l'avance",
-        "Réduction étudiante : -5 € avec mèches incluses",
+        "Acompte de 10 € à la confirmation",
+        "Paiements : Wero, Revolut, PayPal ou espèces",
+        "Atelier privé • Cheveux propres et démêlés",
       ],
     },
     footerNoticeText: {

@@ -8,7 +8,7 @@ export default function ServicesList({ initialServices = [], studentPromo = null
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const promoVisible = studentPromo ? studentPromo.visible !== false : true;
+  const promoVisible = Boolean(studentPromo && studentPromo.visible === true);
   const promoLabel = studentPromo?.label ?? "Tarif étudiante :";
   const promoText =
     studentPromo?.text ??

@@ -65,7 +65,7 @@ export default async function PrestationsPage() {
         )}
 
         {/* Key rules banner */}
-        {banner.visible !== false && visibleBannerItems.length > 0 && (
+        {banner?.visible === true && visibleBannerItems.length > 0 && (
           <div className="bg-white rounded-2xl border border-beige p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {visibleBannerItems.map((item, idx) => {
               const IconComp = BANNER_ICONS[idx % BANNER_ICONS.length];

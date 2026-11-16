@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, ArrowRight, Sparkles, Play, Film, ZoomIn } from "lucide-react";
+import { ArrowRight, Sparkles, Play, Film, ZoomIn } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import LightboxModal from "./LightboxModal";
 
@@ -146,39 +146,22 @@ export default function ServiceCard({ service, priority = false }) {
 
         {/* Content */}
         <div className="p-4 sm:p-6 flex flex-col flex-grow justify-between space-y-3 sm:space-y-4">
-          <div className="space-y-2.5">
+          <div className="space-y-2 sm:space-y-2.5">
             <h3 className="font-serif text-lg sm:text-2xl font-bold text-brun group-hover:text-champagne-dark transition-colors leading-snug">
               {service.name}
             </h3>
 
-            {service.includesHair ? (
-              <div className="inline-block bg-champagne/20 text-brun-dark border border-champagne/60 px-3 py-1 rounded-xl text-[11px] sm:text-xs font-semibold">
-                Formule Complète : Mèches fournies par Maydie
-              </div>
-            ) : service.category === "Sans mèches incluses" ? (
-              <div className="inline-block bg-stone-100 text-stone-600 border border-stone-200 px-3 py-1 rounded-xl text-[11px] sm:text-xs font-medium">
-                Mèches non fournies : à apporter le jour du rendez-vous
-              </div>
-            ) : null}
-
-            <div className="flex items-center space-x-3 text-xs sm:text-sm text-stone-700 pt-1">
-              <div className="flex items-center space-x-1.5">
-                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-champagne-dark shrink-0" />
-                <span className="font-medium">
-                  Acompte {formatPrice(service.depositAmount ?? 10)} (sous 2h)
-                </span>
-              </div>
-            </div>
-
-            <p className="text-stone-600 text-xs sm:text-sm line-clamp-2 leading-relaxed font-normal">
-              {service.description}
-            </p>
+            {service.description && (
+              <p className="text-stone-600 text-xs sm:text-sm line-clamp-2 leading-relaxed font-light">
+                {service.description}
+              </p>
+            )}
           </div>
 
           {/* Action Button */}
           <div className="pt-1 sm:pt-2">
             <div className="w-full min-h-[44px] flex items-center justify-center space-x-2 bg-brun group-hover:bg-brun-dark text-white py-3 sm:py-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold uppercase tracking-wider transition-all shadow-xs">
-              <span>Réserver cette prestation</span>
+              <span>Réserver</span>
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-champagne group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

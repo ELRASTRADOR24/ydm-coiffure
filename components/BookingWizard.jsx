@@ -1395,7 +1395,7 @@ export default function BookingWizard({
                   >
                     règlement intérieur
                   </Link>{" "}
-                  : <strong>acompte obligatoire de {formatPrice(depositAmount)} sous {holdLong}</strong> dès validation manuelle de la coiffeuse (non remboursable), retards tolérés de 20 min maximum, 1 seul accompagnateur sur préavis, cheveux propres et démêlés.
+                  : acompte de {formatPrice(depositAmount)} non remboursable, retards tolérés de 20 min maximum, cheveux propres et démêlés.
                 </span>
               </label>
             </div>
@@ -1522,7 +1522,7 @@ export default function BookingWizard({
                   </span>
                 </div>
                 <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 p-2 rounded-lg bg-champagne-light border border-champagne/40">
-                  <span className="font-medium text-brun">Acompte exigé sous {holdShort} :</span>
+                  <span className="font-medium text-brun">Acompte de confirmation :</span>
                   <span className="font-bold text-champagne-dark text-right">
                     {formatPrice(depositAmount)}
                   </span>
@@ -1540,11 +1540,11 @@ export default function BookingWizard({
             </div>
           </div>
 
-          {/* Notice 2 hours */}
+          {/* Notice validation */}
           <div className="p-3.5 rounded-xl bg-stone-100 border border-stone-200 text-xs text-stone-700 flex items-start space-x-2">
             <Lock className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <strong>Validation manuelle requise :</strong> Aucun prélèvement immédiat. Dès que la coiffeuse approuve votre créneau, vous disposerez d&apos;un délai strict de <strong>{holdLong}</strong> pour verser l&apos;acompte de {formatPrice(depositAmount)} afin de bloquer définitivement votre heure.
+              <strong>Validation personnalisée :</strong> Aucun prélèvement immédiat. Dès validation de votre créneau par Maydie, vous recevrez votre lien pour confirmer votre réservation.
             </div>
           </div>
 
@@ -1619,13 +1619,13 @@ export default function BookingWizard({
             </div>
           </div>
 
-          {/* Hold Rule Alert */}
+          {/* Next steps */}
           <div className="p-4 rounded-xl bg-champagne-light/50 border border-champagne/40 max-w-md mx-auto text-left text-xs text-brun space-y-1">
             <span className="font-bold block">
-              Délai strict de {holdLong} :
+              Prochaine étape :
             </span>
             <p className="font-light text-stone-600 leading-relaxed text-[11px]">
-              Dès que votre demande sera acceptée par la coiffeuse, vous recevrez un lien pour régler l&apos;acompte de {formatPrice(submissionResult.depositAmount ?? depositAmount)}. Vous disposerez de {holdLong} maximum pour finaliser le versement, faute de quoi le créneau sera automatiquement remis en ligne.
+              Dès validation de votre demande par Maydie, vous recevrez votre lien personnel pour confirmer votre rendez-vous avec l&apos;acompte de {formatPrice(submissionResult.depositAmount ?? depositAmount)}.
             </p>
           </div>
 
