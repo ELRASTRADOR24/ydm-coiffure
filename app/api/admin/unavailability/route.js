@@ -214,3 +214,45 @@ export async function PUT(request) {
     );
   }
 }
+
+export async function DELETE(request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const dates = Array.isArray(body.dates)
+      ? body.dates
+      : body.date
+      ? [body.date]
+      : [];
+
+    if (dates.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Aucune date spécifiée." },
+        { status: 400 }
+      );
+    }
+
+    for (const d of dates) {
+      if (isValidDateString(d)) {
+        await replaceDayUnavailabilities(d, []);
+      }
+    }
+
+    revalidateUnavailabilityRoutes();
+    const list = await getUnavailabilities();
+
+    return NextResponse.json({
+      success: true,
+      unavailabilities: list,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}

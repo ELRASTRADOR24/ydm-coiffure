@@ -30,6 +30,7 @@ import {
 import { getCalendarDayUnavailabilitySummary } from "@/lib/slotMasking";
 import QuickSlotMasker from "./admin/QuickSlotMasker";
 import ProposeDateModal from "./admin/ProposeDateModal";
+import MonthlyScheduleCalendar from "./admin/MonthlyScheduleCalendar";
 
 function buildManualFormDefaults(services, dateStr = getParisDateString()) {
   const svc = services[0] || null;
@@ -82,6 +83,7 @@ export default function AdminCalendarView({
       : Number(initialSettings.maxBookingsPerDay);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayStr, setSelectedDayStr] = useState(() => getParisDateString());
+  const [calendarViewMode, setCalendarViewMode] = useState("schedule"); // "schedule" (1-clic) | "detailed"
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
 
@@ -589,7 +591,52 @@ export default function AdminCalendarView({
         </div>
       </div>
 
-      {/* Month Navigation & Controls */}
+      {/* Onglets de vue : Calendrier 1-clic (Style Alshana's Glow) vs Grille détaillée */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-50 p-2 sm:p-2.5 rounded-2xl border border-stone-200">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setCalendarViewMode("schedule")}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer inline-flex items-center gap-2 ${
+              calendarViewMode === "schedule"
+                ? "bg-brun text-creme shadow-xs"
+                : "text-stone-600 hover:text-brun hover:bg-white"
+            }`}
+          >
+            <span>⚡ Mode 1-Clic : Fermetures &amp; Ouvertures</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCalendarViewMode("detailed")}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer inline-flex items-center gap-2 ${
+              calendarViewMode === "detailed"
+                ? "bg-brun text-creme shadow-xs"
+                : "text-stone-600 hover:text-brun hover:bg-white"
+            }`}
+          >
+            <span>📋 Grille détaillée des réservations</span>
+          </button>
+        </div>
+
+        <p className="text-xs text-stone-500 hidden sm:block pr-2">
+          {calendarViewMode === "schedule"
+            ? "Basculez n'importe quelle journée en 1 clic ou gérez le mois entier."
+            : "Visionnez l'ensemble des clientes et horaires sur chaque case."}
+        </p>
+      </div>
+
+      {calendarViewMode === "schedule" ? (
+        <MonthlyScheduleCalendar
+          availabilities={availabilities}
+          unavailabilities={unavailabilities}
+          bookings={bookings}
+          onUnavailabilitiesChange={setUnavailabilities}
+          onToast={showToast}
+          selectedDayStr={selectedDayStr}
+          onSelectDay={setSelectedDayStr}
+        />
+      ) : (
+      /* Month Navigation & Controls */
       <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200 shadow-sm space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
@@ -769,6 +816,7 @@ export default function AdminCalendarView({
           })}
         </div>
       </div>
+      )}
 
       {/* AGENDA DU JOUR SÉLECTIONNÉ (PANNEAU TACTILE IPAD) */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-2xs space-y-4">

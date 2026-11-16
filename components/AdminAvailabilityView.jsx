@@ -21,6 +21,7 @@ import {
 import { timeToMinutes } from "@/lib/availabilityEngine";
 import { AdminLocationIllustration } from "./admin/AdminVisualGuide";
 import QuickSlotMasker from "./admin/QuickSlotMasker";
+import MonthlyScheduleCalendar from "./admin/MonthlyScheduleCalendar";
 
 function addDaysToDateStr(baseDateStr, offsetDays) {
   if (!isValidDateString(baseDateStr)) return getParisDateString();
@@ -62,8 +63,8 @@ export default function AdminAvailabilityView({
   const tomorrowStr = addDaysToDateStr(todayStr, 1);
   const dayAfterStr = addDaysToDateStr(todayStr, 2);
 
-  // Onglet simplifié : "day" (cocher en 1 tap) ou "range" (congés multi-jours)
-  const [maskTab, setMaskTab] = useState("day");
+  // Onglet : "calendar" (mois 1-clic), "day" (cocher créneaux 1 jour) ou "range" (congés multi-jours)
+  const [maskTab, setMaskTab] = useState("calendar");
   const [selectedMaskDate, setSelectedMaskDate] = useState(todayStr);
   const [vacationRange, setVacationRange] = useState({
     startDate: todayStr,
@@ -352,8 +353,19 @@ export default function AdminAvailabilityView({
             </p>
           </div>
 
-          {/* 2 modes seulement : Cocher 1 jour vs Congés multi-jours */}
+          {/* 3 modes : Calendrier 1-clic (Mois complet), Cocher 1 jour vs Congés multi-jours */}
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setMaskTab("calendar")}
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                maskTab === "calendar"
+                  ? "bg-brun text-creme shadow-xs"
+                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+              }`}
+            >
+              🗓️ Calendrier 1-clic (Mois complet)
+            </button>
             <button
               type="button"
               onClick={() => setMaskTab("day")}
@@ -379,7 +391,15 @@ export default function AdminAvailabilityView({
           </div>
         </div>
 
-        {maskTab === "day" ? (
+        {maskTab === "calendar" ? (
+          <MonthlyScheduleCalendar
+            availabilities={availabilities}
+            unavailabilities={unavailabilities}
+            bookings={bookings}
+            onUnavailabilitiesChange={setUnavailabilities}
+            onToast={showToast}
+          />
+        ) : maskTab === "day" ? (
           <div className="space-y-4">
             {/* Sélecteur rapide de jour */}
             <div className="flex flex-wrap items-center gap-2">
